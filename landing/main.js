@@ -632,8 +632,8 @@ function initUI() {
   );
   document.querySelectorAll("[data-section]").forEach((s) => sectionIO.observe(s));
 
-  /* reveal fallback when scroll-driven animations are unavailable */
-  if (!REDUCED && !CSS.supports("animation-timeline: view()")) {
+  /* reveal sections as they enter the viewport */
+  if (!REDUCED) {
     const io = new IntersectionObserver(
       (entries) => {
         for (const en of entries) {
@@ -672,6 +672,5 @@ function initUI() {
 }
 
 /* ---- boot ---- */
-initHeroGL();
 initDemo();
 initUI();

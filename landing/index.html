@@ -49,8 +49,8 @@
 
       <div class="head-right">
         <span class="chip chip-branch" title="Branch">main</span>
-        <span class="live"><span class="live-dot" aria-hidden="true"></span>local</span>
-        <a class="btn btn-solid" href="#install">Get started</a>
+        <span class="live"><span class="live-dot" aria-hidden="true"></span>local / private</span>
+        <a class="btn btn-solid" href="#install">Get started <span aria-hidden="true">↗</span></a>
       </div>
     </div>
   </header>
@@ -59,8 +59,17 @@
 
     <!-- ============ 01 / hero ============ -->
     <section class="hero" data-section="top">
-      <canvas id="gl" aria-hidden="true"></canvas>
-      <div class="hero-grid-fallback" aria-hidden="true"></div>
+      <div class="hero-instrument" aria-hidden="true">
+        <span class="instrument-arc arc-outer"></span>
+        <span class="instrument-arc arc-inner"></span>
+        <span class="instrument-axis axis-x"></span>
+        <span class="instrument-axis axis-y"></span>
+        <span class="instrument-cross">+</span>
+        <span class="instrument-degree degree-30">30</span>
+        <span class="instrument-degree degree-60">60</span>
+        <span class="instrument-degree degree-90">90</span>
+        <span class="instrument-wordmark">HQ</span>
+      </div>
 
       <div class="hero-inner">
         <p class="micro reveal">01 / Local-first workflow observatory</p>
@@ -71,9 +80,8 @@
         </h1>
 
         <p class="hero-sub reveal">
-          HQ turns your coding agent's understanding into a living, interactive map of your
-          system's real workflows — every step sourced, every edge case traced, every claim
-          validated against the code. Rendered in your browser. Never leaving your machine.
+          Turn your coding agent's understanding into a living map of real workflows — sourced,
+          validated, and rendered entirely on your machine.
         </p>
 
         <div class="hero-cta reveal">
@@ -85,7 +93,8 @@
               <span>copy</span>
             </button>
           </div>
-          <p class="hero-meta micro">node ≥ 20 · zero network calls · system fonts only</p>
+          <p class="hero-trust"><strong>Runs locally.</strong> Your code stays with you.</p>
+          <p class="hero-meta micro">no cloud · no telemetry · no lock-in</p>
         </div>
       </div>
 
