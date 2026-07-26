@@ -5,6 +5,6 @@
     "jsx": "react-jsx",
     "types": []
   },
-  "include": ["src/schema/**/*", "src/web/**/*"],
+  "include": ["src/schema/**/*", "src/web/**/*", "tests/unit/web/**/*"],
   "exclude": ["node_modules", "dist"]
 }

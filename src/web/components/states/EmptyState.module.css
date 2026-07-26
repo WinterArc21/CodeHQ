@@ -1,0 +1,10 @@
+.actionRow {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.actionError {
+  font-size: var(--fs-micro);
+  color: var(--accent-red);
+}

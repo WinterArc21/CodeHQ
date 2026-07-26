@@ -1,0 +1,32 @@
+.layout {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  gap: var(--space-3);
+}
+
+.pulse {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background-color: var(--accent-blue);
+  animation: pulse calc(var(--dur-slow) * 6) var(--ease-standard) infinite;
+}
+
+@keyframes pulse {
+  0%,
+  100% {
+    opacity: 0.3;
+  }
+  50% {
+    opacity: 1;
+  }
+}
+
+.label {
+  font-family: var(--font-mono);
+  font-size: var(--fs-tiny);
+  color: var(--text-tertiary);
+}

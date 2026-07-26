@@ -1,0 +1,14 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "observatory-web-fixture",
+      "runtimeExecutable": "pnpm",
+      "runtimeArgs": ["exec", "vite"],
+      "port": 5173,
+      "env": {
+        "VITE_OBSERVATORY_FIXTURE": "1"
+      }
+    }
+  ]
+}

@@ -17,6 +17,12 @@ export default defineConfig({
       "@web": webAlias,
     },
   },
+  // Lets the "web" project's .tsx test files use the automatic JSX runtime (matching
+  // tsconfig.web.json's "jsx": "react-jsx") without needing React in scope. Harmless for the
+  // "node" project, which has no .tsx files to transform.
+  esbuild: {
+    jsx: "automatic",
+  },
   test: {
     exclude: ["tests/e2e/**", "node_modules/**", "dist/**"],
     // Split by environment: schema/core/server/cli tests run under plain Node, anything
@@ -38,6 +44,7 @@ export default defineConfig({
           environment: "jsdom",
           include: WEB_TEST_GLOBS,
           exclude: ["tests/e2e/**", "node_modules/**", "dist/**"],
+          setupFiles: ["./tests/unit/web/setup.ts"],
         },
       },
     ],

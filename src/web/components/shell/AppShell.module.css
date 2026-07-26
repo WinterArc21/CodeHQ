@@ -1,0 +1,67 @@
+.shell {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  height: 100vh;
+  overflow: hidden;
+}
+
+.rail {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-5);
+  width: 28px;
+  padding-top: var(--space-4);
+  border-right: 1px solid var(--border-subtle);
+  background-color: var(--bg-inset);
+}
+
+.railMarker {
+  font-family: var(--font-mono);
+  font-size: var(--fs-micro);
+  color: var(--text-tertiary);
+  writing-mode: vertical-rl;
+  letter-spacing: 0.08em;
+}
+
+.frame {
+  display: grid;
+  grid-template-rows: auto 1fr;
+  min-width: 0;
+  min-height: 0;
+}
+
+.top {
+  border-bottom: 1px solid var(--border-subtle);
+  flex-shrink: 0;
+}
+
+.body {
+  display: grid;
+  grid-template-columns: 280px 1fr;
+  min-width: 0;
+  min-height: 0;
+}
+
+.aside {
+  border-right: 1px solid var(--border-subtle);
+  overflow-y: auto;
+  min-width: 0;
+  min-height: 0;
+}
+
+.main {
+  overflow: auto;
+  min-width: 0;
+  min-height: 0;
+}
+
+@media (max-width: 1024px) {
+  .rail {
+    display: none;
+  }
+
+  .body {
+    grid-template-columns: 240px 1fr;
+  }
+}

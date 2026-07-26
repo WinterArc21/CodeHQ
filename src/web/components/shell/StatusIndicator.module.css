@@ -1,0 +1,32 @@
+.indicator {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  font-family: var(--font-ui);
+  font-size: var(--fs-tiny);
+}
+
+.dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background-color: currentColor;
+  flex-shrink: 0;
+}
+
+.label {
+  color: var(--text-secondary);
+  white-space: nowrap;
+}
+
+.green {
+  color: var(--accent-green);
+}
+
+.amber {
+  color: var(--accent-amber);
+}
+
+.red {
+  color: var(--accent-red);
+}

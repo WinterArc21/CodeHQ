@@ -1,0 +1,23 @@
+.navigator {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  min-height: 0;
+}
+
+.header {
+  flex-shrink: 0;
+  padding: var(--space-4) var(--space-4) var(--space-2);
+}
+
+.list {
+  flex: 1;
+  overflow-y: auto;
+  min-height: 0;
+}
+
+.empty {
+  padding: var(--space-4);
+  font-size: var(--fs-tiny);
+  color: var(--text-tertiary);
+}

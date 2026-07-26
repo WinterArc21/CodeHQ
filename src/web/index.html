@@ -1,0 +1,31 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Code Observatory</title>
+    <script>
+      // Applies the saved theme before first paint to avoid a flash of the wrong theme.
+      // Best-effort only: any failure (storage disabled, corrupt value) just keeps the
+      // default dark theme, so it is deliberately swallowed rather than surfaced.
+      (function () {
+        try {
+          var raw = window.localStorage.getItem("code-observatory.ui");
+          if (raw) {
+            var parsed = JSON.parse(raw);
+            var theme = parsed && parsed.state && parsed.state.theme;
+            if (theme === "light" || theme === "dark") {
+              document.documentElement.setAttribute("data-theme", theme);
+            }
+          }
+        } catch (error) {
+          // Storage unavailable or corrupt: fall back to the default (dark) theme.
+        }
+      })();
+    </script>
+  </head>
+  <body>
+    <div id="root"></div>
+    <script type="module" src="/main.tsx"></script>
+  </body>
+</html>

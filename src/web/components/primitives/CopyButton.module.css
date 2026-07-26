@@ -1,0 +1,14 @@
+.status {
+  margin-left: var(--space-2);
+  font-family: var(--font-ui);
+  font-size: var(--fs-tiny);
+  color: var(--text-tertiary);
+}
+
+.copied {
+  color: var(--accent-green);
+}
+
+.failed {
+  color: var(--accent-red);
+}

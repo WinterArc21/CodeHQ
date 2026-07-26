@@ -1,0 +1,106 @@
+import { useEffect, useState } from "react";
+import { recheck } from "./api/client";
+import { useObservatorySnapshot } from "./api/events";
+import { AppShell, TopBar, type ObservatoryStatus } from "./components/shell";
+import { WorkflowNavigator } from "./components/navigator";
+import { EmptyState, ErrorState, LoadingState, UninitializedState } from "./components/states";
+import { DiagnosticsBanner } from "./components/diagnostics";
+import { StepsPreview } from "./components/StepsPreview";
+import { EXAMPLE_WORKFLOW } from "./design/exampleWorkflow";
+import { useObservatoryStore } from "./store/useObservatoryStore";
+
+function computeConnectionStatus(
+  diagnosticsValid: boolean,
+  hasStaleWorkflow: boolean,
+  hookStatus: "loading" | "ready" | "error" | "disconnected",
+): ObservatoryStatus {
+  if (!diagnosticsValid) {
+    return "invalid";
+  }
+  if (hookStatus === "disconnected") {
+    return "disconnected";
+  }
+  return hasStaleWorkflow ? "stale" : "live";
+}
+
+export function App() {
+  const { snapshot, status, error, refetch } = useObservatorySnapshot();
+
+  const selectedWorkflowId = useObservatoryStore((state) => state.selectedWorkflowId);
+  const selectWorkflow = useObservatoryStore((state) => state.selectWorkflow);
+  const openSearch = useObservatoryStore((state) => state.openSearch);
+  const toggleDiagnostics = useObservatoryStore((state) => state.toggleDiagnostics);
+
+  const [showExample, setShowExample] = useState(false);
+
+  useEffect(() => {
+    if (snapshot === null) {
+      return;
+    }
+    const knownIds = new Set(snapshot.workflows.map((record) => record.id));
+    if (selectedWorkflowId !== null && knownIds.has(selectedWorkflowId)) {
+      return;
+    }
+    const defaultId = snapshot.project?.settings?.defaultWorkflowId;
+    const nextId = defaultId !== undefined && knownIds.has(defaultId) ? defaultId : snapshot.workflows[0]?.id;
+    if (nextId !== undefined) {
+      selectWorkflow(nextId);
+    }
+  }, [snapshot, selectedWorkflowId, selectWorkflow]);
+
+  if (snapshot === null) {
+    if (status === "error") {
+      return <ErrorState message={error ?? "Unable to reach the Code Observatory server."} onRetry={refetch} />;
+    }
+    return <LoadingState />;
+  }
+
+  if (snapshot.status === "uninitialized") {
+    return <UninitializedState />;
+  }
+
+  const hasStaleWorkflow = snapshot.workflows.some((record) => record.state === "stale");
+  const connectionStatus = computeConnectionStatus(snapshot.diagnostics.valid, hasStaleWorkflow, status);
+  const errorCount = snapshot.diagnostics.issues.filter((issue) => issue.severity === "error").length;
+
+  const selectedRecord = snapshot.workflows.find((record) => record.id === selectedWorkflowId) ?? null;
+  const displayedWorkflow = showExample ? EXAMPLE_WORKFLOW : (selectedRecord?.workflow ?? null);
+
+  const handleSelect = (workflowId: string): void => {
+    setShowExample(false);
+    selectWorkflow(workflowId);
+  };
+
+  const handleRecheck = async (): Promise<void> => {
+    await recheck();
+    refetch();
+  };
+
+  return (
+    <AppShell
+      topBar={
+        <TopBar
+          repositoryName={snapshot.repository.name}
+          {...(snapshot.project !== null ? { schemaVersion: snapshot.project.schemaVersion } : {})}
+          status={connectionStatus}
+          {...(connectionStatus === "invalid" ? { errorCount } : {})}
+          onOpenSearch={openSearch}
+        />
+      }
+      aside={
+        <WorkflowNavigator
+          workflows={snapshot.workflows}
+          selectedWorkflowId={showExample ? null : selectedWorkflowId}
+          onSelect={handleSelect}
+        />
+      }
+    >
+      <DiagnosticsBanner diagnostics={snapshot.diagnostics} onOpenDiagnostics={toggleDiagnostics} />
+      {displayedWorkflow !== null ? (
+        <StepsPreview workflow={displayedWorkflow} />
+      ) : (
+        <EmptyState onShowExample={() => setShowExample(true)} onRecheck={handleRecheck} />
+      )}
+    </AppShell>
+  );
+}

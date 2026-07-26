@@ -1,0 +1,57 @@
+.badge {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1);
+  padding: 1px var(--space-2);
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border-subtle);
+  font-family: var(--font-ui);
+  font-size: var(--fs-micro);
+  font-weight: 500;
+  letter-spacing: 0.02em;
+  line-height: var(--lh-tight);
+  color: var(--text-secondary);
+  background-color: var(--bg-raised);
+  white-space: nowrap;
+}
+
+.dashed {
+  border-style: dashed;
+}
+
+.dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background-color: currentColor;
+  flex-shrink: 0;
+}
+
+.neutral {
+  color: var(--text-secondary);
+}
+
+.blue {
+  color: var(--accent-blue);
+  border-color: color-mix(in srgb, var(--accent-blue) 40%, transparent);
+}
+
+.green {
+  color: var(--accent-green);
+  border-color: color-mix(in srgb, var(--accent-green) 40%, transparent);
+}
+
+.amber {
+  color: var(--accent-amber);
+  border-color: color-mix(in srgb, var(--accent-amber) 40%, transparent);
+}
+
+.red {
+  color: var(--accent-red);
+  border-color: color-mix(in srgb, var(--accent-red) 40%, transparent);
+}
+
+.violet {
+  color: var(--accent-violet);
+  border-color: color-mix(in srgb, var(--accent-violet) 40%, transparent);
+}

@@ -40,6 +40,9 @@
   "devDependencies": {
     "@phosphor-icons/react": "^2.1.10",
     "@playwright/test": "^1.62.0",
+    "@testing-library/jest-dom": "^7.0.0",
+    "@testing-library/react": "^16.3.2",
+    "@testing-library/user-event": "^14.6.1",
     "@types/dagre": "^0.7.54",
     "@types/node": "^26.1.1",
     "@types/react": "^19.2.17",
