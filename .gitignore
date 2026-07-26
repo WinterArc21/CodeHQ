@@ -1,0 +1,8 @@
+node_modules
+dist
+coverage
+.vite
+playwright-report
+test-results
+*.local
+.observatory/.runtime/

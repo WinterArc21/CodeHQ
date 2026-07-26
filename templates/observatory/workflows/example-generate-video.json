@@ -1,0 +1,137 @@
+{
+  "schemaVersion": "0.1",
+  "id": "generate-video",
+  "name": "Generate Video Prompt",
+  "purpose": "Turns a submitted website into a structured video-generation prompt.",
+  "status": "verified",
+  "entryPoint": { "file": "app/api/generate/route.ts", "symbol": "POST" },
+  "steps": [
+    {
+      "id": "receive-request",
+      "name": "Receive Request",
+      "purpose": "Accepts the website URL, optional references, and generation settings.",
+      "category": "entry",
+      "confidence": "verified",
+      "sources": [{ "file": "app/api/generate/route.ts", "symbol": "POST", "line": 12, "endLine": 34 }],
+      "outputs": [{ "name": "GenerateRequest" }],
+      "tests": [
+        { "file": "tests/integration/api/generate.test.ts", "symbol": "accepts a valid generation request", "status": "passing" }
+      ]
+    },
+    {
+      "id": "validate-request",
+      "name": "Validate Request",
+      "purpose": "Checks URLs, uploaded assets, access limits, and required fields.",
+      "category": "decision",
+      "confidence": "verified",
+      "sources": [{ "file": "lib/validation.ts", "symbol": "validateGenerateRequest", "line": 8, "endLine": 41 }],
+      "inputs": [{ "name": "GenerateRequest" }],
+      "outputs": [{ "name": "ValidatedRequest" }],
+      "edgeCases": [
+        {
+          "name": "Invalid website URL",
+          "description": "The submitted URL is malformed or unreachable.",
+          "handling": "Reject the request with a validation error.",
+          "confidence": "verified",
+          "sources": [{ "file": "lib/validation.ts", "symbol": "validateGenerateRequest", "line": 15, "endLine": 22 }]
+        },
+        {
+          "name": "Uploaded asset exceeds size limit",
+          "description": "A reference image or document is larger than the configured maximum.",
+          "handling": "Reject the affected asset before scraping begins.",
+          "confidence": "verified"
+        },
+        {
+          "name": "Account has exceeded monthly generation quota",
+          "description": "Free-tier accounts are limited to a fixed number of generations per month.",
+          "handling": "Returns a 429 with the quota reset date.",
+          "confidence": "inferred"
+        }
+      ],
+      "tests": [
+        { "file": "tests/unit/lib/validation.test.ts", "status": "passing" }
+      ]
+    },
+    {
+      "id": "scrape-website",
+      "name": "Scrape Website",
+      "purpose": "Fetches the submitted pages and extracts useful text, metadata, and images.",
+      "category": "logic",
+      "confidence": "verified",
+      "sources": [{ "file": "lib/scraper.ts", "symbol": "scrapeWebsite", "line": 10, "endLine": 58 }],
+      "inputs": [{ "name": "ValidatedRequest" }],
+      "outputs": [{ "name": "ScrapedWebsite" }],
+      "externalServices": [
+        { "name": "Headless Browser Service", "purpose": "Renders JavaScript-heavy pages before extraction.", "operation": "POST /render" }
+      ],
+      "edgeCases": [
+        {
+          "name": "Website blocks automated requests",
+          "handling": "Job is marked failed and the user is notified.",
+          "confidence": "inferred"
+        }
+      ]
+    },
+    {
+      "id": "understand-product",
+      "name": "Understand Product",
+      "purpose": "Converts scraped website material into a structured product model.",
+      "category": "logic",
+      "confidence": "inferred",
+      "sources": [{ "file": "lib/productModel.ts", "symbol": "buildProductContext", "line": 6, "endLine": 45 }],
+      "inputs": [{ "name": "ScrapedWebsite" }],
+      "outputs": [{ "name": "ProductContext" }],
+      "details": {
+        "implementation": "Summarizes scraped text and images into a structured product description using heuristics over the extracted metadata.",
+        "importantDecisions": ["Product name is taken from the page title when no explicit product name is found."],
+        "assumptions": ["The first scraped page is representative of the overall product."]
+      }
+    },
+    {
+      "id": "generate-story",
+      "name": "Generate Story",
+      "purpose": "Creates the narrative structure and visual direction for the video.",
+      "category": "logic",
+      "sources": [{ "file": "lib/storyPlanner.ts", "symbol": "generateStoryPlan", "line": 14, "endLine": 70 }],
+      "inputs": [{ "name": "ProductContext" }],
+      "outputs": [{ "name": "StoryPlan" }]
+    },
+    {
+      "id": "save-result",
+      "name": "Save Result",
+      "purpose": "Stores the generated plan and returns it to the user.",
+      "category": "output",
+      "confidence": "verified",
+      "sources": [{ "file": "app/api/generate/route.ts", "symbol": "POST", "line": 36, "endLine": 48 }],
+      "inputs": [{ "name": "StoryPlan" }],
+      "tests": [
+        { "file": "tests/integration/api/generate.test.ts", "symbol": "returns the generated story plan", "status": "passing" }
+      ]
+    }
+  ],
+  "connections": [
+    { "from": "receive-request", "to": "validate-request" },
+    { "from": "validate-request", "to": "scrape-website", "type": "success" },
+    {
+      "from": "validate-request",
+      "to": "save-result",
+      "type": "failure",
+      "label": "rejected",
+      "condition": "URL, asset, or quota validation fails."
+    },
+    { "from": "scrape-website", "to": "understand-product", "type": "success" },
+    {
+      "from": "scrape-website",
+      "to": "save-result",
+      "type": "conditional",
+      "label": "scrape failed",
+      "condition": "The website could not be scraped after retries."
+    },
+    { "from": "understand-product", "to": "generate-story" },
+    { "from": "generate-story", "to": "save-result" }
+  ],
+  "notes": [
+    "This is an example workflow shipped with Code Observatory to demonstrate the schema; it is not a real workflow for any project.",
+    "Reproduced and extended from the Code Observatory product brief."
+  ]
+}

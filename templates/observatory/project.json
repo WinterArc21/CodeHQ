@@ -1,0 +1,10 @@
+{
+  "schemaVersion": "0.1",
+  "project": {
+    "id": "__PROJECT_ID__",
+    "name": "__PROJECT_NAME__"
+  },
+  "settings": {
+    "sourceLinkMode": "editor"
+  }
+}

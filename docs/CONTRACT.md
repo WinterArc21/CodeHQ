@@ -22,6 +22,7 @@ workflow canvas in the browser. **Observatory contains no LLM and never uploads 
 |---|---|
 | Language | TypeScript, strict, ESM (`"type": "module"`) |
 | Package layout | **Single package**, no monorepo, no workspaces |
+| Closed enums | Never widen an enum to `string` "to be safe". A closed set is the contract. |
 | Node build | `tsup` (esbuild bundling). `tsc` is used **only** for `--noEmit` typecheck |
 | Web build | Vite 7 + React 19 |
 | Server | Fastify 5 |
@@ -33,7 +34,7 @@ workflow canvas in the browser. **Observatory contains no LLM and never uploads 
 | Unit tests | Vitest |
 | Browser tests | Playwright |
 | CLI | `commander` |
-| Package manager | npm |
+| Package manager | **pnpm** (`packageManager` field pinned; lockfile is `pnpm-lock.yaml`) |
 | Node engine | `>=20` |
 | Web fonts | **None downloaded.** System font stacks only (offline-first) |
 
@@ -112,7 +113,10 @@ followed literally. Summary:
 
 - `ObservatoryProject` — `schemaVersion: "0.1"`, `project { id, name, description? }`,
   `settings? { defaultWorkflowId?, sourceLinkMode?: "editor"|"github"|"none" }`
-- `Workflow` — `schemaVersion, id, name, purpose, entryPoint?, status?, steps[], connections[], notes?`
+- `Workflow` — `schemaVersion: "0.1"`, `id`, `name`, `purpose`,
+  `entryPoint?: SourceReference` (**an object, not a string**),
+  `status?: "draft" | "verified" | "needs-review"` (**a closed enum**),
+  `steps[]`, `connections[]`, `notes?: string[]` (**an array of strings**)
 - `WorkflowStep` — `id, name, purpose, category?, confidence?, sources?, inputs?, outputs?,
   edgeCases?, tests?, externalServices?, details? { implementation?, importantDecisions?, assumptions? }`
 - `WorkflowConnection` — `id?, from, to, label?, condition?, type?: "success"|"failure"|"conditional"|"async"`
@@ -388,7 +392,7 @@ drag-only interactions, works down to 1024px width.
 - No magic numbers or colours in components — tokens only.
 - Comments only where the logic is non-obvious. No comment restating the code.
 - Every exported function in `schema`/`core` has a precise TS signature.
-- `npm run typecheck`, `npm run lint`, `npm test` must pass before you report done.
+- `pnpm typecheck`, `pnpm lint`, `pnpm test` must pass before you report done.
 
 ---
 
