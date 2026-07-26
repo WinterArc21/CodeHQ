@@ -1,0 +1,120 @@
+{
+  "schemaVersion": "0.1",
+  "id": "upload-assets",
+  "name": "Upload Reference Asset",
+  "purpose": "Accepts a reference image or document to attach to a future video generation.",
+  "status": "needs-review",
+  "entryPoint": { "file": "app/api/upload/route.ts", "symbol": "POST" },
+  "steps": [
+    {
+      "id": "receive-upload",
+      "name": "Receive Upload",
+      "purpose": "Accepts a multipart file upload.",
+      "category": "entry",
+      "confidence": "verified",
+      "sources": [{ "file": "app/api/upload/route.ts", "symbol": "POST" }],
+      "outputs": [{ "name": "UploadedFile", "type": "File" }]
+    },
+    {
+      "id": "validate-file",
+      "name": "Validate File",
+      "purpose": "Checks that a file was provided, its content type is supported, and it is under the size limit.",
+      "category": "decision",
+      "confidence": "verified",
+      "sources": [{ "file": "app/api/upload/route.ts", "symbol": "POST" }],
+      "inputs": [{ "name": "UploadedFile" }],
+      "edgeCases": [
+        {
+          "name": "No file field",
+          "description": "The multipart body does not contain a 'file' field.",
+          "handling": "Returns a 400.",
+          "confidence": "verified",
+          "sources": [{ "file": "app/api/upload/route.ts", "symbol": "POST" }]
+        },
+        {
+          "name": "Unsupported content type",
+          "description": "The file is not a PNG, JPEG, WebP, or PDF.",
+          "handling": "Returns a 415.",
+          "confidence": "verified"
+        },
+        {
+          "name": "File too large",
+          "description": "The file exceeds the 10MB limit.",
+          "handling": "Returns a 413.",
+          "confidence": "verified"
+        }
+      ],
+      "tests": [
+        { "file": "tests/integration/api/upload.test.ts", "symbol": "rejects a request with no file field", "status": "passing" }
+      ]
+    },
+    {
+      "id": "scan-for-malware",
+      "name": "Scan For Malware",
+      "purpose": "Scans the uploaded file before it is persisted.",
+      "category": "external",
+      "confidence": "inferred",
+      "sources": [{ "file": "lib/malware-scan.ts", "symbol": "scanFile" }],
+      "externalServices": [
+        {
+          "name": "Malware Scanning Service",
+          "purpose": "Scans uploaded files for known malware signatures before they are stored.",
+          "operation": "POST /scan"
+        }
+      ],
+      "details": {
+        "assumptions": [
+          "This step is inferred from the upload flow's shape; the scanning module itself was not found in this repository snapshot and may not have been implemented yet."
+        ]
+      }
+    },
+    {
+      "id": "persist-asset",
+      "name": "Persist Asset",
+      "purpose": "Stores the asset's metadata and returns it to the caller.",
+      "category": "output",
+      "confidence": "verified",
+      "sources": [
+        { "file": "lib/persistence.ts", "symbol": "saveAsset" },
+        { "file": "app/api/upload/route.ts", "symbol": "POST" }
+      ],
+      "outputs": [{ "name": "UploadedAsset" }]
+    },
+    {
+      "id": "reject-upload",
+      "name": "Reject Upload",
+      "purpose": "Returns an error response for any failed validation or scan step above.",
+      "category": "output",
+      "confidence": "verified",
+      "sources": [{ "file": "app/api/upload/route.ts", "symbol": "POST" }]
+    }
+  ],
+  "connections": [
+    { "from": "receive-upload", "to": "validate-file" },
+    { "from": "validate-file", "to": "scan-for-malware", "type": "success" },
+    {
+      "from": "validate-file",
+      "to": "reject-upload",
+      "type": "failure",
+      "label": "invalid",
+      "condition": "Missing file, unsupported content type, or file too large."
+    },
+    {
+      "from": "scan-for-malware",
+      "to": "persist-asset",
+      "type": "conditional",
+      "label": "clean",
+      "condition": "Scan reports no malware."
+    },
+    {
+      "from": "scan-for-malware",
+      "to": "reject-upload",
+      "type": "conditional",
+      "label": "flagged",
+      "condition": "Scan reports malware."
+    }
+  ],
+  "notes": [
+    "The malware-scanning step is inferred and its source file does not exist yet in this fixture — this is intentional, to demonstrate an honest 'missing source' diagnostic."
+  ]
+}

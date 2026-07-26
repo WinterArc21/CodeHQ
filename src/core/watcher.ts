@@ -1,0 +1,75 @@
+/**
+ * Watches `.observatory/` for changes and debounces them into a single reload signal.
+ *
+ * NOTE ON VERSION: the contract specifies Chokidar 4, but the package actually installed
+ * (and pinned in package.json) is Chokidar 5.0.0. This module targets the real, installed
+ * v5 API, which is a near-superset of v4 for the options used here (`ignored` as a
+ * function, `awaitWriteFinish`) — see the final report for details.
+ */
+
+import { watch, type FSWatcher } from "chokidar";
+import path from "node:path";
+
+const STABILITY_THRESHOLD_MS = 120;
+const POLL_INTERVAL_MS = 20;
+const DEBOUNCE_MS = 80;
+
+export interface ObservatoryWatcher {
+  close(): Promise<void>;
+}
+
+export interface WatcherCallbacks {
+  onChange(): void;
+  onError(error: Error): void;
+}
+
+/** Ignore diagnostics.json (we write it), `*.tmp` (atomic-write staging files), and `.runtime/`. */
+function isIgnoredPath(filePath: string): boolean {
+  const base = path.basename(filePath);
+  if (base === "diagnostics.json" || base.endsWith(".tmp")) {
+    return true;
+  }
+  return filePath.split(path.sep).includes(".runtime");
+}
+
+/**
+ * Watches `observatoryDir` (non-recursive concerns are chokidar's problem, not ours) and
+ * calls `onChange` at most once per ~80ms burst, after chokidar's own `awaitWriteFinish`
+ * has let a partial agent write settle for ~120ms. Watcher errors are surfaced via
+ * `onError`, never swallowed.
+ */
+export function watchObservatory(observatoryDir: string, callbacks: WatcherCallbacks): ObservatoryWatcher {
+  const watcher: FSWatcher = watch(observatoryDir, {
+    ignoreInitial: true,
+    ignored: (filePath: string) => isIgnoredPath(filePath),
+    awaitWriteFinish: { stabilityThreshold: STABILITY_THRESHOLD_MS, pollInterval: POLL_INTERVAL_MS },
+  });
+
+  let debounceHandle: NodeJS.Timeout | null = null;
+  const scheduleChange = (): void => {
+    if (debounceHandle !== null) {
+      clearTimeout(debounceHandle);
+    }
+    debounceHandle = setTimeout(() => {
+      debounceHandle = null;
+      callbacks.onChange();
+    }, DEBOUNCE_MS);
+  };
+
+  watcher.on("add", scheduleChange);
+  watcher.on("change", scheduleChange);
+  watcher.on("unlink", scheduleChange);
+  watcher.on("error", (error: unknown) => {
+    callbacks.onError(error instanceof Error ? error : new Error(String(error)));
+  });
+
+  return {
+    close: async (): Promise<void> => {
+      if (debounceHandle !== null) {
+        clearTimeout(debounceHandle);
+        debounceHandle = null;
+      }
+      await watcher.close();
+    },
+  };
+}

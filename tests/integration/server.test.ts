@@ -1,0 +1,227 @@
+import { createServer } from "node:net";
+import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
+import { tmpdir } from "node:os";
+import path from "node:path";
+import { afterAll, afterEach, beforeAll, describe, expect, it } from "vitest";
+import { createObservatoryServer, findAvailablePort, type ObservatoryServer } from "@server/app";
+import type { RevealImpl } from "@server/reveal";
+
+let root: string;
+let server: ObservatoryServer | null = null;
+
+beforeAll(() => {
+  root = mkdtempSync(path.join(tmpdir(), "observatory-server-"));
+  const workflowsDir = path.join(root, ".observatory", "workflows");
+  mkdirSync(workflowsDir, { recursive: true });
+  writeFileSync(path.join(root, "real-source.ts"), "export function realFunction() {}\n");
+  writeFileSync(
+    path.join(root, ".observatory", "project.json"),
+    JSON.stringify({
+      schemaVersion: "0.1",
+      project: { id: "fixture", name: "Fixture Project" },
+      settings: { defaultWorkflowId: "sample" },
+    }),
+  );
+  writeFileSync(
+    path.join(workflowsDir, "sample.json"),
+    JSON.stringify({
+      schemaVersion: "0.1",
+      id: "sample",
+      name: "Sample",
+      purpose: "A sample workflow.",
+      entryPoint: { file: "real-source.ts", symbol: "realFunction" },
+      steps: [
+        {
+          id: "step-1",
+          name: "Step 1",
+          purpose: "Does the thing.",
+          category: "entry",
+          sources: [{ file: "real-source.ts", symbol: "realFunction" }],
+        },
+      ],
+      connections: [],
+    }),
+  );
+});
+
+afterAll(() => {
+  rmSync(root, { recursive: true, force: true });
+});
+
+afterEach(async () => {
+  if (server !== null) {
+    await server.close();
+    server = null;
+  }
+});
+
+async function startServer(revealImpl?: RevealImpl): Promise<ObservatoryServer> {
+  server = await createObservatoryServer({
+    root,
+    port: 0,
+    serveWeb: false,
+    ...(revealImpl !== undefined ? { revealImpl } : {}),
+  });
+  return server;
+}
+
+describe("createObservatoryServer — endpoint shapes", () => {
+  it("GET /api/state returns the full snapshot", async () => {
+    const running = await startServer();
+    const response = await fetch(`${running.url}/api/state`);
+    expect(response.status).toBe(200);
+    const body = (await response.json()) as { status: string; workflows: unknown[]; project: unknown };
+    expect(body.status).toBe("ready");
+    expect(body.workflows).toHaveLength(1);
+    expect(body.project).not.toBeNull();
+  });
+
+  it("GET /api/project returns the project", async () => {
+    const running = await startServer();
+    const response = await fetch(`${running.url}/api/project`);
+    const body = (await response.json()) as { project: { id: string } } | { id: string };
+    expect(JSON.stringify(body)).toContain("fixture");
+  });
+
+  it("GET /api/workflows returns the workflow list", async () => {
+    const running = await startServer();
+    const response = await fetch(`${running.url}/api/workflows`);
+    const body = (await response.json()) as Array<{ id: string; state: string }>;
+    expect(body).toHaveLength(1);
+    expect(body[0]?.id).toBe("sample");
+    expect(body[0]?.state).toBe("valid");
+  });
+
+  it("GET /api/workflows/:id returns 200 for a known id and 404 for an unknown one", async () => {
+    const running = await startServer();
+    const ok = await fetch(`${running.url}/api/workflows/sample`);
+    expect(ok.status).toBe(200);
+
+    const missing = await fetch(`${running.url}/api/workflows/does-not-exist`);
+    expect(missing.status).toBe(404);
+  });
+
+  it("GET /api/diagnostics returns a valid, error-free report", async () => {
+    const running = await startServer();
+    const response = await fetch(`${running.url}/api/diagnostics`);
+    const body = (await response.json()) as { valid: boolean; issues: unknown[] };
+    expect(body.valid).toBe(true);
+  });
+
+  it("POST /api/recheck forces a reload and returns the fresh snapshot", async () => {
+    const running = await startServer();
+    const response = await fetch(`${running.url}/api/recheck`, { method: "POST" });
+    expect(response.status).toBe(200);
+    const body = (await response.json()) as { generatedAt: string };
+    expect(typeof body.generatedAt).toBe("string");
+  });
+});
+
+describe("createObservatoryServer — /api/source", () => {
+  it("returns metadata only, and never file contents, for a real file", async () => {
+    const running = await startServer();
+    const response = await fetch(`${running.url}/api/source?file=real-source.ts&line=1`);
+    expect(response.status).toBe(200);
+    const body = (await response.json()) as { file: string; exists: boolean; editorUrl: string; absolutePath: string };
+    expect(body.exists).toBe(true);
+    expect(body.editorUrl).toMatch(/^vscode:\/\/file\//);
+    expect(body.editorUrl).toContain(":1");
+    expect(JSON.stringify(body)).not.toContain("realFunction() {}");
+  });
+
+  it("rejects a traversal attempt with 400", async () => {
+    const running = await startServer();
+    const response = await fetch(`${running.url}/api/source?file=${encodeURIComponent("../../etc/passwd")}`);
+    expect(response.status).toBe(400);
+    const body = (await response.text()) as string;
+    expect(body).not.toContain("root:");
+  });
+
+  it("rejects an absolute path with 400", async () => {
+    const running = await startServer();
+    const response = await fetch(`${running.url}/api/source?file=${encodeURIComponent("/etc/passwd")}`);
+    expect(response.status).toBe(400);
+  });
+
+  it("rejects an unknown query parameter with 400", async () => {
+    const running = await startServer();
+    const response = await fetch(`${running.url}/api/source?file=real-source.ts&bogus=1`);
+    expect(response.status).toBe(400);
+  });
+});
+
+describe("createObservatoryServer — /api/reveal", () => {
+  it("uses the injected revealImpl and never spawns a real process", async () => {
+    const calls: string[] = [];
+    const fakeReveal: RevealImpl = async (absolutePath) => {
+      calls.push(absolutePath);
+    };
+    const running = await startServer(fakeReveal);
+
+    const response = await fetch(`${running.url}/api/reveal`, {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ target: "observatory" }),
+    });
+
+    expect(response.status).toBe(200);
+    const body = (await response.json()) as { revealed: boolean };
+    expect(body.revealed).toBe(true);
+    expect(calls).toHaveLength(1);
+    expect(calls[0]).toContain(".observatory");
+  });
+
+  it("rejects an unknown target with 400", async () => {
+    const running = await startServer(async () => {});
+    const response = await fetch(`${running.url}/api/reveal`, {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ target: "not-a-real-target" }),
+    });
+    expect(response.status).toBe(400);
+  });
+
+  it("returns 500 with a reason when revealImpl throws", async () => {
+    const failingReveal: RevealImpl = async () => {
+      throw new Error("no file manager available");
+    };
+    const running = await startServer(failingReveal);
+    const response = await fetch(`${running.url}/api/reveal`, {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ target: "skill" }),
+    });
+    expect(response.status).toBe(500);
+    const body = (await response.json()) as { revealed: boolean; reason: string };
+    expect(body.revealed).toBe(false);
+    expect(body.reason).toContain("no file manager available");
+  });
+});
+
+describe("findAvailablePort", () => {
+  it("skips a port that is already bound", async () => {
+    const blocker = createServer();
+    await new Promise<void>((resolve) => blocker.listen(0, "127.0.0.1", resolve));
+    const address = blocker.address();
+    const blockedPort = typeof address === "object" && address !== null ? address.port : 0;
+
+    try {
+      const found = await findAvailablePort(blockedPort, "127.0.0.1", 5);
+      expect(found).not.toBe(blockedPort);
+    } finally {
+      await new Promise<void>((resolve) => blocker.close(() => resolve()));
+    }
+  });
+});
+
+describe("createObservatoryServer — lifecycle", () => {
+  it("closes cleanly", async () => {
+    const running = await startServer();
+    await expect(running.close()).resolves.toBeUndefined();
+    server = null;
+  });
+
+  it("never binds 0.0.0.0", async () => {
+    await expect(createObservatoryServer({ root, host: "0.0.0.0" })).rejects.toThrow(/0\.0\.0\.0/);
+  });
+});
