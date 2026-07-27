@@ -5,6 +5,7 @@ import { Position } from "@xyflow/react";
 import type { Workflow } from "@schema/workflow";
 import type { SourceStatus } from "../../api/types";
 import type { Depth } from "../../store/useObservatoryStore";
+import type { RoutedEdge } from "./edgeRouting";
 import type { LayoutResult } from "./layout";
 import { effectiveDepthForStep, stepHasMissingSource } from "./nodeContent";
 import type { StepFlowNode, WorkflowFlowEdge } from "./types";
@@ -62,13 +63,16 @@ export function buildFlowNodes(params: BuildFlowNodesParams): StepFlowNode[] {
   });
 }
 
-export function buildFlowEdges(layout: LayoutResult): WorkflowFlowEdge[] {
-  return layout.edges.map((edge) => ({
-    id: edge.id,
-    type: "workflow",
-    source: edge.source,
-    target: edge.target,
-    focusable: false,
-    data: { connection: edge.connection },
-  }));
+export function buildFlowEdges(layout: LayoutResult, routes: ReadonlyMap<string, RoutedEdge>): WorkflowFlowEdge[] {
+  return layout.edges.map((edge) => {
+    const route = routes.get(edge.id);
+    return {
+      id: edge.id,
+      type: "workflow",
+      source: edge.source,
+      target: edge.target,
+      focusable: false,
+      data: route !== undefined ? { connection: edge.connection, route } : { connection: edge.connection },
+    };
+  });
 }

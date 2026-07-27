@@ -1,5 +1,5 @@
 import "@xyflow/react/dist/style.css";
-import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
+import { useMemo } from "react";
 import { MiniMap, ReactFlow, ReactFlowProvider, useReactFlow, type NodeMouseHandler } from "@xyflow/react";
 import type { Workflow } from "@schema/workflow";
 import type { SourceStatus } from "../../api/types";
@@ -8,28 +8,18 @@ import { useObservatoryStore } from "../../store/useObservatoryStore";
 import { buildFlowEdges, buildFlowNodes } from "./buildFlowElements";
 import { CanvasHeader } from "./CanvasHeader";
 import { CanvasOverflowIndicator } from "./CanvasOverflowIndicator";
+import { computeEdgeRoutes } from "./edgeRouting";
 import { EdgeMarkers } from "./edges/EdgeMarkers";
 import { WorkflowEdge } from "./edges/WorkflowEdge";
-import { computeFitViewport } from "./fitViewport";
 import { computeLayout } from "./layout";
 import { StepNode } from "./nodes/StepNode";
 import type { StepFlowNode, WorkflowFlowEdge } from "./types";
+import { useCanvasFit } from "./useCanvasFit";
 import { useCanvasKeyboardNav } from "./useCanvasKeyboardNav";
 import styles from "./WorkflowCanvas.module.css";
 
 /** A minimap only earns its screen space once a graph is big enough to get lost in. */
 const MINIMAP_NODE_THRESHOLD = 10;
-/** Small margin around the fitted graph — kept tight deliberately: the old 0.2 (20% of the
- * viewport reserved as empty margin on every side) is exactly what produced the "80% empty
- * canvas" failure this redesign fixes. */
-const FIT_VIEW_PADDING = 0.06;
-/** `fitView`'s computed zoom is clamped to this floor so a large workflow anchors at a legible
- * scale and relies on panning instead of shrinking into illegibility (contract §1: "clamp the
- * minimum default zoom to something legible"). At this zoom the 17px step-name font (`--fs-lg`)
- * still renders at ~13px effective size, the acceptance floor. */
-const FIT_VIEW_MIN_ZOOM = 0.78;
-/** A small workflow should not zoom in past "designed", pixel-doubled scale. */
-const FIT_VIEW_MAX_ZOOM = 1.1;
 
 const NODE_TYPES = { step: StepNode };
 const EDGE_TYPES = { workflow: WorkflowEdge };
@@ -49,14 +39,8 @@ export function WorkflowCanvas(props: WorkflowCanvasProps) {
 }
 
 function WorkflowCanvasInner({ workflow, sourceChecks }: WorkflowCanvasProps) {
-  const containerRef = useRef<HTMLDivElement>(null);
   const reactFlowInstance = useReactFlow<StepFlowNode, WorkflowFlowEdge>();
   const reducedMotion = usePrefersReducedMotion();
-  // Whether the fitted graph still has more content below the visible stage — a deeper depth
-  // (`modules`/`symbols` grow every node, contract §11) or a large workflow can be taller than
-  // even the minimum legible zoom allows. Drives the "more below" affordance so a reader never
-  // mistakes a cut-off last card for the end of the workflow.
-  const [overflowsBottom, setOverflowsBottom] = useState(false);
 
   const theme = useObservatoryStore((state) => state.theme);
   const depth = useObservatoryStore((state) => state.depth);
@@ -68,6 +52,19 @@ function WorkflowCanvasInner({ workflow, sourceChecks }: WorkflowCanvasProps) {
   const selectStep = useObservatoryStore((state) => state.selectStep);
 
   const layout = useMemo(() => computeLayout(workflow, { depth, expandedStepIds }), [workflow, depth, expandedStepIds]);
+  // Sidecar routes for branch edges whose direct path would clip an intervening spine card
+  // (edgeRouting.ts) — computed once here so both edge rendering and viewport fitting agree on
+  // exactly the same routed geometry.
+  const edgeRoutes = useMemo(() => computeEdgeRoutes(layout.nodes, layout.edges), [layout]);
+
+  const { containerRef, overflowsBottom, fitToViewport } = useCanvasFit({
+    layoutNodes: layout.nodes,
+    edgeRoutes,
+    workflowId: workflow.id,
+    depth,
+    reactFlowInstance,
+    reducedMotion,
+  });
 
   const { getTabIndex, handleNodeKeyDown, setRovingId } = useCanvasKeyboardNav({
     workflow,
@@ -95,73 +92,7 @@ function WorkflowCanvasInner({ workflow, sourceChecks }: WorkflowCanvasProps) {
       }),
     [workflow, layout, depth, expandedStepIds, sourceChecks, selectedStepId, getTabIndex, toggleStepExpanded, handleNodeKeyDown],
   );
-  const edges = useMemo(() => buildFlowEdges(layout), [layout]);
-
-  const fitToViewport = useCallback(
-    (duration: number) => {
-      const container = containerRef.current;
-      if (container === null || layout.nodes.length === 0) {
-        return;
-      }
-      const rect = container.getBoundingClientRect();
-      const bounds = {
-        minX: Math.min(...layout.nodes.map((node) => node.x)),
-        minY: Math.min(...layout.nodes.map((node) => node.y)),
-        maxX: Math.max(...layout.nodes.map((node) => node.x + node.width)),
-        maxY: Math.max(...layout.nodes.map((node) => node.y + node.height)),
-      };
-      const viewport = computeFitViewport({
-        containerWidth: rect.width,
-        containerHeight: rect.height,
-        bounds,
-        minZoom: FIT_VIEW_MIN_ZOOM,
-        maxZoom: FIT_VIEW_MAX_ZOOM,
-        paddingRatio: FIT_VIEW_PADDING,
-      });
-      if (viewport !== null) {
-        void reactFlowInstance.setViewport(viewport, { duration });
-        setOverflowsBottom(viewport.overflowsBottom);
-      }
-    },
-    [layout.nodes, reactFlowInstance],
-  );
-
-  // `useLayoutEffect`, not `useEffect`: the fit must be computed and applied before the browser
-  // paints, or the very first frame flashes React Flow's own default viewport (top-left, zoom 1)
-  // before snapping to the fitted one.
-  useLayoutEffect(() => {
-    fitToViewport(reducedMotion ? 0 : 400);
-    // Re-fit only on a new workflow or a global depth change (contract §11) — expanding a single
-    // step, selecting a step, or a source-check update must never re-frame the viewport.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [workflow.id, depth]);
-
-  // One-shot fallback for the very first mount: the app auto-selects the default workflow from
-  // a *regular* `useEffect` in `App.tsx` (necessarily async — it reacts to the server snapshot
-  // arriving), so this component's first commit can land before the flex-column chain above it
-  // has settled into its final size. If that happens, `fitToViewport` above computed against a
-  // zero-size container and silently did nothing, leaving React Flow's raw default viewport on
-  // screen. Watch for the container's first real size and fit exactly once when it appears; it
-  // then disconnects, so it never fights a user's manual pan/zoom on a later resize.
-  useEffect(() => {
-    const container = containerRef.current;
-    if (container === null || typeof ResizeObserver === "undefined") {
-      return;
-    }
-    const observer = new ResizeObserver((entries) => {
-      const entry = entries[0];
-      if (entry !== undefined && entry.contentRect.width > 0 && entry.contentRect.height > 0) {
-        fitToViewport(0);
-        observer.disconnect();
-      }
-    });
-    observer.observe(container);
-    return () => observer.disconnect();
-    // Deliberately mount-scoped: only ever needs to catch the first real layout, not every
-    // resize (contract §11: the viewport must not re-frame on anything but a workflow/depth
-    // change).
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  const edges = useMemo(() => buildFlowEdges(layout, edgeRoutes), [layout, edgeRoutes]);
 
   const handleNodeClick: NodeMouseHandler<StepFlowNode> = (_event, node) => {
     selectStep(node.id);

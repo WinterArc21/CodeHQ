@@ -1,6 +1,7 @@
 import type { CSSProperties } from "react";
 import { BaseEdge, EdgeLabelRenderer, getSmoothStepPath, type EdgeProps } from "@xyflow/react";
 import { connectionStyle, type ConnectionVisual } from "../../../design/semantics";
+import { buildOrthogonalPath, SIDECAR_CORNER_RADIUS } from "../edgeRouting";
 import type { WorkflowFlowEdge } from "../types";
 import { edgeMarkerId } from "./EdgeMarkers";
 import styles from "./WorkflowEdge.module.css";
@@ -42,27 +43,27 @@ const LABEL_X_BLEND_TOWARD_TARGET = 0.5;
  * A thin, directional connector styled entirely from `connectionStyle` (contract §10): neutral
  * solid for success/default, muted red dashed for failure, amber dashed with its label always
  * shown for conditional, neutral dotted for async. The primary path renders bolder than a
- * branch so a reader can trace "what happens next" without consciously parsing colour. The
- * label — when either `label` or `condition` is present — is a small mono chip with its own
- * opaque background so it stays legible over the canvas grid, anchored near the connection's own
- * source point (see the constants above) rather than the routed path's raw midpoint.
+ * branch so a reader can trace "what happens next" without consciously parsing colour.
+ *
+ * A branch edge whose direct path would clip an intervening spine card carries a pre-computed
+ * `data.route` (`edgeRouting.ts`) — an explicit sidecar path around the graph instead of the
+ * smoothstep curve every other edge uses, so "what happens when this fails" stays traceable
+ * instead of running invisibly through the cards in between. The label — when either `label` or
+ * `condition` is present — is a small mono chip with its own opaque background so it stays
+ * legible over the canvas grid, anchored near the connection's own source point (a routed edge
+ * anchors on its own lane segment instead; see `route.labelPoint`).
  */
 export function WorkflowEdge({ data, sourceX, sourceY, sourcePosition, targetX, targetY, targetPosition }: EdgeProps<WorkflowFlowEdge>) {
   if (data === undefined) {
     return null;
   }
 
-  const { connection } = data;
+  const { connection, route } = data;
   const visual = connectionStyle(connection.type);
-  const [path] = getSmoothStepPath({
-    sourceX,
-    sourceY,
-    sourcePosition,
-    targetX,
-    targetY,
-    targetPosition,
-    borderRadius: EDGE_BORDER_RADIUS,
-  });
+  const path =
+    route !== undefined
+      ? buildOrthogonalPath(route.points, SIDECAR_CORNER_RADIUS)
+      : getSmoothStepPath({ sourceX, sourceY, sourcePosition, targetX, targetY, targetPosition, borderRadius: EDGE_BORDER_RADIUS })[0];
 
   const edgeStyle: CSSProperties = {
     stroke: `var(${visual.varName})`,
@@ -75,8 +76,8 @@ export function WorkflowEdge({ data, sourceX, sourceY, sourcePosition, targetX, 
 
   const labelText = connection.label ?? connection.condition;
   const showLabel = labelText !== undefined && labelText.trim().length > 0;
-  const labelX = sourceX + (targetX - sourceX) * LABEL_X_BLEND_TOWARD_TARGET;
-  const labelY = sourceY + LABEL_Y_OFFSET_FROM_SOURCE;
+  const labelX = route !== undefined ? route.labelPoint.x : sourceX + (targetX - sourceX) * LABEL_X_BLEND_TOWARD_TARGET;
+  const labelY = route !== undefined ? route.labelPoint.y : sourceY + LABEL_Y_OFFSET_FROM_SOURCE;
 
   return (
     <>
