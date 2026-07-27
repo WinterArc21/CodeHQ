@@ -4,21 +4,26 @@
  * the list-building helpers to render exactly the same rows it was sized for — one source of
  * truth, so the deterministic layout in `layout.ts` can never drift from what actually renders.
  */
-import type { SourceReference, WorkflowStep } from "@schema/workflow";
+import type { DataReference, SourceReference, WorkflowStep } from "@schema/workflow";
 import type { SourceStatus } from "../../api/types";
 import type { Depth } from "../../store/useObservatoryStore";
 
-/** Fixed node width across every depth — only height grows with content (contract §10/§11). */
-export const NODE_WIDTH = 300;
+/** Fixed node width across every depth — only height grows with content (contract §10/§11).
+ * Wider than the original 300px: a top-to-bottom layout has horizontal room to spare, and a
+ * wider card lets category/confidence/counts/io share single rows instead of stacking, which is
+ * what keeps a 7-step workflow's total height inside a legible viewport (see layout.ts). */
+export const NODE_WIDTH = 340;
 
 export const MAX_MODULE_ROWS = 5;
 export const MAX_SYMBOL_ROWS = 8;
 
-const NODE_PADDING_Y = 10;
-const HEADER_ROW_HEIGHT = 22;
+const NODE_PADDING_Y = 8;
+// Matches the 24px `IconButton` "sm" square that now lives inline in the header (the per-step
+// expand toggle moved there from its own row, see StepNode.tsx) so the row never clips it.
+const HEADER_ROW_HEIGHT = 24;
 const PURPOSE_ROW_HEIGHT = 18;
 const META_ROW_HEIGHT = 18;
-const COUNTS_ROW_HEIGHT = 16;
+const FACTS_ROW_HEIGHT = 18;
 const SECTION_LABEL_HEIGHT = 16;
 const FILE_ROW_HEIGHT = 16;
 // Slightly taller than a file row: a symbol row carries more content (file + arrow + symbol()),
@@ -26,7 +31,6 @@ const FILE_ROW_HEIGHT = 16;
 // when both show the same number of rows (contract requirement: node height grows with depth).
 const SYMBOL_ROW_HEIGHT = 18;
 const MORE_ROW_HEIGHT = 14;
-const EXPAND_ROW_HEIGHT = 24;
 
 export interface StepCounts {
   sources: number;
@@ -41,6 +45,51 @@ export function stepCounts(step: WorkflowStep): StepCounts {
     edgeCases: step.edgeCases?.length ?? 0,
     tests: step.tests?.length ?? 0,
   };
+}
+
+/** A single-line "2 sources · 1 edge case · 1 test" summary, omitting any count that is zero. */
+export function formatCountsSummary(counts: StepCounts): string {
+  const parts: string[] = [];
+  if (counts.sources > 0) {
+    parts.push(`${counts.sources} ${counts.sources === 1 ? "source" : "sources"}`);
+  }
+  if (counts.edgeCases > 0) {
+    parts.push(`${counts.edgeCases} ${counts.edgeCases === 1 ? "edge case" : "edge cases"}`);
+  }
+  if (counts.tests > 0) {
+    parts.push(`${counts.tests} ${counts.tests === 1 ? "test" : "tests"}`);
+  }
+  return parts.join(" · ");
+}
+
+export interface StepIoSummary {
+  inputs: DataReference[];
+  outputs: DataReference[];
+}
+
+/** The data flowing in and out of a step — the connective tissue between steps that, before this
+ * redesign, only appeared in the drawer. Surfaced compactly on the card itself (contract §10.2:
+ * "surfacing them, even compactly, is a big comprehension win"). */
+export function stepIoSummary(step: WorkflowStep): StepIoSummary {
+  return { inputs: step.inputs ?? [], outputs: step.outputs ?? [] };
+}
+
+/** Whether the card's single "facts" row (counts + io) has anything at all to show. */
+export function stepHasFacts(step: WorkflowStep): boolean {
+  const counts = stepCounts(step);
+  const io = stepIoSummary(step);
+  return counts.sources > 0 || counts.edgeCases > 0 || counts.tests > 0 || io.inputs.length > 0 || io.outputs.length > 0;
+}
+
+/** Renders a short "first name, +N more" summary for a list of `DataReference`s — used for the
+ * compact inputs/outputs text on a collapsed card. Never truncates by measuring; a caller that
+ * needs to guarantee a fixed row height still relies on CSS `text-overflow: ellipsis`. */
+export function formatDataReferenceNames(refs: DataReference[]): string {
+  if (refs.length === 0) {
+    return "";
+  }
+  const [first, ...rest] = refs;
+  return rest.length > 0 ? `${first?.name}, +${rest.length}` : (first?.name ?? "");
 }
 
 /** Splits a repo-relative path into its directory prefix (kept) and basename. */
@@ -146,11 +195,10 @@ export function stepHasMissingSource(step: WorkflowStep, sourceChecks: Record<st
  * so it is identical in a Node test and in the browser (contract §11: "Do not measure the DOM").
  */
 export function computeNodeHeight(step: WorkflowStep, effectiveDepth: Depth): number {
-  let height = NODE_PADDING_Y * 2 + HEADER_ROW_HEIGHT + PURPOSE_ROW_HEIGHT + META_ROW_HEIGHT + EXPAND_ROW_HEIGHT;
+  let height = NODE_PADDING_Y * 2 + HEADER_ROW_HEIGHT + PURPOSE_ROW_HEIGHT + META_ROW_HEIGHT;
 
-  const counts = stepCounts(step);
-  if (counts.sources > 0 || counts.edgeCases > 0 || counts.tests > 0) {
-    height += COUNTS_ROW_HEIGHT;
+  if (stepHasFacts(step)) {
+    height += FACTS_ROW_HEIGHT;
   }
 
   if (effectiveDepth === "modules") {

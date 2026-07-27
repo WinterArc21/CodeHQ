@@ -28,13 +28,29 @@ afterEach(() => {
   resetObservatoryStore();
 });
 
+/**
+ * The canvas frame now has a real, focusable header (depth switch, zoom, fit, collapse-all —
+ * contract §10.4) sitting before the graph in DOM/tab order, so reaching the first step node no
+ * longer takes exactly one Tab press. Presses Tab until a `[data-step-node]` element is focused,
+ * capped well above the toolbar's control count so a real regression still fails loudly instead
+ * of hanging.
+ */
+async function tabToFirstStepNode(user: ReturnType<typeof userEvent.setup>): Promise<void> {
+  for (let attempt = 0; attempt < 20; attempt += 1) {
+    await user.tab();
+    if ((document.activeElement as HTMLElement | null)?.dataset.stepNode !== undefined) {
+      return;
+    }
+  }
+}
+
 describe("WorkflowCanvas keyboard navigation", () => {
   it("is reachable by Tab and exposes an accessible name", async () => {
     render(<WorkflowCanvas workflow={WORKFLOW} sourceChecks={{}} />);
     expect(await screen.findByRole("application", { name: /checkout workflow canvas/i })).toBeInTheDocument();
 
     const user = userEvent.setup();
-    await user.tab();
+    await tabToFirstStepNode(user);
     await waitFor(() => {
       expect(document.querySelector('[data-step-node="receive"]')).toHaveFocus();
     });
@@ -44,7 +60,7 @@ describe("WorkflowCanvas keyboard navigation", () => {
     render(<WorkflowCanvas workflow={WORKFLOW} sourceChecks={{}} />);
     const user = userEvent.setup();
 
-    await user.tab();
+    await tabToFirstStepNode(user);
     await waitFor(() => expect(document.querySelector('[data-step-node="receive"]')).toHaveFocus());
 
     await user.keyboard("{ArrowRight}");
@@ -61,7 +77,7 @@ describe("WorkflowCanvas keyboard navigation", () => {
     render(<WorkflowCanvas workflow={WORKFLOW} sourceChecks={{}} />);
     const user = userEvent.setup();
 
-    await user.tab();
+    await tabToFirstStepNode(user);
     await waitFor(() => expect(document.querySelector('[data-step-node="receive"]')).toHaveFocus());
 
     await user.keyboard("{End}");
@@ -75,7 +91,7 @@ describe("WorkflowCanvas keyboard navigation", () => {
     render(<WorkflowCanvas workflow={WORKFLOW} sourceChecks={{}} />);
     const user = userEvent.setup();
 
-    await user.tab();
+    await tabToFirstStepNode(user);
     await waitFor(() => expect(document.querySelector('[data-step-node="receive"]')).toHaveFocus());
 
     await user.keyboard("{Enter}");

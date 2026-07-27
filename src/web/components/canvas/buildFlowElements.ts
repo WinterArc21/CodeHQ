@@ -43,10 +43,10 @@ export function buildFlowNodes(params: BuildFlowNodesParams): StepFlowNode[] {
       position: { x: layoutNode.x, y: layoutNode.y },
       width: layoutNode.width,
       height: layoutNode.height,
-      // Matches the left-to-right layout (contract §11): connections flow in on the left,
-      // out on the right, so edges route cleanly instead of doubling back on themselves.
-      sourcePosition: Position.Right,
-      targetPosition: Position.Left,
+      // Matches the top-to-bottom layout: connections flow in on the top, out on the bottom,
+      // so edges route cleanly downward instead of doubling back on themselves.
+      sourcePosition: Position.Bottom,
+      targetPosition: Position.Top,
       data: {
         step,
         index: layoutNode.index,

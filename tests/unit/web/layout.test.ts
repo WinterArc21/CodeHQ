@@ -73,7 +73,7 @@ describe("computeLayout", () => {
     assertNoOverlap(result.nodes);
   });
 
-  it("orders a successor strictly to the right of its predecessor (left-to-right layout)", () => {
+  it("orders a successor strictly below its predecessor (top-to-bottom layout)", () => {
     const workflow = makeWorkflow(
       [makeStep("a"), makeStep("b")],
       [{ from: "a", to: "b" }],
@@ -83,7 +83,7 @@ describe("computeLayout", () => {
     const b = result.nodes.find((n) => n.id === "b");
     expect(a).toBeDefined();
     expect(b).toBeDefined();
-    expect(b!.x).toBeGreaterThan(a!.x);
+    expect(b!.y).toBeGreaterThan(a!.y);
   });
 
   it("handles branching (one step fanning out to three) without overlap", () => {
@@ -101,7 +101,7 @@ describe("computeLayout", () => {
     const start = result.nodes.find((n) => n.id === "start")!;
     for (const id of ["left", "middle", "right"]) {
       const node = result.nodes.find((n) => n.id === id)!;
-      expect(node.x).toBeGreaterThan(start.x);
+      expect(node.y).toBeGreaterThan(start.y);
     }
   });
 

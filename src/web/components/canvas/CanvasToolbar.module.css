@@ -1,11 +1,12 @@
+/* Lives inside `CanvasHeader`'s own bar now, not a floating `Panel` (contract §10.4: "feel part
+ * of the instrument, not a floating orphan") — so it carries no background or border of its own;
+ * the header supplies both, and each control group below (`DepthControl`, the icon buttons)
+ * already has its own visible boundary. */
 .toolbar {
   display: flex;
   align-items: center;
   gap: var(--space-3);
-  padding: var(--space-2);
-  background-color: var(--bg-surface);
-  border: 1px solid var(--border-subtle);
-  border-radius: var(--radius-md);
+  flex-shrink: 0;
 }
 
 .zoomGroup {

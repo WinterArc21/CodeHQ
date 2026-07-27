@@ -25,6 +25,11 @@ export interface ConnectionVisual {
   varName: string;
   dash: "none" | "dashed" | "dotted";
   showLabel: boolean;
+  /** `"primary"` (the happy path) renders as the visually dominant line; `"branch"` (failure,
+   * conditional, async) renders thinner and slightly translated so it reads as subordinate to
+   * the primary path it diverges from, never competing with it (contract §10.3). Driven purely
+   * by connection `type`, same as every other field here. */
+  weight: "primary" | "branch";
 }
 
 export interface ToneVisual {
@@ -70,10 +75,10 @@ export function confidenceStyle(confidence?: WorkflowStep["confidence"]): Confid
 type ConnectionType = NonNullable<Parameters<typeof connectionStyle>[0]>;
 
 const CONNECTION_VISUALS: Record<ConnectionType, ConnectionVisual> = {
-  success: { varName: "--accent-neutral", dash: "none", showLabel: false },
-  failure: { varName: "--accent-red", dash: "dashed", showLabel: false },
-  conditional: { varName: "--accent-amber", dash: "dashed", showLabel: true },
-  async: { varName: "--accent-neutral", dash: "dotted", showLabel: false },
+  success: { varName: "--accent-neutral", dash: "none", showLabel: false, weight: "primary" },
+  failure: { varName: "--accent-red", dash: "dashed", showLabel: false, weight: "branch" },
+  conditional: { varName: "--accent-amber", dash: "dashed", showLabel: true, weight: "branch" },
+  async: { varName: "--accent-neutral", dash: "dotted", showLabel: false, weight: "branch" },
 };
 
 /** Line colour/dash + whether to render the connection label (contract §10 table). */

@@ -44,6 +44,9 @@
 
   /* ---- technical canvas grid (very low opacity, theme-tuned) ---- */
   --grid-line: rgba(255, 255, 255, 0.035);
+  /* A second, slightly more present line every 4th minor line (128px) reads as ruled/graph
+   * paper instead of noise — the same "major/minor" convention as real drafting paper. */
+  --grid-line-strong: rgba(255, 255, 255, 0.07);
 
   /* ---- spacing (4px base) ---- */
   --space-1: 4px;
@@ -108,6 +111,7 @@
   --focus-ring: #3568d4;
 
   --grid-line: rgba(0, 0, 0, 0.035);
+  --grid-line-strong: rgba(0, 0, 0, 0.07);
 }
 
 @media (prefers-reduced-motion: reduce) {

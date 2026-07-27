@@ -14,12 +14,9 @@
   width: 100%;
   height: 100%;
   display: flex;
-  flex-direction: column;
-  padding: 10px var(--space-3);
+  align-items: stretch;
   background-color: var(--bg-raised);
   border: 1px solid var(--border-subtle);
-  border-left-width: 2px;
-  border-left-style: solid;
   border-radius: var(--radius-md);
   cursor: pointer;
   outline-offset: 2px;
@@ -37,21 +34,57 @@
 }
 
 .selected {
-  border-left-width: 4px;
   border-color: var(--border-strong);
   background-color: color-mix(in srgb, var(--accent-blue) 6%, var(--bg-raised));
 }
 
+/* The category+confidence marker: a coloured spine along the card's leading edge. Solid for
+   verified/human-confirmed, a repeating stripe for inferred — a shape difference, not just a
+   colour difference, so it survives colour-blindness and greyscale printing alike. */
+.marker {
+  flex-shrink: 0;
+  width: 3px;
+  background-color: currentColor;
+  border-top-left-radius: var(--radius-md);
+  border-bottom-left-radius: var(--radius-md);
+}
+
+.markerDashed {
+  background-color: transparent;
+  background-image: repeating-linear-gradient(to bottom, currentColor 0, currentColor 5px, transparent 5px, transparent 9px);
+}
+
+.selected .marker {
+  width: 4px;
+}
+
+.body {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  padding: var(--space-2) var(--space-3);
+}
+
 .header {
-  height: 22px;
+  height: 24px;
   flex-shrink: 0;
   display: flex;
   align-items: center;
   gap: var(--space-2);
+  line-height: 1;
 }
 
 .index {
   flex-shrink: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 18px;
+  height: 18px;
+  padding: 0 3px;
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-sm);
   font-family: var(--font-mono);
   font-size: var(--fs-micro);
   color: var(--text-tertiary);
@@ -60,8 +93,9 @@
 .name {
   flex: 1;
   min-width: 0;
-  font-size: var(--fs-sm);
-  font-weight: 500;
+  font-size: var(--fs-lg);
+  font-weight: 600;
+  letter-spacing: -0.005em;
   color: var(--text-primary);
   white-space: nowrap;
   overflow: hidden;
@@ -99,13 +133,65 @@
   text-transform: uppercase;
 }
 
-.counts {
-  height: 16px;
+.facts {
+  height: 18px;
   flex-shrink: 0;
   display: flex;
   align-items: center;
-  gap: var(--space-2);
+  justify-content: space-between;
+  gap: var(--space-3);
+}
+
+.factsCounts {
+  flex-shrink: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
   font-size: var(--fs-micro);
+  color: var(--text-tertiary);
+}
+
+.factsIo {
+  flex-shrink: 0;
+  display: flex;
+  align-items: baseline;
+  gap: var(--space-2);
+  min-width: 0;
+  max-width: 65%;
+}
+
+.ioTag {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 3px;
+  min-width: 0;
+  max-width: 132px;
+}
+
+/* `text-overflow: ellipsis` has no effect on a flex container (`.ioTag`, above) — it only
+ * truncates a single block/inline-block box's own text. This is that box: a plain inline-block
+ * with its own bounded width, so a long reference name clips to "ScrapedWeb…" instead of the
+ * silently-broken mid-glyph cut a flexed ellipsis produces. */
+.ioValue {
+  display: inline-block;
+  max-width: 96px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  vertical-align: bottom;
+  font-family: var(--font-mono);
+  font-size: var(--fs-micro);
+  color: var(--text-secondary);
+}
+
+.ioLabel {
+  flex-shrink: 0;
+  font-family: var(--font-ui);
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
   color: var(--text-tertiary);
 }
 
@@ -168,13 +254,4 @@
   font-family: var(--font-mono);
   font-size: var(--fs-micro);
   color: var(--text-tertiary);
-}
-
-.expandRow {
-  height: 24px;
-  flex-shrink: 0;
-  display: flex;
-  align-items: center;
-  justify-content: flex-end;
-  margin-top: auto;
 }

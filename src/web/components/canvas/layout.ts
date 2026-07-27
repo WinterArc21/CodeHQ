@@ -6,16 +6,33 @@
  * fixed order). Node *positions* come from dagre; node *sizes* come from `nodeContent.ts`, so a
  * node that grows at a deeper depth or when expanded pushes its neighbours instead of
  * overlapping them.
+ *
+ * Direction is top-to-bottom (contract §11's original left-to-right default did not survive
+ * measurement: a 300px-wide, 120px-ranksep chain of 7 steps renders ~3100px wide, which cannot
+ * fit a ~1100px canvas viewport at a legible zoom). Reading a code path top-down is also the
+ * natural direction for "what happens next", and it lets the fixed-width node grow wide
+ * instead of thin, which serves the
+ * information-density goal directly. Primary (`success`/default) connections therefore run
+ * downward; `failure`/`conditional` branches that target a later, already-downstream step (most
+ * commonly a shared error-handling step) route as smoothstep diagonals rather than new columns,
+ * so the graph stays essentially single-file for a linear workflow and only gains a second
+ * column when a step's *only* onward path is a branch.
  */
 import * as dagre from "dagre";
 import type { Workflow, WorkflowConnection } from "@schema/workflow";
 import type { Depth } from "../../store/useObservatoryStore";
 import { computeNodeHeight, effectiveDepthForStep, NODE_WIDTH } from "./nodeContent";
 
-export const LAYOUT_RANK_SEP = 120;
-export const LAYOUT_NODE_SEP = 56;
+/** Vertical gap between ranks — small relative to `LAYOUT_NODE_SEP` because the node itself is
+ * now wide and short: most of the workflow's readable footprint should come from row height, not
+ * air between rows, or a 6-9 step workflow cannot fit a 900px-tall viewport without panning. */
+export const LAYOUT_RANK_SEP = 28;
+/** Horizontal gap between two nodes sharing a rank (e.g. a failure branch sitting beside the
+ * step that continues past it) — generous enough that a branch reads as a clearly separate
+ * column, not a graze against the main line. */
+export const LAYOUT_NODE_SEP = 72;
 export const LAYOUT_MARGIN_X = 40;
-export const LAYOUT_MARGIN_Y = 40;
+export const LAYOUT_MARGIN_Y = 28;
 
 export interface LayoutNode {
   id: string;
@@ -88,7 +105,7 @@ export function computeLayout(workflow: Workflow, opts: ComputeLayoutOptions): L
   if (connectedIds.size > 0) {
     const graph = new dagre.graphlib.Graph();
     graph.setGraph({
-      rankdir: "LR",
+      rankdir: "TB",
       nodesep: LAYOUT_NODE_SEP,
       ranksep: LAYOUT_RANK_SEP,
       marginx: LAYOUT_MARGIN_X,

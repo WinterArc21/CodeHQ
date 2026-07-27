@@ -1,26 +1,34 @@
 import type { CSSProperties } from "react";
 import { BaseEdge, EdgeLabelRenderer, getSmoothStepPath, type EdgeProps } from "@xyflow/react";
-import { connectionStyle } from "../../../design/semantics";
+import { connectionStyle, type ConnectionVisual } from "../../../design/semantics";
 import type { WorkflowFlowEdge } from "../types";
 import { edgeMarkerId } from "./EdgeMarkers";
 import styles from "./WorkflowEdge.module.css";
 
-/** Rounded-corner radius for the smoothstep routing — gentle enough to read cleanly in an
- * LR layout without the sharp right angles of a plain step path. */
-const EDGE_BORDER_RADIUS = 8;
-const EDGE_STROKE_WIDTH = 1.5;
+/** Rounded-corner radius for the smoothstep routing — gentle enough to read cleanly in a
+ * top-to-bottom layout without the sharp right angles of a plain step path. */
+const EDGE_BORDER_RADIUS = 10;
 
 const DASH_PATTERNS: Record<"dashed" | "dotted", string> = {
   dashed: "6 4",
-  dotted: "1 4",
+  dotted: "1.5 4",
+};
+
+/** Stroke width per weight (contract §10.3: the primary path must read as visually dominant,
+ * branches as clearly subordinate but legible — never invisible). */
+const STROKE_WIDTH: Record<ConnectionVisual["weight"], number> = {
+  primary: 2,
+  branch: 1.25,
 };
 
 /**
  * A thin, directional connector styled entirely from `connectionStyle` (contract §10): neutral
  * solid for success/default, muted red dashed for failure, amber dashed with its label always
- * shown for conditional, neutral dotted for async. The label — when either `label` or
- * `condition` is present — is a small mono chip placed at the path's midpoint via
- * `EdgeLabelRenderer`, with its own background so it stays legible over the canvas grid.
+ * shown for conditional, neutral dotted for async. The primary path renders bolder than a
+ * branch so a reader can trace "what happens next" without consciously parsing colour. The
+ * label — when either `label` or `condition` is present — is a small mono chip placed at the
+ * path's midpoint via `EdgeLabelRenderer`, with its own opaque background so it stays legible
+ * over the canvas grid and any edge it happens to cross.
  */
 export function WorkflowEdge({ data, sourceX, sourceY, sourcePosition, targetX, targetY, targetPosition }: EdgeProps<WorkflowFlowEdge>) {
   if (data === undefined) {
@@ -39,7 +47,11 @@ export function WorkflowEdge({ data, sourceX, sourceY, sourcePosition, targetX, 
     borderRadius: EDGE_BORDER_RADIUS,
   });
 
-  const edgeStyle: CSSProperties = { stroke: `var(${visual.varName})`, strokeWidth: EDGE_STROKE_WIDTH };
+  const edgeStyle: CSSProperties = {
+    stroke: `var(${visual.varName})`,
+    strokeWidth: STROKE_WIDTH[visual.weight],
+    opacity: visual.weight === "branch" ? 0.85 : 1,
+  };
   if (visual.dash !== "none") {
     edgeStyle.strokeDasharray = DASH_PATTERNS[visual.dash];
   }

@@ -83,14 +83,26 @@ describe("StepNode", () => {
       }),
     });
     renderStepNode(makeProps(data));
-    expect(screen.getByText("1 sources")).toBeInTheDocument();
-    expect(screen.getByText("1 edge cases")).toBeInTheDocument();
-    expect(screen.queryByText(/tests$/)).not.toBeInTheDocument();
+    expect(screen.getByText("1 source · 1 edge case")).toBeInTheDocument();
   });
 
-  it("renders no counts row at all when every count is zero", () => {
+  it("renders no facts row at all when there are no counts and no inputs/outputs", () => {
     renderStepNode(makeProps(makeData()));
-    expect(screen.queryByText(/ sources| edge cases| tests/)).not.toBeInTheDocument();
+    expect(screen.queryByText(/source|edge case|test/)).not.toBeInTheDocument();
+  });
+
+  it("surfaces inputs and outputs compactly on the collapsed card", () => {
+    const data = makeData({
+      step: makeStep({
+        inputs: [{ name: "ScrapedWebsite" }],
+        outputs: [{ name: "ProductContext" }],
+      }),
+    });
+    renderStepNode(makeProps(data));
+    expect(screen.getByText("ScrapedWebsite")).toBeInTheDocument();
+    expect(screen.getByText("ProductContext")).toBeInTheDocument();
+    expect(screen.getByText("in")).toBeInTheDocument();
+    expect(screen.getByText("out")).toBeInTheDocument();
   });
 
   it("lists distinct source files at depth 'modules'", () => {
