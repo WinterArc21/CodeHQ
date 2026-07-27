@@ -48,3 +48,15 @@
   border-radius: var(--radius-md);
   overflow: hidden;
 }
+
+/* React Flow gives every edge its own unsized `<svg>` wrapper (no `width`/`height`/`viewBox`
+   attributes) and relies on the browser's intrinsic replaced-element sizing plus its own
+   `overflow: visible` rule so the edge path can paint outside that nominal box. The app's global
+   reset (`styles/reset.css`) sets `svg { display: block; max-width: 100% }` for responsive
+   images, which collapses these unsized wrapper svgs to a zero-width box — the path element still
+   has correct, measurable geometry, but nothing paints. Undo just those two properties, scoped to
+   React Flow's internal edge svgs only, so the global image reset is untouched everywhere else. */
+.flow :global(.react-flow__edges svg) {
+  display: inline;
+  max-width: none;
+}

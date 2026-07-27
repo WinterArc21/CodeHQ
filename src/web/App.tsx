@@ -6,6 +6,8 @@ import { WorkflowNavigator } from "./components/navigator";
 import { EmptyState, ErrorState, LoadingState, UninitializedState } from "./components/states";
 import { DiagnosticsBanner } from "./components/diagnostics";
 import { WorkflowCanvas } from "./components/canvas";
+import { StepDrawer } from "./components/drawer";
+import { CommandPalette } from "./components/search";
 import { EXAMPLE_WORKFLOW } from "./design/exampleWorkflow";
 import { useObservatoryStore } from "./store/useObservatoryStore";
 
@@ -28,6 +30,8 @@ export function App() {
 
   const selectedWorkflowId = useObservatoryStore((state) => state.selectedWorkflowId);
   const selectWorkflow = useObservatoryStore((state) => state.selectWorkflow);
+  const selectedStepId = useObservatoryStore((state) => state.selectedStepId);
+  const selectStep = useObservatoryStore((state) => state.selectStep);
   const openSearch = useObservatoryStore((state) => state.openSearch);
   const toggleDiagnostics = useObservatoryStore((state) => state.toggleDiagnostics);
 
@@ -78,30 +82,42 @@ export function App() {
   };
 
   return (
-    <AppShell
-      topBar={
-        <TopBar
-          repositoryName={snapshot.repository.name}
-          {...(snapshot.project !== null ? { schemaVersion: snapshot.project.schemaVersion } : {})}
-          status={connectionStatus}
-          {...(connectionStatus === "invalid" ? { errorCount } : {})}
-          onOpenSearch={openSearch}
+    <>
+      <AppShell
+        topBar={
+          <TopBar
+            repositoryName={snapshot.repository.name}
+            {...(snapshot.project !== null ? { schemaVersion: snapshot.project.schemaVersion } : {})}
+            status={connectionStatus}
+            {...(connectionStatus === "invalid" ? { errorCount } : {})}
+            onOpenSearch={openSearch}
+          />
+        }
+        aside={
+          <WorkflowNavigator
+            workflows={snapshot.workflows}
+            selectedWorkflowId={showExample ? null : selectedWorkflowId}
+            onSelect={handleSelect}
+          />
+        }
+      >
+        <DiagnosticsBanner diagnostics={snapshot.diagnostics} onOpenDiagnostics={toggleDiagnostics} />
+        {displayedWorkflow !== null ? (
+          <WorkflowCanvas workflow={displayedWorkflow} sourceChecks={displayedSourceChecks} />
+        ) : (
+          <EmptyState onShowExample={() => setShowExample(true)} onRecheck={handleRecheck} />
+        )}
+      </AppShell>
+      {displayedWorkflow !== null && selectedStepId !== null ? (
+        <StepDrawer
+          workflow={displayedWorkflow}
+          stepId={selectedStepId}
+          sourceChecks={displayedSourceChecks}
+          onClose={() => selectStep(null)}
+          onSelectStep={selectStep}
         />
-      }
-      aside={
-        <WorkflowNavigator
-          workflows={snapshot.workflows}
-          selectedWorkflowId={showExample ? null : selectedWorkflowId}
-          onSelect={handleSelect}
-        />
-      }
-    >
-      <DiagnosticsBanner diagnostics={snapshot.diagnostics} onOpenDiagnostics={toggleDiagnostics} />
-      {displayedWorkflow !== null ? (
-        <WorkflowCanvas workflow={displayedWorkflow} sourceChecks={displayedSourceChecks} />
-      ) : (
-        <EmptyState onShowExample={() => setShowExample(true)} onRecheck={handleRecheck} />
-      )}
-    </AppShell>
+      ) : null}
+      <CommandPalette snapshot={snapshot} onRecheck={handleRecheck} />
+    </>
   );
 }

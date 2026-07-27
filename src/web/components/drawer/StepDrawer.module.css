@@ -1,0 +1,75 @@
+/*
+ * Fixed to the viewport rather than laid out inside AppShell's grid: the drawer must overlay
+ * the canvas without reflowing it (contract §11 — "must not cover the canvas so completely
+ * that the user loses context"), so it is a fixed-width panel pinned to the right edge, leaving
+ * the rest of the canvas visible and interactive underneath the (click-through-free) backdrop.
+ */
+.backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 40;
+  display: flex;
+  justify-content: flex-end;
+  background-color: transparent;
+  pointer-events: none;
+}
+
+.drawer {
+  pointer-events: auto;
+  width: min(420px, 100vw);
+  height: 100vh;
+  display: flex;
+  flex-direction: column;
+  background-color: var(--bg-surface);
+  border-left: 1px solid var(--border-strong);
+  box-shadow: -8px 0 24px var(--grid-line);
+  overflow: hidden;
+  animation: slide-in var(--dur-base) var(--ease-standard);
+}
+
+@keyframes slide-in {
+  from {
+    transform: translateX(100%);
+  }
+  to {
+    transform: translateX(0);
+  }
+}
+
+.body {
+  overflow-y: auto;
+  min-height: 0;
+  flex: 1;
+}
+
+.list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+.bulletList {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+  padding-left: var(--space-4);
+  list-style: disc;
+  color: var(--text-primary);
+  font-size: var(--fs-sm);
+}
+
+.subLabel {
+  font-family: var(--font-ui);
+  font-size: var(--fs-micro);
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--text-tertiary);
+  margin-bottom: var(--space-1);
+}
+
+.note {
+  color: var(--text-primary);
+  font-size: var(--fs-sm);
+  line-height: var(--lh-relaxed);
+}

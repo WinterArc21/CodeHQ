@@ -4,6 +4,7 @@
  * type/status imports from here instead of re-deriving the mapping. Plain data only, no JSX.
  */
 import type { Workflow } from "@schema/workflow";
+import type { TestReference } from "@schema/workflow";
 import type { WorkflowStep } from "@schema/workflow";
 import type { SourceStatus } from "../api/types";
 
@@ -108,4 +109,20 @@ const SOURCE_STATUS_VISUALS: Record<SourceStatus, ToneVisual> = {
 /** Badge tone + label for a `sourceChecks` entry's resolution state. */
 export function sourceStatusTone(status: SourceStatus): ToneVisual {
   return SOURCE_STATUS_VISUALS[status];
+}
+
+const TEST_STATUS_VISUALS: Record<NonNullable<TestReference["status"]>, ToneVisual> = {
+  passing: { tone: "green", label: "Passing" },
+  failing: { tone: "red", label: "Failing" },
+  unknown: { tone: "neutral", label: "Unknown" },
+};
+
+const UNSPECIFIED_TEST_STATUS_VISUAL: ToneVisual = { tone: "neutral", label: "Unspecified" };
+
+/** Badge tone + label for a `TestReference.status`. */
+export function testStatusTone(status?: TestReference["status"]): ToneVisual {
+  if (status === undefined) {
+    return UNSPECIFIED_TEST_STATUS_VISUAL;
+  }
+  return TEST_STATUS_VISUALS[status];
 }

@@ -1,0 +1,61 @@
+.row {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+  padding: var(--space-2) var(--space-3);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-sm);
+  background-color: var(--bg-inset);
+}
+
+.row.missing {
+  border-color: color-mix(in srgb, var(--accent-red) 45%, var(--border-subtle));
+}
+
+.pathLine {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: var(--space-2);
+}
+
+.symbol {
+  font-family: var(--font-mono);
+  font-size: var(--fs-sm);
+  color: var(--text-primary);
+}
+
+.lines {
+  font-family: var(--font-mono);
+  font-size: var(--fs-tiny);
+  color: var(--text-tertiary);
+}
+
+.statusLine {
+  display: flex;
+  align-items: center;
+  gap: var(--space-1);
+}
+
+.warningIcon {
+  color: var(--accent-red);
+  flex-shrink: 0;
+}
+
+.description {
+  color: var(--text-secondary);
+  font-size: var(--fs-tiny);
+  line-height: var(--lh-base);
+}
+
+.actions {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  margin-top: var(--space-1);
+}
+
+.error {
+  color: var(--accent-red);
+  font-size: var(--fs-tiny);
+}

@@ -1,0 +1,92 @@
+.backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 50;
+  display: flex;
+  justify-content: center;
+  align-items: flex-start;
+  padding-top: 14vh;
+  background-color: var(--grid-line);
+}
+
+.palette {
+  width: min(560px, calc(100vw - var(--space-8)));
+  max-height: 60vh;
+  display: flex;
+  flex-direction: column;
+  background-color: var(--bg-raised);
+  border: 1px solid var(--border-strong);
+  box-shadow: 0 12px 32px var(--grid-line);
+  overflow: hidden;
+}
+
+.inputRow {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  padding: var(--space-3) var(--space-4);
+  border-bottom: 1px solid var(--border-subtle);
+  color: var(--text-tertiary);
+  flex-shrink: 0;
+}
+
+.input {
+  flex: 1;
+  min-width: 0;
+  font-family: var(--font-ui);
+  font-size: var(--fs-base);
+  color: var(--text-primary);
+  background: transparent;
+  border: none;
+}
+
+.input::placeholder {
+  color: var(--text-tertiary);
+}
+
+.results {
+  overflow-y: auto;
+  min-height: 0;
+  padding: var(--space-2) 0;
+}
+
+.groupLabel {
+  padding: var(--space-2) var(--space-4) var(--space-1);
+  font-family: var(--font-ui);
+  font-size: var(--fs-micro);
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--text-tertiary);
+}
+
+.option {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  padding: var(--space-2) var(--space-4);
+  cursor: pointer;
+  border-left: 2px solid transparent;
+}
+
+.option.active {
+  background-color: var(--bg-inset);
+  border-left-color: var(--accent-blue);
+}
+
+.optionLabel {
+  font-size: var(--fs-sm);
+  color: var(--text-primary);
+}
+
+.optionDetail {
+  font-size: var(--fs-tiny);
+  color: var(--text-secondary);
+}
+
+.empty {
+  padding: var(--space-6) var(--space-4);
+  text-align: center;
+  color: var(--text-tertiary);
+  font-size: var(--fs-sm);
+}

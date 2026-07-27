@@ -1,0 +1,24 @@
+.row {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+}
+
+.name {
+  font-size: var(--fs-sm);
+  font-weight: 500;
+  color: var(--text-primary);
+}
+
+.purpose {
+  color: var(--text-secondary);
+  font-size: var(--fs-tiny);
+  line-height: var(--lh-base);
+}
+
+.operation {
+  font-family: var(--font-mono);
+  font-size: var(--fs-tiny);
+  color: var(--accent-violet);
+  width: fit-content;
+}
