@@ -1,7 +1,9 @@
 /**
- * Constants shared between `playwright.config.ts`, the fixture-server bootstrap
- * (`start-server.ts`), and the spec files themselves — one source of truth for where the e2e
- * suite's scratch fixture lives and which port it listens on, so nothing can drift out of sync.
+ * Constants shared between `playwright.config.ts` and every spec/helper in `tests/e2e/**` —
+ * one source of truth for repo-relative paths, the shared read-only fixture server, and the
+ * per-spec ports used by tests that mutate `.observatory/*` and therefore need their own
+ * private server + temp directory (see the "port/temp-dir isolation" note in each mutating
+ * spec's `test.beforeAll`).
  */
 import os from "node:os";
 import path from "node:path";
@@ -12,21 +14,35 @@ const HERE = path.dirname(fileURLToPath(import.meta.url));
 /** `tests/e2e/helpers` -> repository root. */
 export const REPO_ROOT = path.resolve(HERE, "..", "..", "..");
 
-/** The committed, read-only fixture repo. Never written to by tests. */
+/** The committed, read-only fixture repo. No spec, helper, or server invocation may ever
+ * point a `--root` at this path directly — always go through a temp copy (see
+ * `helpers/fixture.ts`) so `.observatory/diagnostics.json` never gets rewritten here and
+ * `git status` stays clean. */
 export const SOURCE_FIXTURE_DIR = path.join(REPO_ROOT, "examples", "motiona");
 
-/** A stable (non-random) scratch copy so `reuseExistingServer` keeps pointing at the same
- * directory a repeated local run expects. */
-export const FIXTURE_WORK_DIR = path.join(os.tmpdir(), "code-observatory-e2e-fixture");
+export const CLI_ENTRY = path.join(REPO_ROOT, "dist", "node", "cli.js");
+export const WEB_DIST_INDEX = path.join(REPO_ROOT, "dist", "web", "index.html");
 
-export const FIXTURE_PORT = 4399;
+/**
+ * The shared, read-only server: a fresh copy of `examples/motiona`, recreated at
+ * `playwright.config.ts` module-load time (before Playwright's `webServer` plugin starts the
+ * process — see `helpers/bootstrap.ts`), reused across every spec that only ever reads
+ * `.observatory` (boots, depth-and-selection, search, a11y-basics).
+ */
+export const SHARED_FIXTURE_DIR = path.join(os.tmpdir(), "code-observatory-e2e-shared-fixture");
+export const SHARED_PORT = 4399;
+export const SHARED_BASE_URL = `http://127.0.0.1:${SHARED_PORT}`;
 
-export const BASE_URL = `http://localhost:${FIXTURE_PORT}`;
-
-export function workflowFilePath(workflowId: string): string {
-  return path.join(FIXTURE_WORK_DIR, ".observatory", "workflows", `${workflowId}.json`);
-}
-
-export function sourceWorkflowFilePath(workflowId: string): string {
-  return path.join(SOURCE_FIXTURE_DIR, ".observatory", "workflows", `${workflowId}.json`);
-}
+/**
+ * One dedicated port per spec file that spawns its own server against a private temp
+ * directory. `playwright.config.ts` runs `fullyParallel`, so distinct ports (and distinct
+ * temp dirs, created per-spec via `helpers/fixture.ts`) are what keep concurrent workers from
+ * colliding — nothing here is serialized.
+ */
+export const PORTS = {
+  liveUpdate: 4501,
+  invalidPreservesBoard: 4502,
+  uninitialized: 4503,
+  empty: 4504,
+  cliOpen: 4505,
+} as const;

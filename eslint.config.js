@@ -28,6 +28,14 @@ export default tseslint.config(
     },
   },
   {
+    // The e2e suite's config-load bootstrap and spawned-process helpers legitimately log
+    // build/server diagnostics to the terminal.
+    files: ["tests/e2e/**", "playwright.config.ts"],
+    rules: {
+      "no-console": "off",
+    },
+  },
+  {
     files: ["src/web/**/*.{ts,tsx}"],
     plugins: {
       "react-hooks": reactHooks,
