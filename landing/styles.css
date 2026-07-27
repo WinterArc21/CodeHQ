@@ -136,6 +136,18 @@ svg { display: block; max-width: 100%; }
 .loop-card p em { color: var(--amber-ink); font-style: normal; }
 .mini { width: 100%; height: 170px; overflow: auto; padding: 16px; border: 1px solid var(--line); border-radius: 4px; color: var(--ink-2); background: var(--paper-2); font-size: 11.5px; line-height: 1.7; white-space: pre; }
 
+.why-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 40px; }
+.why-card { display: flex; flex-direction: column; gap: 14px; padding-top: 24px; border-top: 1px solid var(--line-strong); }
+.why-card header { display: flex; flex-direction: column; gap: 10px; }
+.why-label { color: var(--ink-3); font: var(--micro) var(--mono); letter-spacing: .08em; text-transform: uppercase; }
+.why-card h3 { font-size: 22px; font-weight: 650; letter-spacing: -.02em; }
+.why-breaks { margin: 0; }
+.why-card > p:last-child { color: var(--ink-2); font-size: 15px; line-height: 1.65; }
+.why-card-hq { border-top-color: var(--ink); }
+.why-card-hq .why-label { color: var(--amber-ink); }
+.why-card-hq h3 { color: var(--ink); }
+.why-card-hq > p:last-child { color: var(--ink); }
+
 .demo { overflow: hidden; border: 1px solid var(--line); border-radius: 10px; background: white; box-shadow: 0 24px 60px -44px rgba(15, 29, 50, .45); }
 .demo-bar, .demo-foot { display: flex; align-items: center; gap: 16px; padding: 10px 16px; background: white; }
 .demo-bar { border-bottom: 1px solid var(--line); }
@@ -256,8 +268,8 @@ svg { display: block; max-width: 100%; }
   .section-head > .micro { grid-column: 1 / 4; }
   .section-title, .section-sub { grid-column: 4 / -1; }
   .section-sub { margin-top: 20px; }
-  .loop-grid, .diag-grid, .install-grid { grid-template-columns: 1fr; }
-  .loop-grid { gap: 42px; }
+  .loop-grid, .why-grid, .diag-grid, .install-grid { grid-template-columns: 1fr; }
+  .loop-grid, .why-grid { gap: 42px; }
 }
 @media (max-width: 900px) {
   .head-nav { display: none; }

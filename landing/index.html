@@ -3,10 +3,10 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>HQ — See what your agent understands</title>
-  <meta name="description" content="HQ is a local-first workflow observatory. Your coding agent traces real workflows through your repository; HQ validates every claim and renders it as a living, interactive system map. Nothing leaves your machine." />
-  <meta property="og:title" content="HQ — See what your agent understands" />
-  <meta property="og:description" content="A local-first observatory that turns your coding agent's understanding into a live, validated map of your system." />
+  <title>HQ — Agents ship the code. HQ shows you the system.</title>
+  <meta name="description" content="Code is being written too fast to read line-by-line. Docs become walls of text. HQ turns real workflows into a living map of your system — sourced, validated, and rendered on your machine." />
+  <meta property="og:title" content="HQ — Agents ship the code. HQ shows you the system." />
+  <meta property="og:description" content="Code is being written too fast to read line-by-line. HQ turns real workflows into a living map of your architecture." />
   <meta property="og:type" content="website" />
   <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='3' fill='%2317181B'/%3E%3Ctext x='16' y='21' font-family='ui-monospace,monospace' font-size='13' font-weight='700' fill='%23F5F2EC' text-anchor='middle'%3EH%3C/text%3E%3C/svg%3E" />
   <link rel="stylesheet" href="styles.css" />
@@ -27,6 +27,7 @@
       </a>
 
       <nav class="head-nav" aria-label="Primary">
+        <a href="#why">Why</a>
         <a href="#loop">The loop</a>
         <a href="#canvas">Canvas</a>
         <a href="#diagnostics">Diagnostics</a>
@@ -48,10 +49,10 @@
         <div class="hero-copy">
           <p class="micro reveal">01 / Local-first workflow observatory</p>
           <h1 class="hero-title">
-            <span class="line-sans reveal">Your agent reads the code.</span>
-            <span class="line-serif reveal">HQ shows you what it sees.</span>
+            <span class="line-sans reveal">Agents ship the code.</span>
+            <span class="line-serif reveal">HQ shows you the system.</span>
           </h1>
-          <p class="hero-sub reveal">Turn your coding agent's understanding into a living map of real workflows — sourced, validated, and rendered entirely on your machine.</p>
+          <p class="hero-sub reveal">Code is being written too fast to read line-by-line. Docs become walls of text with no shape. HQ turns real workflows into a living map — what was built, how it connects, and what can break.</p>
           <div class="hero-cta reveal">
             <div class="cmd" role="group" aria-label="Install commands">
               <div class="cmd-line"><span class="cmd-prompt">$</span><code>npx code-observatory init</code></div>
@@ -74,10 +75,54 @@
       </div>
     </section>
 
-    <!-- ============ 02 / the loop ============ -->
+    <!-- ============ 02 / why maps ============ -->
+    <section class="section" id="why" data-section="why">
+      <header class="section-head">
+        <p class="micro reveal">02 / Why maps</p>
+        <h2 class="section-title">
+          <span class="line-sans reveal">Reading isn't enough.</span>
+          <span class="line-serif reveal">A map is.</span>
+        </h2>
+        <p class="section-sub reveal">
+          In an AI-native codebase, the scarce resource isn't generation — it's
+          keeping the architecture in view after every new feature ships.
+        </p>
+      </header>
+
+      <div class="why-grid">
+        <article class="why-card reveal">
+          <header>
+            <span class="why-label">Old way</span>
+            <h3>Read the code</h3>
+          </header>
+          <p class="why-breaks"><span class="micro">Breaks because</span></p>
+          <p>Agents ship features faster than you can re-absorb the architecture.</p>
+        </article>
+
+        <article class="why-card reveal">
+          <header>
+            <span class="why-label">Old way</span>
+            <h3>Read the docs</h3>
+          </header>
+          <p class="why-breaks"><span class="micro">Breaks because</span></p>
+          <p>Walls of markdown/HTML — accurate maybe, but no shape.</p>
+        </article>
+
+        <article class="why-card why-card-hq reveal">
+          <header>
+            <span class="why-label">HQ</span>
+            <h3>See the system</h3>
+          </header>
+          <p class="why-breaks"><span class="micro">Instead</span></p>
+          <p>A sourced map of real workflows: entry → decisions → side effects → outputs.</p>
+        </article>
+      </div>
+    </section>
+
+    <!-- ============ 03 / the loop ============ -->
     <section class="section" id="loop" data-section="loop">
       <header class="section-head">
-        <p class="micro reveal">02 / The loop</p>
+        <p class="micro reveal">03 / The loop</p>
         <h2 class="section-title">
           <span class="line-sans reveal">A closed loop between</span>
           <span class="line-serif reveal">agent and instrument.</span>
@@ -130,10 +175,10 @@
       </div>
     </section>
 
-    <!-- ============ 03 / canvas demo ============ -->
+    <!-- ============ 04 / canvas demo ============ -->
     <section class="section" id="canvas" data-section="canvas">
       <header class="section-head">
-        <p class="micro reveal">03 / The canvas</p>
+        <p class="micro reveal">04 / The canvas</p>
         <h2 class="section-title">
           <span class="line-sans reveal">The system,</span>
           <span class="line-serif reveal">drawn honestly.</span>
@@ -199,10 +244,10 @@
       <p class="demo-caption micro reveal">live demo · rendered from <code>examples/motiona/.observatory/workflows/generate-video.json</code></p>
     </section>
 
-    <!-- ============ 04 / diagnostics ============ -->
+    <!-- ============ 05 / diagnostics ============ -->
     <section class="section" id="diagnostics" data-section="diagnostics">
       <header class="section-head">
-        <p class="micro reveal">04 / Honest failure</p>
+        <p class="micro reveal">05 / Honest failure</p>
         <h2 class="section-title">
           <span class="line-sans reveal">When the agent stumbles,</span>
           <span class="line-serif reveal">the map doesn't.</span>
@@ -251,10 +296,10 @@
       </div>
     </section>
 
-    <!-- ============ 05 / principles ============ -->
+    <!-- ============ 06 / principles ============ -->
     <section class="section" id="principles" data-section="principles">
       <header class="section-head">
-        <p class="micro reveal">05 / Principles</p>
+        <p class="micro reveal">06 / Principles</p>
         <h2 class="section-title">
           <span class="line-sans reveal">An instrument,</span>
           <span class="line-serif reveal">not a chatbot.</span>
@@ -293,10 +338,10 @@
       </div>
     </section>
 
-    <!-- ============ 06 / install ============ -->
+    <!-- ============ 07 / install ============ -->
     <section class="section install" id="install" data-section="install">
       <header class="section-head">
-        <p class="micro reveal">06 / Get started</p>
+        <p class="micro reveal">07 / Get started</p>
         <h2 class="section-title">
           <span class="line-sans reveal">Point it at</span>
           <span class="line-serif reveal">a repository.</span>
@@ -316,8 +361,8 @@
         <div class="install-note reveal">
           <p class="micro">then ask your agent</p>
           <blockquote class="install-quote">
-            “Read <code>.observatory/SKILL.md</code>, then document the checkout workflow.
-            Trace it through order creation, payment, and the confirmation email.”
+            “Map how checkout actually works in this repo — steps, sources, failure paths.
+            I’ll review the architecture on the canvas.”
           </blockquote>
           <p class="micro dim">works with cursor · claude code · codex — anything that can read a repo</p>
         </div>
@@ -337,6 +382,7 @@
         </div>
       </div>
       <nav class="foot-links" aria-label="Footer">
+        <a href="#why">Why</a>
         <a href="#loop">The loop</a>
         <a href="#canvas">Canvas</a>
         <a href="#diagnostics">Diagnostics</a>
