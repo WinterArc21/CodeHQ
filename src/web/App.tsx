@@ -4,7 +4,7 @@ import { useObservatorySnapshot } from "./api/events";
 import { AppShell, TopBar, type ObservatoryStatus } from "./components/shell";
 import { WorkflowNavigator } from "./components/navigator";
 import { EmptyState, ErrorState, LoadingState, UninitializedState } from "./components/states";
-import { DiagnosticsBanner } from "./components/diagnostics";
+import { DiagnosticsBanner, DiagnosticsPanel } from "./components/diagnostics";
 import { WorkflowCanvas } from "./components/canvas";
 import { StepDrawer } from "./components/drawer";
 import { CommandPalette } from "./components/search";
@@ -33,7 +33,9 @@ export function App() {
   const selectedStepId = useObservatoryStore((state) => state.selectedStepId);
   const selectStep = useObservatoryStore((state) => state.selectStep);
   const openSearch = useObservatoryStore((state) => state.openSearch);
+  const diagnosticsOpen = useObservatoryStore((state) => state.diagnosticsOpen);
   const toggleDiagnostics = useObservatoryStore((state) => state.toggleDiagnostics);
+  const closeDiagnostics = useObservatoryStore((state) => state.closeDiagnostics);
 
   const [showExample, setShowExample] = useState(false);
 
@@ -116,6 +118,9 @@ export function App() {
           onClose={() => selectStep(null)}
           onSelectStep={selectStep}
         />
+      ) : null}
+      {diagnosticsOpen ? (
+        <DiagnosticsPanel diagnostics={snapshot.diagnostics} onClose={closeDiagnostics} onRecheck={handleRecheck} />
       ) : null}
       <CommandPalette snapshot={snapshot} onRecheck={handleRecheck} />
     </>

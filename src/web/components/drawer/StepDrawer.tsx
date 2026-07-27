@@ -12,7 +12,7 @@ import { StepDrawerConnections } from "./StepDrawerConnections";
 import { StepDrawerHeader } from "./StepDrawerHeader";
 import { StepDrawerNotes } from "./StepDrawerNotes";
 import { TestItem } from "./TestItem";
-import { useFocusTrap } from "./useFocusTrap";
+import { useFocusTrap } from "../../lib/useFocusTrap";
 import styles from "./StepDrawer.module.css";
 
 export interface StepDrawerProps {

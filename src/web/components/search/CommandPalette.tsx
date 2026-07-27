@@ -2,7 +2,7 @@ import { useCallback, useEffect, useId, useRef, useState, type KeyboardEvent as 
 import { MagnifyingGlass } from "@phosphor-icons/react";
 import type { ObservatorySnapshot } from "../../api/types";
 import { useObservatoryStore } from "../../store/useObservatoryStore";
-import { useFocusTrap } from "../drawer/useFocusTrap";
+import { useFocusTrap } from "../../lib/useFocusTrap";
 import { Kbd } from "../primitives";
 import { buildPaletteActions } from "./paletteActions";
 import { buildPaletteGroups } from "./paletteGroups";

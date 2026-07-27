@@ -78,8 +78,15 @@ const SIBLING_AVOIDANCE_MARGIN = 6;
  * segment toward the corner point, so it can never push the path further than the corner's own
  * (already-clear) waypoint. */
 export const SIDECAR_CORNER_RADIUS = 10;
-/** Gap between the rightmost extent of every node in the graph and the first sidecar lane. */
-const LANE_GAP = 40;
+/** Gap between the rightmost extent of every node in the graph and the first sidecar lane.
+ * Large enough that a label chip centred on that lane never overlaps the node column it runs
+ * beside: measured against the real rendered chip (mono, `--fs-micro`, `--space-2` padding,
+ * 1px border) for the longest realistic branch label ("quota exceeded", 15 chars) the label's
+ * own half-width is ~54 flow units, so 40 left it clipping the neighbouring node box by a few
+ * pixels — confirmed by rendering `examples/motiona`'s `generate-video` workflow and reading
+ * back real `getBoundingClientRect()` values, not estimated. 64 clears that same worst case
+ * with margin to spare while staying visually close to the column it annotates. */
+const LANE_GAP = 64;
 /** Distance between adjacent lanes — wide enough that the longest realistic label chip
  * ("quota exceeded", centred on its own lane) never reaches a neighbouring lane's line. */
 const LANE_PITCH = 130;

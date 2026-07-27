@@ -53,7 +53,7 @@ const LABEL_X_BLEND_TOWARD_TARGET = 0.5;
  * legible over the canvas grid, anchored near the connection's own source point (a routed edge
  * anchors on its own lane segment instead; see `route.labelPoint`).
  */
-export function WorkflowEdge({ data, sourceX, sourceY, sourcePosition, targetX, targetY, targetPosition }: EdgeProps<WorkflowFlowEdge>) {
+export function WorkflowEdge({ id, data, sourceX, sourceY, sourcePosition, targetX, targetY, targetPosition }: EdgeProps<WorkflowFlowEdge>) {
   if (data === undefined) {
     return null;
   }
@@ -86,6 +86,7 @@ export function WorkflowEdge({ data, sourceX, sourceY, sourcePosition, targetX, 
         <EdgeLabelRenderer>
           <div
             className={styles.label}
+            data-edge-label={id}
             style={{
               transform: `translate(-50%, -50%) translate(${labelX}px, ${labelY}px)`,
               color: `var(${visual.varName})`,

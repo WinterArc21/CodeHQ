@@ -31,6 +31,7 @@ interface ObservatoryUiActions {
   openSearch: () => void;
   closeSearch: () => void;
   toggleDiagnostics: () => void;
+  closeDiagnostics: () => void;
   setTheme: (theme: Theme) => void;
 }
 
@@ -86,7 +87,15 @@ export const useObservatoryStore = create<ObservatoryStore>()(
       selectWorkflow: (workflowId) =>
         set({ selectedWorkflowId: workflowId, selectedStepId: null, expandedStepIds: {} }),
 
-      selectStep: (stepId) => set({ selectedStepId: stepId }),
+      // The diagnostics panel and the step drawer are both single-focus overlays (contract §11
+      // accessibility: focus traps must never nest) — selecting a step always closes
+      // diagnostics, and opening diagnostics always clears the selected step, so exactly one of
+      // the two can be on screen at a time.
+      selectStep: (stepId) =>
+        set((state) => ({
+          selectedStepId: stepId,
+          diagnosticsOpen: stepId !== null ? false : state.diagnosticsOpen,
+        })),
 
       setDepth: (depth) => set({ depth }),
 
@@ -109,7 +118,13 @@ export const useObservatoryStore = create<ObservatoryStore>()(
 
       closeSearch: () => set({ searchOpen: false }),
 
-      toggleDiagnostics: () => set((state) => ({ diagnosticsOpen: !state.diagnosticsOpen })),
+      toggleDiagnostics: () =>
+        set((state) => {
+          const diagnosticsOpen = !state.diagnosticsOpen;
+          return { diagnosticsOpen, selectedStepId: diagnosticsOpen ? null : state.selectedStepId };
+        }),
+
+      closeDiagnostics: () => set({ diagnosticsOpen: false }),
 
       setTheme: (theme) => set({ theme }),
     }),

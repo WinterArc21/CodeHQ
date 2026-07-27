@@ -61,6 +61,22 @@ function assertNoNodeIsClipped(nodes: LayoutNode[], points: Point[], sourceId: s
   }
 }
 
+/**
+ * A conservative estimate of a rendered label chip's flow-space half-width, fitted against real
+ * `getBoundingClientRect()` measurements taken from `examples/motiona`'s `generate-video`
+ * workflow in a live browser (`dist/shots/capture.mjs`): "rejected" (8 chars) measured ~69.6
+ * flow units wide, "quota exceeded" (15 chars) ~108.3, "scrape failed" (13 chars) ~101.8. Fit
+ * as `width = perChar * chars + overhead` and rounded up (larger than the real slope/intercept)
+ * so this stays a safe upper bound rather than a tight one — the regression this guards against
+ * is `LANE_GAP` shrinking back below what a real label chip needs, not a precise pixel replica
+ * of `WorkflowEdge.module.css`.
+ */
+function estimateLabelHalfWidthFlow(text: string): number {
+  const PER_CHAR = 6;
+  const OVERHEAD = 28;
+  return (PER_CHAR * text.length + OVERHEAD) / 2;
+}
+
 describe("computeEdgeRoutes", () => {
   it("is a pure function: identical input produces a deep-equal result", () => {
     const workflow = generateVideoShapedWorkflow();
@@ -122,6 +138,33 @@ describe("computeEdgeRoutes", () => {
       laneXs.add(route!.points[2]!.x);
     }
     expect(laneXs.size).toBe(1);
+  });
+
+  it("keeps every branch label chip clear of the node column its lane runs beside (LANE_GAP regression guard)", () => {
+    // The exact bug this guards: "quota exceeded" (check-quota->save-result) and "scrape failed"
+    // (scrape-website->save-result) both used to clip the neighbouring spine node by a few
+    // pixels when LANE_GAP was 40 — confirmed by rendering this real workflow shape in a browser
+    // and reading back real label/node rects (dist/shots/capture.mjs). This is the fast,
+    // browser-free version of that same proof: for every routed label, its estimated chip must
+    // sit fully clear (to the right) of the graph's rightmost node edge.
+    const workflow = generateVideoShapedWorkflow();
+    const layout = computeLayout(workflow, BASE_OPTS);
+    const routes = computeEdgeRoutes(layout.nodes, layout.edges);
+    const graphMaxX = Math.max(...layout.nodes.map((node) => node.x + node.width));
+    const labelledEdges = layout.edges.filter((edge) => edge.connection.label !== undefined);
+    expect(labelledEdges.length).toBeGreaterThan(0);
+
+    for (const layoutEdge of labelledEdges) {
+      const route = routes.get(layoutEdge.id);
+      expect(route, `expected a route for labelled edge ${layoutEdge.id}`).toBeDefined();
+      const label = layoutEdge.connection.label!;
+      const halfWidth = estimateLabelHalfWidthFlow(label);
+      const labelLeftEdge = route!.labelPoint.x - halfWidth;
+      expect(
+        labelLeftEdge,
+        `label "${label}" on ${layoutEdge.id} would clip the node column (left edge ${labelLeftEdge.toFixed(1)} vs graph max x ${graphMaxX})`,
+      ).toBeGreaterThan(graphMaxX);
+    }
   });
 
   it("gives concurrent branches sharing a lane distinct, non-colliding label points", () => {

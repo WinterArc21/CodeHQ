@@ -50,6 +50,22 @@ test("a truncated write keeps the board on screen and surfaces diagnostics, then
   await expect(page.locator("[data-step-node]")).toHaveCount(7);
   await expect(page.locator('[data-step-node="receive-request"]')).toContainText("Receive Request");
 
+  // Opening diagnostics from the banner shows the real, actionable error text — not a dead
+  // button (contract §12) and not a generic message: the exact JSON parse failure, its file,
+  // and its repair hint all come from the real diagnostics.json written by the core loader.
+  await page.getByRole("button", { name: "Open diagnostics" }).click();
+  const panel = page.getByRole("dialog", { name: "Diagnostics" });
+  await expect(panel).toBeVisible();
+  await expect(panel).toContainText(".observatory/workflows/generate-video.json");
+  await expect(panel).toContainText("Failed to parse JSON");
+  await expect(panel).toContainText("The file may have been saved while an agent was still writing it.");
+  await expect(panel.getByText("Error", { exact: true })).toBeVisible();
+
+  // Escape closes the panel without touching the board underneath.
+  await page.keyboard.press("Escape");
+  await expect(panel).toBeHidden();
+  await expect(page.locator("[data-step-node]")).toHaveCount(7);
+
   // The stale state is surfaced on the affected workflow's navigator entry too.
   const navigatorItem = page.locator("button[data-workflow-item]").filter({ hasText: "Generate Video Prompt" });
   await expect(navigatorItem).toContainText("Stale");
