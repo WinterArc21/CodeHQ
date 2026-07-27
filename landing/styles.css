@@ -174,7 +174,9 @@ main { position: relative; }
   mask-image: radial-gradient(70% 90% at 68% 42%, black 30%, transparent 78%);
   pointer-events: none;
 }
-.hero-inner { position: relative; display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: clamp(28px, 3.5vw, 56px); align-items: start; padding-block: clamp(56px, 6vw, 88px) clamp(56px, 5.5vw, 80px); padding-left: var(--rail-gap); }
+/* the section below carries its own generous top padding, so the hero only
+   needs enough tail for the wire to leave the frame */
+.hero-inner { position: relative; display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: clamp(28px, 3.5vw, 56px); align-items: start; padding-block: clamp(52px, 5.5vw, 80px) clamp(24px, 2.4vw, 36px); padding-left: var(--rail-gap); }
 .hero-title { grid-column: 1 / -1; margin-bottom: clamp(20px, 2.5vw, 34px); font-size: clamp(40px, 3.8vw, 70px); font-weight: 750; line-height: 1.02; letter-spacing: -.045em; text-wrap: balance; }
 .hero-title > span { display: block; }
 .t-dim { color: var(--ink-3); }
@@ -183,7 +185,7 @@ main { position: relative; }
 .hero-sub { max-width: 44ch; color: var(--ink-2); font-size: 17.5px; line-height: 1.6; }
 .hero-cta { margin-top: 30px; }
 
-.hero-graph { position: relative; width: 100%; aspect-ratio: 10 / 7; }
+.hero-graph { position: relative; width: 100%; aspect-ratio: 10 / 6.2; }
 .hero-edges, .hero-nodes { position: absolute; inset: 0; width: 100%; height: 100%; }
 .hero-nodes .node { pointer-events: none; }
 .hero-edges .edge-label { stroke: var(--paper); }
@@ -443,7 +445,7 @@ main { position: relative; }
     --branch: 0px;
   }
   body { background-size: 24px 24px; }
-  .hero-inner { padding-block: 52px 52px; gap: 36px; }
+  .hero-inner { padding-block: 48px 20px; gap: 32px; }
   .hero-title { font-size: clamp(34px, 9.4vw, 42px); }
   .hero-sub { font-size: 16px; }
   .hero-cta { margin-top: 26px; }
