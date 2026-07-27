@@ -453,7 +453,7 @@ function initHeroGraph() {
    3. THE SPINE
    One line down the page in the canvas notation. It forks where the argument
    forks, closes into a cycle where the product is a cycle, enters the canvas,
-   goes stale where things break, and terminates at the install step.
+   runs as a bus past the principles, and terminates at the install step.
    ========================================================================== */
 
 function initSpine() {
@@ -511,7 +511,6 @@ function initSpine() {
     const why1 = box("why-1"), why2 = box("why-2"), why3 = box("why-3");
     const l1 = box("loop-1"), l2 = box("loop-2"), l3 = box("loop-3");
     const frame = box("canvas-frame");
-    const dIn = box("diag-in"), dOut = box("diag-out");
     const p1 = box("prin-1"), p4 = box("prin-4");
     const term = box("install-node");
 
@@ -547,16 +546,9 @@ function initSpine() {
       push("canvas", elbowLeft(frame.x - 3, frame.bottom - 46, railX, frame.bottom + 34));
     }
 
-    /* the break: solid stops, a stale segment spans the section, then repairs */
-    if (frame && dIn && dOut) {
-      push("diagnostics", `M ${railX} ${frame.bottom + 34} V ${dIn.cy - 30}`);
-      push("diagnostics", `M ${railX} ${dIn.cy - 12} V ${dOut.cy}`, "is-stale", false);
-      push("diagnostics", `M ${dIn.right + 3} ${dIn.cy} H ${contentX - 10}`, "is-stale", false);
-    }
-
     /* the bus, with a tap per principle */
-    if (dOut && p1 && p4) {
-      push("principles", `M ${railX} ${dOut.cy} V ${p4.cy}`);
+    if (frame && p1 && p4) {
+      push("principles", `M ${railX} ${frame.bottom + 34} V ${p4.cy}`);
       for (const n of ["prin-1", "prin-2", "prin-3", "prin-4"]) {
         const t = box(n);
         if (t) push("principles", `M ${t.right + 3} ${t.cy} H ${contentX - 10}`);
@@ -620,7 +612,7 @@ function initSpine() {
   let groups = build();
 
   /* draw each section's segments as that section arrives */
-  const drawn = new Set(REDUCED ? ["why", "loop", "canvas", "diagnostics", "principles", "install"] : []);
+  const drawn = new Set(REDUCED ? ["why", "loop", "canvas", "principles", "install"] : []);
   const applyDrawn = () => {
     if (!groups) return;
     for (const [sec, g] of groups) g.classList.toggle("in", drawn.has(sec));
@@ -639,7 +631,7 @@ function initSpine() {
       if (changed) applyDrawn();
     }, { rootMargin: "0px 0px -12% 0px", threshold: 0.02 });
 
-    for (const id of ["why", "loop", "canvas", "diagnostics", "principles", "install"]) {
+    for (const id of ["why", "loop", "canvas", "principles", "install"]) {
       const el = document.getElementById(id);
       if (el) io.observe(el);
     }

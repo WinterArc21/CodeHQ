@@ -30,7 +30,6 @@
         <a href="#why">Why</a>
         <a href="#loop">The loop</a>
         <a href="#canvas">Canvas</a>
-        <a href="#diagnostics">Diagnostics</a>
         <a href="#principles">Principles</a>
       </nav>
 
@@ -211,53 +210,6 @@
       <p class="demo-caption reveal">Rendered from <code>examples/motiona/.observatory/workflows/generate-video.json</code></p>
     </section>
 
-    <!-- ============ diagnostics: the spine breaks and repairs ============ -->
-    <section class="section" id="diagnostics">
-      <header class="section-head">
-        <h2 class="section-title reveal">When the agent stumbles, the map doesn't.</h2>
-      </header>
-
-      <div class="diag-grid">
-        <div class="diag-copy">
-          <span class="sp-node is-stale" data-sp="diag-in" aria-hidden="true"></span>
-          <p class="reveal">Agents write partial JSON. Schemas get violated. It happens mid-keystroke, mid-refactor, mid-everything. HQ's answer is <strong>last-valid-state preservation</strong>: the last good map stays on screen, marked <span class="chip chip-stale">stale</span>, while a precise diagnostics file tells the agent exactly how to repair what it broke.</p>
-          <ul class="diag-points">
-            <li class="reveal"><strong>Errors are sentences, not stack traces.</strong> Every issue carries a JSON pointer, a human-readable message, and a hint.</li>
-            <li class="reveal"><strong>The loop closes itself.</strong> Agents read <code>diagnostics.json</code> after every write and fix what they introduced.</li>
-            <li class="reveal"><strong>The board never blanks out.</strong> A workflow that was once valid stays rendered until a newer valid version replaces it.</li>
-          </ul>
-          <span class="sp-node" data-sp="diag-out" aria-hidden="true"></span>
-        </div>
-
-        <div class="diag-card reveal" role="img" aria-label="Example diagnostics report showing one error and one warning">
-          <header class="diag-card-head">
-            <span class="mono">.observatory/diagnostics.json</span>
-            <span class="chip chip-stale">stale · 12s</span>
-          </header>
-          <pre class="diag-json"><code><span class="j-p">{</span>
-  <span class="j-k">"valid"</span><span class="j-p">:</span> <span class="j-b">false</span><span class="j-p">,</span>
-  <span class="j-k">"issues"</span><span class="j-p">:</span> <span class="j-p">[</span>
-    <span class="j-p">{</span>
-      <span class="j-k">"severity"</span><span class="j-p">:</span> <span class="j-e">"error"</span><span class="j-p">,</span>
-      <span class="j-k">"file"</span><span class="j-p">:</span> <span class="j-s">"workflows/checkout.json"</span><span class="j-p">,</span>
-      <span class="j-k">"path"</span><span class="j-p">:</span> <span class="j-s">"connections[3].to"</span><span class="j-p">,</span>
-      <span class="j-k">"message"</span><span class="j-p">:</span> <span class="j-s">"Connection references step
-        \"send-receipt\", which does not exist."</span><span class="j-p">,</span>
-      <span class="j-k">"hint"</span><span class="j-p">:</span> <span class="j-s">"Create the step, or point the
-        connection at an existing step id."</span>
-    <span class="j-p">},</span>
-    <span class="j-p">{</span>
-      <span class="j-k">"severity"</span><span class="j-p">:</span> <span class="j-w">"warning"</span><span class="j-p">,</span>
-      <span class="j-k">"message"</span><span class="j-p">:</span> <span class="j-s">"Workflow has 15 steps.
-        Prefer 5 to 9 top-level steps."</span>
-    <span class="j-p">}</span>
-  <span class="j-p">]</span>
-<span class="j-p">}</span></code></pre>
-          <footer class="diag-card-foot">read by your agent, repaired in the next pass</footer>
-        </div>
-      </div>
-    </section>
-
     <!-- ============ principles: the spine runs as a bus with four taps ============ -->
     <section class="section" id="principles">
       <header class="section-head">
@@ -332,7 +284,7 @@
         <a href="#why">Why</a>
         <a href="#loop">The loop</a>
         <a href="#canvas">Canvas</a>
-        <a href="#diagnostics">Diagnostics</a>
+        <a href="#principles">Principles</a>
         <a href="#install">Install</a>
       </nav>
       <p class="foot-c">© 2026 · closed source, open loop</p>

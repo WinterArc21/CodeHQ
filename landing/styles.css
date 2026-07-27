@@ -97,7 +97,7 @@ h1, h2, h3 { font-family: var(--display); }
 
 /* small mono labels. deliberately few: no section eyebrows anywhere. */
 .head-note, .demo-repo, .demo-stats, .demo-depth-label, .install-cue,
-.install-compat, .foot-tag, .foot-c, .demo-caption, .diag-card-foot,
+.install-compat, .foot-tag, .foot-c, .demo-caption,
 .live, .d-section > span, .d-foot {
   color: var(--ink-3);
   font: 11px/1.4 var(--mono);
@@ -113,8 +113,6 @@ h1, h2, h3 { font-family: var(--display); }
 .brand-sub { color: var(--ink-3); font: 9.5px var(--mono); letter-spacing: .14em; text-transform: uppercase; }
 .live { display: inline-flex; align-items: center; gap: 7px; white-space: nowrap; }
 .live-dot { flex: none; width: 6px; height: 6px; border-radius: 50%; background: var(--green); }
-.chip { padding: 2px 7px; border: 1px solid var(--line-strong); border-radius: var(--r-1); color: var(--ink-2); font: 10.5px var(--mono); letter-spacing: .04em; white-space: nowrap; }
-.chip-stale { border-color: color-mix(in oklch, var(--amber) 55%, white); color: var(--amber-ink); background: color-mix(in oklch, var(--amber) 10%, white); }
 .btn { display: inline-flex; align-items: center; gap: 8px; padding: 9px 16px; border: 1px solid transparent; border-radius: var(--r-2); font-size: var(--small); font-weight: 600; line-height: 1.2; white-space: nowrap; transition: background 180ms var(--ease), transform 180ms var(--ease), box-shadow 180ms var(--ease); }
 .btn-solid { color: white; background: var(--ink); box-shadow: 0 1px 2px rgba(0, 0, 0, .2), 0 8px 18px -12px rgba(0, 0, 0, .5); }
 .btn-solid:hover { background: var(--dark-2); }
@@ -140,7 +138,6 @@ main { position: relative; }
 .spine { position: absolute; z-index: 0; inset: 0; overflow: visible; width: 100%; height: 100%; pointer-events: none; }
 .sp-path { fill: none; stroke: var(--wire); stroke-width: 1.5; }
 .sp-path.is-fail { stroke: var(--red); stroke-width: 1.25; stroke-dasharray: 5 5; opacity: .85; }
-.sp-path.is-stale { stroke: var(--amber); stroke-width: 1.5; stroke-dasharray: 5 4; }
 .sp-path.is-return { stroke: var(--wire); stroke-width: 1.25; stroke-dasharray: 3 4; opacity: .75; }
 .sp-dot { fill: var(--wire); }
 .sp-text { fill: var(--ink-3); stroke: var(--paper); stroke-width: 5px; paint-order: stroke; font: 10px var(--mono); letter-spacing: .08em; text-transform: uppercase; }
@@ -152,7 +149,6 @@ main { position: relative; }
 .sp-node::after { content: ""; position: absolute; inset: 3px; border-radius: 1px; background: var(--node-c, var(--line-strong)); }
 .sp-node.is-entry { --node-c: var(--blue); border-color: var(--blue); }
 .sp-node.is-out { --node-c: var(--green); border-color: var(--green); }
-.sp-node.is-stale { --node-c: var(--amber); border-color: var(--amber); }
 .sp-node.is-terminal { --node-c: var(--ink); border-color: var(--ink); }
 .sp-node.is-dead { border-color: var(--red); }
 .sp-node.is-dead::after { display: grid; place-items: center; inset: 0; background: none; color: var(--red); content: "×"; font: 700 11px/1 var(--mono); }
@@ -209,7 +205,7 @@ main { position: relative; }
 .section-head { position: relative; margin-bottom: clamp(40px, 4.5vw, 60px); }
 .section-title { max-width: 24ch; font-size: clamp(2rem, 3.4vw, 3.1rem); font-weight: 740; line-height: 1.04; letter-spacing: -.038em; }
 .section-lede { max-width: 60ch; margin-top: 18px; color: var(--ink-2); font-size: 16.5px; line-height: 1.62; }
-.section-lede code, .station-copy code, .diag-points code { padding: 1px 5px; border: 1px solid var(--line); border-radius: var(--r-1); background: white; font-size: .85em; }
+.section-lede code, .station-copy code { padding: 1px 5px; border: 1px solid var(--line); border-radius: var(--r-1); background: white; font-size: .85em; }
 
 /* ==========================================================================
    WHY: a fork. two branches dead-end, one continues as a real node.
@@ -329,28 +325,6 @@ main { position: relative; }
 .demo-caption code { font-size: 10.5px; }
 
 /* ==========================================================================
-   DIAGNOSTICS: the spine breaks, goes stale, then repairs.
-   ========================================================================== */
-
-.diag-grid { display: grid; grid-template-columns: 1fr 1.05fr; gap: clamp(32px, 4vw, 56px); align-items: start; }
-.diag-copy { position: relative; }
-.diag-copy .sp-node[data-sp="diag-in"] { top: 6px; }
-.diag-copy .sp-node[data-sp="diag-out"] { bottom: -2px; }
-.diag-copy > p { max-width: 52ch; color: var(--ink-2); font-size: 16.5px; }
-.diag-points { display: flex; flex-direction: column; gap: 18px; margin-top: 30px; padding: 0; list-style: none; }
-.diag-points li { max-width: 54ch; padding-left: 16px; border-left: 1px solid var(--line-strong); color: var(--ink-2); font-size: 14.5px; }
-.diag-points strong { color: var(--ink); }
-.diag-card { overflow: hidden; border: 1px solid var(--dark-2); border-radius: var(--r-3); color: white; background: var(--dark); box-shadow: 0 32px 72px -44px rgba(0, 0, 0, .65); }
-.diag-card-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 10px 16px; border-bottom: 1px solid var(--dark-2); }
-.diag-card-head .mono { color: #aaa; font-size: 11px; }
-.diag-json { overflow-x: auto; padding: 20px; color: #e7e4df; font-size: 12px; line-height: 1.75; }
-.j-k, .j-p { color: #888; }
-.j-s { color: #eee; }
-.j-b, .j-w { color: var(--amber); }
-.j-e { color: #ef9b8f; }
-.diag-card-foot { padding: 10px 16px; border-top: 1px solid var(--dark-2); color: #888; }
-
-/* ==========================================================================
    PRINCIPLES: the spine runs straight, four taps hang off it.
    ========================================================================== */
 
@@ -427,7 +401,7 @@ main { position: relative; }
   .hero-inner { grid-template-columns: 1fr; }
   .hero-graph { max-width: 560px; }
   .station { grid-template-columns: 1fr; gap: 20px; }
-  .diag-grid, .install-grid { grid-template-columns: 1fr; }
+  .install-grid { grid-template-columns: 1fr; }
   .tap { grid-template-columns: 1fr; gap: 6px; }
 }
 
