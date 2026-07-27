@@ -1,224 +1,12 @@
 /* ==========================================================================
    HQ — landing page runtime
-   1. WebGL hero shader (living graph paper, ghost topology, pulses)
-   2. Interactive workflow canvas demo (real generate-video workflow data)
-   3. UI: copy, header, rail, reveals, progress, ticks
+   Interactive workflow demo and supporting UI behavior.
    ========================================================================== */
 
 const REDUCED = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
 
 /* ==========================================================================
-   1. HERO SHADER
-   ========================================================================== */
-
-const FRAG = `#version 300 es
-precision highp float;
-
-uniform vec2  uRes;
-uniform float uTime;
-uniform vec2  uMouse;   // uv, y-up
-uniform float uMAct;    // mouse activity 0..1
-out vec4 frag;
-
-float hash21(vec2 p){ p = fract(p * vec2(123.34, 456.21)); p += dot(p, p + 45.32); return fract(p.x * p.y); }
-
-float gridLine(vec2 q){
-  vec2 d = abs(fract(q - 0.5) - 0.5) / fwidth(q);
-  return 1.0 - min(min(d.x, d.y), 1.0);
-}
-float sdBox(vec2 p, vec2 c, vec2 b){
-  vec2 d = abs(p - c) - b;
-  return length(max(d, 0.0)) + min(max(d.x, d.y), 0.0);
-}
-float sdSeg(vec2 p, vec2 a, vec2 b){
-  vec2 pa = p - a, ba = b - a;
-  float h = clamp(dot(pa, ba) / dot(ba, ba), 0.0, 1.0);
-  return length(pa - ba * h);
-}
-float stroke(float d, float wpx){
-  float aa = 1.5 / uRes.y;
-  return 1.0 - smoothstep(wpx, wpx + aa, abs(d));
-}
-
-void main(){
-  vec2 uv = gl_FragCoord.xy / uRes;
-  float aspect = uRes.x / uRes.y;
-  vec2 p  = vec2(uv.x * aspect, uv.y);
-  vec2 m  = vec2(uMouse.x * aspect, uMouse.y);
-  float md = length(p - m);
-  float lens = exp(-md * md * 10.0) * uMAct;
-
-  // gentle lens warp around the cursor
-  vec2 w = uv + normalize(uv - uMouse + 1e-5) * (-lens * 0.006);
-  vec2 px = w * uRes;
-
-  // paper
-  vec3 col = vec3(0.962, 0.949, 0.925);
-  col *= 1.0 - 0.035 * uv.y;
-  float vig = smoothstep(1.25, 0.35, length(uv - vec2(0.42, 0.55)));
-  col *= mix(0.972, 1.0, vig);
-
-  // technical grid
-  vec3 lineC = vec3(0.796, 0.780, 0.745);
-  float g1 = gridLine(px / 32.0);
-  float g2 = gridLine(px / 128.0);
-  float gA = 0.30 + 0.60 * lens;
-  col = mix(col, lineC, clamp(g1 * 0.30 + g2 * 0.50, 0.0, 1.0) * gA);
-
-  // ---- ghost topology -------------------------------------------------
-  vec2 c0 = vec2(0.60 * aspect, 0.70), s0 = vec2(0.052 * aspect, 0.034);
-  vec2 c1 = vec2(0.80 * aspect, 0.60), s1 = vec2(0.058 * aspect, 0.036);
-  vec2 c2 = vec2(0.70 * aspect, 0.40), s2 = vec2(0.052 * aspect, 0.034);
-  vec2 c3 = vec2(0.88 * aspect, 0.28), s3 = vec2(0.050 * aspect, 0.032);
-  vec2 c4 = vec2(0.47 * aspect, 0.50), s4 = vec2(0.050 * aspect, 0.032);
-
-  // edges: 4->0, 0->1, 4->2, 2->3
-  float t0 = fract(uTime * 0.100 + 0.00);
-  float t1 = fract(uTime * 0.085 + 0.35);
-  float t2 = fract(uTime * 0.120 + 0.60);
-  float t3 = fract(uTime * 0.095 + 0.15);
-
-  vec3 AMBER = vec3(0.78, 0.58, 0.25);
-  vec3 GREEN = vec3(0.29, 0.60, 0.44);
-  vec3 BLUE  = vec3(0.33, 0.50, 0.86);
-
-  // connection hairlines
-  float conn = 0.0;
-  conn += stroke(sdSeg(p, c4, c0), 0.0009);
-  conn += stroke(sdSeg(p, c0, c1), 0.0009);
-  conn += stroke(sdSeg(p, c4, c2), 0.0009);
-  conn += stroke(sdSeg(p, c2, c3), 0.0009);
-  col = mix(col, lineC, clamp(conn, 0.0, 1.0) * 0.35);
-
-  // node boxes, flashed on pulse arrival
-  float boxes = 0.0;
-  boxes += stroke(sdBox(p, c0, s0), 0.0011) * (1.0 + 1.8 * smoothstep(0.93, 1.0, t0));
-  boxes += stroke(sdBox(p, c1, s1), 0.0011) * (1.0 + 1.8 * smoothstep(0.93, 1.0, t1));
-  boxes += stroke(sdBox(p, c2, s2), 0.0011) * (1.0 + 1.8 * smoothstep(0.93, 1.0, t2));
-  boxes += stroke(sdBox(p, c3, s3), 0.0011) * (1.0 + 1.8 * smoothstep(0.93, 1.0, t3));
-  boxes += stroke(sdBox(p, c4, s4), 0.0011);
-  col = mix(col, vec3(0.42, 0.41, 0.39), clamp(boxes, 0.0, 1.0) * 0.30);
-
-  // traveling pulses
-  float glowR = 7.0 / uRes.y;
-  vec2 q0 = mix(c4, c0, t0);
-  vec2 q1 = mix(c0, c1, t1);
-  vec2 q2 = mix(c4, c2, t2);
-  vec2 q3 = mix(c2, c3, t3);
-  float p0 = exp(-pow(length(p - q0) / glowR, 2.0));
-  float p1 = exp(-pow(length(p - q1) / glowR, 2.0));
-  float p2 = exp(-pow(length(p - q2) / glowR, 2.0));
-  float p3 = exp(-pow(length(p - q3) / glowR, 2.0));
-  col = mix(col, AMBER, p0 * 0.55);
-  col = mix(col, GREEN, p1 * 0.55);
-  col = mix(col, BLUE,  p2 * 0.55);
-  col = mix(col, AMBER, p3 * 0.55);
-
-  // cursor warmth
-  col = mix(col, AMBER, exp(-md * md * 7.0) * 0.045 * uMAct);
-
-  // film grain, 24fps stepped
-  col += (hash21(gl_FragCoord.xy + floor(uTime * 24.0)) - 0.5) * 0.026;
-
-  frag = vec4(col, 1.0);
-}`;
-
-const VERT = `#version 300 es
-layout(location = 0) in vec2 aPos;
-void main(){ gl_Position = vec4(aPos, 0.0, 1.0); }`;
-
-function initHeroGL() {
-  const canvas = document.getElementById("gl");
-  const hero = canvas?.closest(".hero");
-  if (!canvas || !hero) return;
-
-  let gl = null;
-  try {
-    gl = canvas.getContext("webgl2", { antialias: true, alpha: false, powerPreference: "low-power" });
-  } catch { /* fall through to fallback */ }
-  if (!gl) { canvas.style.display = "none"; return; }
-
-  const compile = (type, src) => {
-    const sh = gl.createShader(type);
-    gl.shaderSource(sh, src);
-    gl.compileShader(sh);
-    if (!gl.getShaderParameter(sh, gl.COMPILE_STATUS)) {
-      canvas.style.display = "none";
-      return null;
-    }
-    return sh;
-  };
-  const vs = compile(gl.VERTEX_SHADER, VERT);
-  const fs = compile(gl.FRAGMENT_SHADER, FRAG);
-  if (!vs || !fs) return;
-
-  const prog = gl.createProgram();
-  gl.attachShader(prog, vs);
-  gl.attachShader(prog, fs);
-  gl.linkProgram(prog);
-  if (!gl.getProgramParameter(prog, gl.LINK_STATUS)) { canvas.style.display = "none"; return; }
-  gl.useProgram(prog);
-
-  const buf = gl.createBuffer();
-  gl.bindBuffer(gl.ARRAY_BUFFER, buf);
-  gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([-1, -1, 3, -1, -1, 3]), gl.STATIC_DRAW);
-  gl.enableVertexAttribArray(0);
-  gl.vertexAttribPointer(0, 2, gl.FLOAT, false, 0, 0);
-
-  const uRes = gl.getUniformLocation(prog, "uRes");
-  const uTime = gl.getUniformLocation(prog, "uTime");
-  const uMouse = gl.getUniformLocation(prog, "uMouse");
-  const uMAct = gl.getUniformLocation(prog, "uMAct");
-
-  const DPR = Math.min(window.devicePixelRatio || 1, 1.5) * 0.75;
-  const size = () => {
-    const r = hero.getBoundingClientRect();
-    canvas.width = Math.max(2, Math.round(r.width * DPR));
-    canvas.height = Math.max(2, Math.round(r.height * DPR));
-    gl.viewport(0, 0, canvas.width, canvas.height);
-  };
-  size();
-  new ResizeObserver(size).observe(hero);
-
-  // smoothed mouse + activity envelope
-  let mx = 0.62, my = 0.55, tx = mx, ty = my, act = 0, actTarget = 0, idleTimer = 0;
-  hero.addEventListener("pointermove", (e) => {
-    const r = hero.getBoundingClientRect();
-    tx = (e.clientX - r.left) / r.width;
-    ty = 1 - (e.clientY - r.top) / r.height;
-    actTarget = 1;
-    window.clearTimeout(idleTimer);
-    idleTimer = window.setTimeout(() => { actTarget = 0; }, 1800);
-  }, { passive: true });
-  hero.addEventListener("pointerleave", () => { actTarget = 0; }, { passive: true });
-
-  let visible = true;
-  new IntersectionObserver(([entry]) => { visible = entry.isIntersecting; }).observe(hero);
-
-  const draw = (t) => {
-    gl.uniform2f(uRes, canvas.width, canvas.height);
-    gl.uniform1f(uTime, t);
-    gl.uniform2f(uMouse, mx, my);
-    gl.uniform1f(uMAct, act);
-    gl.drawArrays(gl.TRIANGLES, 0, 3);
-  };
-
-  if (REDUCED) { draw(3.7); return; }   // one static, well-composed frame
-
-  let start = performance.now();
-  const loop = (now) => {
-    requestAnimationFrame(loop);
-    if (!visible || document.hidden) return;
-    mx += (tx - mx) * 0.08;
-    my += (ty - my) * 0.08;
-    act += (actTarget - act) * 0.06;
-    draw((now - start) / 1000);
-  };
-  requestAnimationFrame(loop);
-}
-
-/* ==========================================================================
-   2. WORKFLOW CANVAS DEMO — real data from examples/motiona
+   WORKFLOW CANVAS DEMO — real data from examples/motiona
    ========================================================================== */
 
 const CAT_VAR = {
@@ -229,14 +17,14 @@ const CAT_VAR = {
 const STEPS = [
   {
     id: "receive-request", idx: "01", name: "Receive Request", cat: "entry", conf: "verified",
-    x: 3, y: 12.5, io: "url → GenerateRequestBody",
+    x: 4, y: 14, io: "url → GenerateRequestBody",
     purpose: "Accepts the website URL, optional reference images, and tone setting.",
     sources: [{ file: "app/api/generate/route.ts", symbol: "POST", line: "14–39" }],
     inputs: [], outputs: [{ name: "GenerateRequestBody" }], edgeCases: [], tests: [],
   },
   {
     id: "validate-request", idx: "02", name: "Validate Request", cat: "decision", conf: "verified",
-    x: 25, y: 12.5, io: "GenerateRequestBody → validated",
+    x: 28, y: 14, io: "request → validated",
     purpose: "Checks the URL and reference images, and normalizes the tone.",
     sources: [{ file: "lib/validation.ts", symbol: "validateGenerateRequest" }],
     inputs: [{ name: "GenerateRequestBody" }], outputs: [{ name: "ValidatedGenerateRequest" }],
@@ -251,7 +39,7 @@ const STEPS = [
   },
   {
     id: "check-quota", idx: "03", name: "Check Quota", cat: "decision", conf: "verified",
-    x: 47, y: 12.5, io: "account → allow / 429",
+    x: 52, y: 14, io: "account → allow / 429",
     purpose: "Confirms the account has not exceeded its monthly generation quota.",
     sources: [{ file: "lib/validation.ts", symbol: "hasRemainingQuota" }],
     inputs: [], outputs: [],
@@ -260,7 +48,7 @@ const STEPS = [
   },
   {
     id: "scrape-website", idx: "04", name: "Scrape Website", cat: "logic", conf: "verified",
-    x: 69, y: 12.5, io: "request → ScrapedWebsite",
+    x: 76, y: 14, io: "request → ScrapedWebsite",
     purpose: "Fetches the submitted page and extracts its title, description, body text, and images.",
     sources: [{ file: "lib/scraper.ts", symbol: "scrapeWebsite" }],
     inputs: [{ name: "ValidatedGenerateRequest" }], outputs: [{ name: "ScrapedWebsite" }],
@@ -269,7 +57,7 @@ const STEPS = [
   },
   {
     id: "understand-product", idx: "05", name: "Understand Product", cat: "logic", conf: "inferred",
-    x: 69, y: 59, io: "ScrapedWebsite → ProductContext",
+    x: 76, y: 61, io: "website → product model",
     purpose: "Converts the scraped page into a structured product model: name, tagline, summary, hero image, and keywords.",
     sources: [{ file: "lib/product-model.ts", symbol: "buildProductContext" }],
     inputs: [{ name: "ScrapedWebsite" }], outputs: [{ name: "ProductContext" }],
@@ -279,7 +67,7 @@ const STEPS = [
   },
   {
     id: "generate-story", idx: "06", name: "Generate Story", cat: "logic", conf: "verified",
-    x: 47, y: 59, io: "ProductContext → StoryPlan",
+    x: 52, y: 61, io: "ProductContext → StoryPlan",
     purpose: "Builds a short, tone-appropriate beat sequence (hook, problem, payoff) from the product context.",
     sources: [{ file: "lib/story.ts", symbol: "generateStoryPlan" }],
     inputs: [{ name: "ProductContext" }], outputs: [{ name: "StoryPlan" }],
@@ -287,7 +75,7 @@ const STEPS = [
   },
   {
     id: "save-result", idx: "07", name: "Save Result", cat: "output", conf: "verified",
-    x: 25, y: 59, io: "StoryPlan → 200 / error",
+    x: 28, y: 61, io: "StoryPlan → 200 / error",
     purpose: "Persists the generation and returns it to the caller, or returns an error response for any failed step above.",
     sources: [
       { file: "lib/persistence.ts", symbol: "saveGeneration" },
@@ -382,7 +170,6 @@ function initDemo() {
       </marker>`;
     svg.appendChild(defs);
 
-    let pulseIdx = 0;
     for (const e of EDGES) {
       const a = rectOf(e.from), b = rectOf(e.to);
       let d, labelAt = null;
@@ -428,17 +215,6 @@ function initDemo() {
       base.setAttribute("class", "edge" + (e.type === "failure" ? " is-failure" : e.type === "conditional" ? " is-conditional" : ""));
       base.setAttribute("marker-end", `url(#${marker})`);
       svg.appendChild(base);
-
-      if (e.type !== "failure" && !REDUCED) {
-        const pulse = document.createElementNS(NS, "path");
-        pulse.setAttribute("d", d);
-        pulse.setAttribute("class", "edge-pulse" + (e.type === "conditional" ? " is-conditional" : ""));
-        pulse.setAttribute("pathLength", "100");
-        svg.appendChild(pulse);
-        const len = base.getTotalLength();
-        pulse.style.animationDuration = `${Math.max(2.4, len / 130)}s`;
-        pulse.style.animationDelay = `${-(pulseIdx++ * 0.9)}s`;
-      }
 
       if (e.label && labelAt) {
         const t = document.createElementNS(NS, "text");
@@ -590,7 +366,7 @@ function initDemo() {
 }
 
 /* ==========================================================================
-   3. UI — copy, header, rail, reveals, progress, ticks
+   UI — copy, header, reveals, and progress
    ========================================================================== */
 
 function initUI() {
@@ -615,22 +391,6 @@ function initUI() {
   const onScroll = () => head?.classList.toggle("is-scrolled", window.scrollY > 8);
   window.addEventListener("scroll", onScroll, { passive: true });
   onScroll();
-
-  /* rail active section */
-  const railLinks = new Map(
-    [...document.querySelectorAll("[data-rail]")].map((a) => [a.dataset.rail, a]),
-  );
-  const sectionIO = new IntersectionObserver(
-    (entries) => {
-      for (const en of entries) {
-        if (!en.isIntersecting) continue;
-        const key = en.target.dataset.section;
-        for (const [k, a] of railLinks) a.classList.toggle("is-active", k === key);
-      }
-    },
-    { rootMargin: "-40% 0px -55% 0px" },
-  );
-  document.querySelectorAll("[data-section]").forEach((s) => sectionIO.observe(s));
 
   /* reveal sections as they enter the viewport */
   if (!REDUCED) {
@@ -659,16 +419,6 @@ function initUI() {
     }
   }
 
-  /* fake-but-honest live snapshot ticker */
-  const ticks = [...document.querySelectorAll("[data-tick]")];
-  if (ticks.length && !REDUCED) {
-    let seconds = 0;
-    window.setInterval(() => {
-      seconds += 15;
-      const label = seconds < 45 ? "just now" : `${Math.floor(seconds / 60)}m ago`;
-      for (const t of ticks) t.textContent = label;
-    }, 15000);
-  }
 }
 
 /* ---- boot ---- */

@@ -15,20 +15,6 @@
 
   <div class="progress" aria-hidden="true"></div>
 
-  <!-- ============ left rail ============ -->
-  <nav class="rail" aria-label="Section index">
-    <a class="rail-mark" href="#top" aria-label="HQ — back to top">H</a>
-    <ol class="rail-list">
-      <li><a href="#top"         data-rail="top"><span>01</span></a></li>
-      <li><a href="#loop"        data-rail="loop"><span>02</span></a></li>
-      <li><a href="#canvas"      data-rail="canvas"><span>03</span></a></li>
-      <li><a href="#diagnostics" data-rail="diagnostics"><span>04</span></a></li>
-      <li><a href="#principles"  data-rail="principles"><span>05</span></a></li>
-      <li><a href="#install"     data-rail="install"><span>06</span></a></li>
-    </ol>
-    <span class="rail-asterisk" aria-hidden="true">*</span>
-  </nav>
-
   <!-- ============ header ============ -->
   <header class="site-head" id="siteHead">
     <div class="head-inner">
@@ -48,7 +34,6 @@
       </nav>
 
       <div class="head-right">
-        <span class="chip chip-branch" title="Branch">main</span>
         <span class="live"><span class="live-dot" aria-hidden="true"></span>local / private</span>
         <a class="btn btn-solid" href="#install">Get started <span aria-hidden="true">↗</span></a>
       </div>
@@ -59,59 +44,35 @@
 
     <!-- ============ 01 / hero ============ -->
     <section class="hero" data-section="top">
-      <div class="hero-instrument" aria-hidden="true">
-        <span class="instrument-arc arc-outer"></span>
-        <span class="instrument-arc arc-inner"></span>
-        <span class="instrument-axis axis-x"></span>
-        <span class="instrument-axis axis-y"></span>
-        <span class="instrument-cross">+</span>
-        <span class="instrument-degree degree-30">30</span>
-        <span class="instrument-degree degree-60">60</span>
-        <span class="instrument-degree degree-90">90</span>
-        <span class="instrument-wordmark">HQ</span>
-      </div>
-
       <div class="hero-inner">
-        <p class="micro reveal">01 / Local-first workflow observatory</p>
-
-        <h1 class="hero-title">
-          <span class="line-sans reveal">Your agent reads the code.</span>
-          <span class="line-serif reveal">HQ shows you what it sees.</span>
-        </h1>
-
-        <p class="hero-sub reveal">
-          Turn your coding agent's understanding into a living map of real workflows — sourced,
-          validated, and rendered entirely on your machine.
-        </p>
-
-        <div class="hero-cta reveal">
-          <div class="cmd" role="group" aria-label="Install commands">
-            <div class="cmd-line"><span class="cmd-prompt">$</span><code>npx hq init</code></div>
-            <div class="cmd-line"><span class="cmd-prompt">$</span><code>npx hq open</code></div>
-            <button class="cmd-copy" type="button" data-copy="npx hq init" aria-label="Copy install command">
-              <svg viewBox="0 0 16 16" width="13" height="13" aria-hidden="true"><path d="M5 2.5h7A1.5 1.5 0 0 1 13.5 4v7M3.5 5H11a1 1 0 0 1 1 1v6.5a1 1 0 0 1-1 1H3.5a1 1 0 0 1-1-1V6a1 1 0 0 1 1-1Z" fill="none" stroke="currentColor" stroke-width="1.2"/></svg>
-              <span>copy</span>
-            </button>
+        <div class="hero-copy">
+          <p class="micro reveal">01 / Local-first workflow observatory</p>
+          <h1 class="hero-title">
+            <span class="line-sans reveal">Your agent reads the code.</span>
+            <span class="line-serif reveal">HQ shows you what it sees.</span>
+          </h1>
+          <p class="hero-sub reveal">Turn your coding agent's understanding into a living map of real workflows — sourced, validated, and rendered entirely on your machine.</p>
+          <div class="hero-cta reveal">
+            <div class="cmd" role="group" aria-label="Install commands">
+              <div class="cmd-line"><span class="cmd-prompt">$</span><code>npx code-observatory init</code></div>
+              <div class="cmd-line"><span class="cmd-prompt">$</span><code>npx code-observatory open</code></div>
+              <button class="cmd-copy" type="button" data-copy="npx code-observatory init" aria-label="Copy install command">
+                <svg viewBox="0 0 16 16" width="13" height="13" aria-hidden="true"><path d="M5 2.5h7A1.5 1.5 0 0 1 13.5 4v7M3.5 5H11a1 1 0 0 1 1 1v6.5a1 1 0 0 1-1 1H3.5a1 1 0 0 1-1-1V6a1 1 0 0 1 1-1Z" fill="none" stroke="currentColor" stroke-width="1.2"/></svg>
+                <span>copy</span>
+              </button>
+            </div>
+            <div class="hero-assurance"><p class="hero-trust"><strong>Runs locally.</strong> Your code stays with you.</p><p class="hero-meta micro">no cloud · no telemetry · no lock-in</p></div>
           </div>
-          <p class="hero-trust"><strong>Runs locally.</strong> Your code stays with you.</p>
-          <p class="hero-meta micro">no cloud · no telemetry · no lock-in</p>
+        </div>
+        <div class="hero-instrument" aria-hidden="true">
+          <span class="instrument-arc arc-outer"></span><span class="instrument-arc arc-inner"></span>
+          <span class="instrument-axis axis-x"></span><span class="instrument-axis axis-y"></span>
+          <span class="instrument-cross">+</span><span class="instrument-degree degree-30">30</span>
+          <span class="instrument-degree degree-60">60</span><span class="instrument-degree degree-90">90</span>
+          <span class="instrument-wordmark">HQ</span>
         </div>
       </div>
-
-      <div class="hero-foot">
-        <span class="micro">schema 0.1</span>
-        <span class="micro hero-scroll" aria-hidden="true">scroll ↓</span>
-        <span class="micro"><span class="live-dot" aria-hidden="true"></span> live snapshot · <span data-tick>just now</span></span>
-      </div>
     </section>
-
-    <!-- ============ ticker ============ -->
-    <div class="ticker" aria-hidden="true">
-      <div class="ticker-track">
-        <span>strict zod schema</span><i>·</i><span>last-valid-state</span><i>·</i><span>sse live reload</span><i>·</i><span>repo-relative sources</span><i>·</i><span>confidence, marked honestly</span><i>·</i><span>zero network calls</span><i>·</i><span>no accounts</span><i>·</i>
-        <span>strict zod schema</span><i>·</i><span>last-valid-state</span><i>·</i><span>sse live reload</span><i>·</i><span>repo-relative sources</span><i>·</i><span>confidence, marked honestly</span><i>·</i><span>zero network calls</span><i>·</i><span>no accounts</span><i>·</i>
-      </div>
-    </div>
 
     <!-- ============ 02 / the loop ============ -->
     <section class="section" id="loop" data-section="loop">
@@ -129,12 +90,12 @@
             <span class="loop-idx">01</span>
             <h3>Scaffold</h3>
           </header>
-          <p><code>hq init</code> drops a <code>.observatory/</code> into your repo — a strict JSON
+          <p><code>code-observatory init</code> drops a <code>.observatory/</code> into your repo — a strict JSON
             contract and a <code>SKILL.md</code> your agent already knows how to read.</p>
           <pre class="mini" aria-label="Scaffolded files">.observatory/
 ├── project.json
-├── SKILL.md          ← instructions for your agent
-├── diagnostics.json  ← written by HQ, read by agents
+├── SKILL.md          ← agent contract
+├── diagnostics.json  ← repair loop
 └── workflows/</pre>
         </article>
 
@@ -164,8 +125,7 @@
           <pre class="mini" aria-label="Diagnostics excerpt">issues[0]: error
   connections[3].to — step "send-receipt"
   does not exist.
-  hint → create the step, or point the
-         connection at an existing id.</pre>
+  hint → point to an existing step id.</pre>
         </article>
       </div>
     </section>
@@ -191,9 +151,8 @@
         <div class="demo-bar">
           <span class="demo-brand"><span class="brand-mark sm" aria-hidden="true">H</span> <strong>HQ</strong>&nbsp;<span class="demo-repo">motiona / web-platform</span></span>
           <span class="chip chip-branch">main</span>
-          <span class="live"><span class="live-dot" aria-hidden="true"></span><span class="live-txt">live snapshot · <span data-tick>just now</span></span></span>
+          <span class="live"><span class="live-dot" aria-hidden="true"></span><span class="live-txt">watching local files</span></span>
           <span class="demo-spacer"></span>
-          <span class="demo-ask"><kbd>⌘K</kbd> Ask the codebase</span>
           <button class="btn btn-ghost sm" type="button">Compare</button>
           <button class="btn btn-solid sm" type="button" id="reviewBtn">Review changes <span class="count">7</span></button>
         </div>
@@ -346,10 +305,10 @@
 
       <div class="install-grid">
         <div class="cmd cmd-lg reveal" role="group" aria-label="Getting started commands">
-          <div class="cmd-line"><span class="cmd-prompt">$</span><code>npx hq init</code><span class="cmd-comment"># scaffold .observatory/</span></div>
-          <div class="cmd-line"><span class="cmd-prompt">$</span><code>npx hq open</code><span class="cmd-comment"># start the local canvas</span></div>
-          <div class="cmd-line"><span class="cmd-prompt">$</span><code>npx hq validate</code><span class="cmd-comment"># check what your agent wrote</span></div>
-          <button class="cmd-copy" type="button" data-copy="npx hq init" aria-label="Copy install command">
+          <div class="cmd-line"><span class="cmd-prompt">$</span><code>npx code-observatory init</code><span class="cmd-comment"># scaffold .observatory/</span></div>
+          <div class="cmd-line"><span class="cmd-prompt">$</span><code>npx code-observatory open</code><span class="cmd-comment"># start the local canvas</span></div>
+          <div class="cmd-line"><span class="cmd-prompt">$</span><code>npx code-observatory validate</code><span class="cmd-comment"># check what your agent wrote</span></div>
+          <button class="cmd-copy" type="button" data-copy="npx code-observatory init" aria-label="Copy install command">
             <svg viewBox="0 0 16 16" width="13" height="13" aria-hidden="true"><path d="M5 2.5h7A1.5 1.5 0 0 1 13.5 4v7M3.5 5H11a1 1 0 0 1 1 1v6.5a1 1 0 0 1-1 1H3.5a1 1 0 0 1-1-1V6a1 1 0 0 1 1-1Z" fill="none" stroke="currentColor" stroke-width="1.2"/></svg>
             <span>copy</span>
           </button>
