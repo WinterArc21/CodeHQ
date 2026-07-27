@@ -21,6 +21,13 @@ export default tseslint.config(
     },
   },
   {
+    // CLI tests intercept console.log/console.error to assert on rendered terminal output.
+    files: ["tests/unit/cli/**"],
+    rules: {
+      "no-console": "off",
+    },
+  },
+  {
     files: ["src/web/**/*.{ts,tsx}"],
     plugins: {
       "react-hooks": reactHooks,
