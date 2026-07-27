@@ -169,7 +169,7 @@ function initDemo() {
     const defs = document.createElementNS(NS, "defs");
     defs.innerHTML = `
       <marker id="arr-n" viewBox="0 0 8 8" refX="7" refY="4" markerWidth="7" markerHeight="7" orient="auto-start-reverse" markerUnits="userSpaceOnUse">
-        <path d="M0 0 L8 4 L0 8 z" fill="oklch(0.798 0.016 85)"/>
+        <path d="M0 0 L8 4 L0 8 z" fill="oklch(0.74 0 0)"/>
       </marker>
       <marker id="arr-r" viewBox="0 0 8 8" refX="7" refY="4" markerWidth="7" markerHeight="7" orient="auto-start-reverse" markerUnits="userSpaceOnUse">
         <path d="M0 0 L8 4 L0 8 z" fill="oklch(0.545 0.115 38)"/>
@@ -401,7 +401,7 @@ function initHeroGraph() {
     const defs = document.createElementNS(NS, "defs");
     defs.innerHTML = `
       <marker id="hero-arr" viewBox="0 0 8 8" refX="7" refY="4" markerWidth="6" markerHeight="6" orient="auto-start-reverse" markerUnits="userSpaceOnUse">
-        <path d="M0 0 L8 4 L0 8 z" fill="oklch(0.76 0.018 250)"/>
+        <path d="M0 0 L8 4 L0 8 z" fill="oklch(0.74 0 0)"/>
       </marker>
       <marker id="hero-arr-r" viewBox="0 0 8 8" refX="7" refY="4" markerWidth="6" markerHeight="6" orient="auto-start-reverse" markerUnits="userSpaceOnUse">
         <path d="M0 0 L8 4 L0 8 z" fill="oklch(0.545 0.115 38)"/>
@@ -572,7 +572,7 @@ function initSpine() {
     const defs = document.createElementNS(NS, "defs");
     defs.innerHTML = `
       <marker id="sp-arr" viewBox="0 0 8 8" refX="7" refY="4" markerWidth="7" markerHeight="7" orient="auto-start-reverse" markerUnits="userSpaceOnUse">
-        <path d="M0 0 L8 4 L0 8 z" fill="oklch(0.6 0.022 250)"/>
+        <path d="M0 0 L8 4 L0 8 z" fill="oklch(0.52 0 0)"/>
       </marker>`;
     svg.appendChild(defs);
 
