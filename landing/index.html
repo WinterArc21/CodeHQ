@@ -3,31 +3,17 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>HQ — See what your agent understands</title>
-  <meta name="description" content="HQ is a local-first workflow observatory. Your coding agent traces real workflows through your repository; HQ validates every claim and renders it as a living, interactive system map. Nothing leaves your machine." />
-  <meta property="og:title" content="HQ — See what your agent understands" />
-  <meta property="og:description" content="A local-first observatory that turns your coding agent's understanding into a live, validated map of your system." />
+  <title>Agents ship the code. HQ shows you the system.</title>
+  <meta name="description" content="Agents ship faster than you can reread the repo. HQ maps what they built, entry point to failure path, as a living graph rendered entirely on your machine." />
+  <meta property="og:title" content="Agents ship the code. HQ shows you the system." />
+  <meta property="og:description" content="Agents ship faster than you can reread the repo. HQ maps what they built, entry point to failure path." />
   <meta property="og:type" content="website" />
-  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='3' fill='%2317181B'/%3E%3Ctext x='16' y='21' font-family='ui-monospace,monospace' font-size='13' font-weight='700' fill='%23F5F2EC' text-anchor='middle'%3EH%3C/text%3E%3C/svg%3E" />
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='3' fill='%23111111'/%3E%3Ctext x='16' y='21' font-family='ui-monospace,monospace' font-size='13' font-weight='700' fill='%23FFFFFF' text-anchor='middle'%3EH%3C/text%3E%3C/svg%3E" />
   <link rel="stylesheet" href="styles.css" />
 </head>
 <body>
 
   <div class="progress" aria-hidden="true"></div>
-
-  <!-- ============ left rail ============ -->
-  <nav class="rail" aria-label="Section index">
-    <a class="rail-mark" href="#top" aria-label="HQ — back to top">H</a>
-    <ol class="rail-list">
-      <li><a href="#top"         data-rail="top"><span>01</span></a></li>
-      <li><a href="#loop"        data-rail="loop"><span>02</span></a></li>
-      <li><a href="#canvas"      data-rail="canvas"><span>03</span></a></li>
-      <li><a href="#diagnostics" data-rail="diagnostics"><span>04</span></a></li>
-      <li><a href="#principles"  data-rail="principles"><span>05</span></a></li>
-      <li><a href="#install"     data-rail="install"><span>06</span></a></li>
-    </ol>
-    <span class="rail-asterisk" aria-hidden="true">*</span>
-  </nav>
 
   <!-- ============ header ============ -->
   <header class="site-head" id="siteHead">
@@ -41,15 +27,14 @@
       </a>
 
       <nav class="head-nav" aria-label="Primary">
+        <a href="#why">Why</a>
         <a href="#loop">The loop</a>
         <a href="#canvas">Canvas</a>
-        <a href="#diagnostics">Diagnostics</a>
         <a href="#principles">Principles</a>
       </nav>
 
       <div class="head-right">
-        <span class="chip chip-branch" title="Branch">main</span>
-        <span class="live"><span class="live-dot" aria-hidden="true"></span>local</span>
+        <span class="head-note">local / private</span>
         <a class="btn btn-solid" href="#install">Get started</a>
       </div>
     </div>
@@ -57,136 +42,138 @@
 
   <main id="top">
 
-    <!-- ============ 01 / hero ============ -->
-    <section class="hero" data-section="top">
-      <canvas id="gl" aria-hidden="true"></canvas>
-      <div class="hero-grid-fallback" aria-hidden="true"></div>
+    <!-- the spine: one continuous line, drawn in the product's own notation -->
+    <svg class="spine" id="spine" aria-hidden="true" focusable="false"></svg>
 
+    <!-- ============ hero ============ -->
+    <section class="hero">
       <div class="hero-inner">
-        <p class="micro reveal">01 / Local-first workflow observatory</p>
-
         <h1 class="hero-title">
-          <span class="line-sans reveal">Your agent reads the code.</span>
-          <span class="line-serif reveal">HQ shows you what it sees.</span>
+          <span class="t-dim reveal">Agents ship the code.</span>
+          <span class="reveal">HQ shows you the system.</span>
         </h1>
 
-        <p class="hero-sub reveal">
-          HQ turns your coding agent's understanding into a living, interactive map of your
-          system's real workflows — every step sourced, every edge case traced, every claim
-          validated against the code. Rendered in your browser. Never leaving your machine.
-        </p>
-
-        <div class="hero-cta reveal">
-          <div class="cmd" role="group" aria-label="Install commands">
-            <div class="cmd-line"><span class="cmd-prompt">$</span><code>npx hq init</code></div>
-            <div class="cmd-line"><span class="cmd-prompt">$</span><code>npx hq open</code></div>
-            <button class="cmd-copy" type="button" data-copy="npx hq init" aria-label="Copy install command">
-              <svg viewBox="0 0 16 16" width="13" height="13" aria-hidden="true"><path d="M5 2.5h7A1.5 1.5 0 0 1 13.5 4v7M3.5 5H11a1 1 0 0 1 1 1v6.5a1 1 0 0 1-1 1H3.5a1 1 0 0 1-1-1V6a1 1 0 0 1 1-1Z" fill="none" stroke="currentColor" stroke-width="1.2"/></svg>
-              <span>copy</span>
-            </button>
+        <div class="hero-lede">
+          <p class="hero-sub reveal">Agents ship faster than you can reread the repo. HQ maps what they built, entry point to failure path.</p>
+          <div class="hero-cta reveal">
+            <div class="cmd" role="group" aria-label="Install commands">
+              <div class="cmd-line"><span class="cmd-prompt">$</span><code>npx code-observatory init</code></div>
+              <div class="cmd-line"><span class="cmd-prompt">$</span><code>npx code-observatory open</code></div>
+              <button class="cmd-copy" type="button" data-copy="npx code-observatory init" aria-label="Copy install command">
+                <svg viewBox="0 0 16 16" width="13" height="13" aria-hidden="true"><path d="M5 2.5h7A1.5 1.5 0 0 1 13.5 4v7M3.5 5H11a1 1 0 0 1 1 1v6.5a1 1 0 0 1-1 1H3.5a1 1 0 0 1-1-1V6a1 1 0 0 1 1-1Z" fill="none" stroke="currentColor" stroke-width="1.2"/></svg>
+                <span>copy</span>
+              </button>
+            </div>
           </div>
-          <p class="hero-meta micro">node ≥ 20 · zero network calls · system fonts only</p>
+          <span class="sp-node is-entry" data-sp="origin" aria-hidden="true"></span>
         </div>
-      </div>
 
-      <div class="hero-foot">
-        <span class="micro">schema 0.1</span>
-        <span class="micro hero-scroll" aria-hidden="true">scroll ↓</span>
-        <span class="micro"><span class="live-dot" aria-hidden="true"></span> live snapshot · <span data-tick>just now</span></span>
+        <!-- live preview: same renderer and same data as the full canvas below -->
+        <div class="hero-graph reveal" id="heroGraph">
+          <svg class="hero-edges" id="heroEdges" aria-hidden="true" focusable="false"></svg>
+          <div class="hero-nodes" id="heroNodes" aria-hidden="true"></div>
+        </div>
       </div>
     </section>
 
-    <!-- ============ ticker ============ -->
-    <div class="ticker" aria-hidden="true">
-      <div class="ticker-track">
-        <span>strict zod schema</span><i>·</i><span>last-valid-state</span><i>·</i><span>sse live reload</span><i>·</i><span>repo-relative sources</span><i>·</i><span>confidence, marked honestly</span><i>·</i><span>zero network calls</span><i>·</i><span>no accounts</span><i>·</i>
-        <span>strict zod schema</span><i>·</i><span>last-valid-state</span><i>·</i><span>sse live reload</span><i>·</i><span>repo-relative sources</span><i>·</i><span>confidence, marked honestly</span><i>·</i><span>zero network calls</span><i>·</i><span>no accounts</span><i>·</i>
-      </div>
-    </div>
-
-    <!-- ============ 02 / the loop ============ -->
-    <section class="section" id="loop" data-section="loop">
+    <!-- ============ why: the spine forks, two branches die ============ -->
+    <section class="section" id="why">
       <header class="section-head">
-        <p class="micro reveal">02 / The loop</p>
-        <h2 class="section-title">
-          <span class="line-sans reveal">A closed loop between</span>
-          <span class="line-serif reveal">agent and instrument.</span>
-        </h2>
+        <h2 class="section-title reveal">Reading isn't enough.</h2>
+        <p class="section-lede reveal">In an AI-native codebase the scarce resource isn't generation. It's keeping the architecture in view after every feature ships.</p>
       </header>
 
-      <div class="loop-grid">
-        <article class="loop-card reveal" style="--accent: var(--blue)">
-          <header>
-            <span class="loop-idx">01</span>
-            <h3>Scaffold</h3>
-          </header>
-          <p><code>hq init</code> drops a <code>.observatory/</code> into your repo — a strict JSON
-            contract and a <code>SKILL.md</code> your agent already knows how to read.</p>
-          <pre class="mini" aria-label="Scaffolded files">.observatory/
-├── project.json
-├── SKILL.md          ← instructions for your agent
-├── diagnostics.json  ← written by HQ, read by agents
-└── workflows/</pre>
+      <div class="fork">
+        <article class="fork-row is-dead reveal">
+          <span class="sp-node is-dead" data-sp="why-1" aria-hidden="true"></span>
+          <h3>Read the code</h3>
+          <p>Agents ship features faster than you can re-absorb the architecture.</p>
         </article>
 
-        <article class="loop-card reveal" style="--accent: var(--amber)">
-          <header>
-            <span class="loop-idx">02</span>
-            <h3>Author</h3>
-          </header>
-          <p>Your agent traces real code paths and writes workflow JSON — steps, sources, edge
-            cases, tests — every claim marked <em>verified</em> or <em>inferred</em>.</p>
-          <pre class="mini" aria-label="Workflow excerpt">{
+        <article class="fork-row is-dead reveal">
+          <span class="sp-node is-dead" data-sp="why-2" aria-hidden="true"></span>
+          <h3>Read the docs</h3>
+          <p>Walls of markdown and HTML. Accurate maybe, but no shape.</p>
+        </article>
+
+        <article class="fork-row is-live reveal">
+          <span class="sp-node is-out" data-sp="why-3" aria-hidden="true"></span>
+          <h3>See the system</h3>
+          <p>A sourced map of real workflows: entry, decisions, side effects, outputs.</p>
+        </article>
+      </div>
+    </section>
+
+    <!-- ============ loop: hub above three stations ============ -->
+    <section class="section" id="loop">
+      <header class="section-head">
+        <h2 class="section-title reveal">One loop, three moves.</h2>
+        <p class="section-lede reveal">Your agent writes. HQ validates and draws. You read the result and ask for the next workflow.</p>
+      </header>
+
+      <div class="cycle">
+        <span class="sp-node is-hub" data-sp="loop-hub" aria-hidden="true"></span>
+
+        <div class="cycle-row">
+          <article class="station reveal">
+            <span class="sp-node" data-sp="loop-1" aria-hidden="true"></span>
+            <div class="station-copy">
+              <h3>Scaffold</h3>
+              <p><code>code-observatory init</code> drops a <code>.observatory/</code> into your repo: a strict JSON contract and a <code>SKILL.md</code> your agent already knows how to read.</p>
+            </div>
+            <pre class="mini" aria-label="Scaffolded files">.observatory/
+├── project.json
+├── SKILL.md          agent contract
+├── diagnostics.json  repair loop
+└── workflows/</pre>
+          </article>
+
+          <article class="station reveal">
+            <span class="sp-node" data-sp="loop-2" aria-hidden="true"></span>
+            <div class="station-head">
+              <h3>Author</h3>
+              <span class="cycle-repeat" aria-hidden="true">↑ repeat</span>
+            </div>
+            <div class="station-copy">
+              <p>Your agent traces real code paths and writes workflow JSON: steps, sources, edge cases, tests. Every claim marked <em>verified</em> or <em>inferred</em>.</p>
+            </div>
+            <pre class="mini" aria-label="Workflow excerpt">{
   "id": "check-quota",
   "category": "decision",
   "confidence": "verified",
   "sources": [{ "file": "lib/validation.ts",
                "symbol": "hasRemainingQuota" }]
 }</pre>
-        </article>
+          </article>
 
-        <article class="loop-card reveal" style="--accent: var(--green)">
-          <header>
-            <span class="loop-idx">03</span>
-            <h3>Observe</h3>
-          </header>
-          <p>HQ validates every file, watches for changes, and re-renders the canvas live.
-            Invalid files become precise diagnostics — never a blank board.</p>
-          <pre class="mini" aria-label="Diagnostics excerpt">issues[0]: error
-  connections[3].to — step "send-receipt"
+          <article class="station reveal">
+            <span class="sp-node" data-sp="loop-3" aria-hidden="true"></span>
+            <div class="station-copy">
+              <h3>Observe</h3>
+              <p>HQ validates every file, watches for changes, and re-renders the canvas live. Invalid files become precise diagnostics, never a blank board.</p>
+            </div>
+            <pre class="mini" aria-label="Diagnostics excerpt">issues[0]: error
+  connections[3].to  step "send-receipt"
   does not exist.
-  hint → create the step, or point the
-         connection at an existing id.</pre>
-        </article>
+  hint: point to an existing step id.</pre>
+            <span class="sp-anchor" data-sp="loop-out" aria-hidden="true"></span>
+          </article>
+        </div>
       </div>
     </section>
 
-    <!-- ============ 03 / canvas demo ============ -->
-    <section class="section" id="canvas" data-section="canvas">
+    <!-- ============ canvas: the spine becomes the graph ============ -->
+    <section class="section" id="canvas">
       <header class="section-head">
-        <p class="micro reveal">03 / The canvas</p>
-        <h2 class="section-title">
-          <span class="line-sans reveal">The system,</span>
-          <span class="line-serif reveal">drawn honestly.</span>
-        </h2>
-        <p class="section-sub reveal">
-          Every node is a real step backed by real files. Colour is meaning — entry points,
-          decisions, outputs. Dashes are doubt. Click a step to see everything it touches,
-          everything that can break, and the tests that prove it. This demo is the real
-          <code>generate-video</code> workflow, exactly as the agent wrote it.
-        </p>
+        <h2 class="section-title reveal">The system, drawn honestly.</h2>
+        <p class="section-lede reveal">Every node is a real step backed by real files. Colour is meaning. Dashes are doubt. Click a step to see what it touches, what can break, and the tests that prove it.</p>
       </header>
 
-      <div class="demo reveal" id="demo">
-        <!-- window chrome -->
+      <div class="demo reveal" id="demo" data-sp="canvas-frame">
         <div class="demo-bar">
-          <span class="demo-brand"><span class="brand-mark sm" aria-hidden="true">H</span> <strong>HQ</strong>&nbsp;<span class="demo-repo">motiona / web-platform</span></span>
-          <span class="chip chip-branch">main</span>
-          <span class="live"><span class="live-dot" aria-hidden="true"></span><span class="live-txt">live snapshot · <span data-tick>just now</span></span></span>
+          <span class="demo-brand"><span class="brand-mark sm" aria-hidden="true">H</span> <strong>HQ</strong>&nbsp;<span class="demo-repo">motiona / generate-video</span></span>
           <span class="demo-spacer"></span>
-          <span class="demo-ask"><kbd>⌘K</kbd> Ask the codebase</span>
-          <button class="btn btn-ghost sm" type="button">Compare</button>
-          <button class="btn btn-solid sm" type="button" id="reviewBtn">Review changes <span class="count">7</span></button>
+          <span class="live"><span class="live-dot" aria-hidden="true"></span><span class="live-txt">watching local files</span></span>
         </div>
 
         <div class="demo-body">
@@ -196,7 +183,7 @@
               <div class="demo-nodes" id="demoNodes" role="group" aria-label="Workflow steps"></div>
             </div>
           </div>
-          <div class="demo-hint" id="demoHint"><span class="live-dot" aria-hidden="true"></span> click a step to inspect it</div>
+          <div class="demo-hint" id="demoHint">click a step to inspect it</div>
 
           <aside class="drawer" id="drawer" aria-label="Step details" aria-hidden="true">
             <header class="drawer-head">
@@ -217,9 +204,9 @@
         </div>
 
         <footer class="demo-foot">
-          <span class="micro demo-stats">7 steps · 9 connections · 3 passing tests</span>
+          <span class="demo-stats">7 steps · 9 connections · 3 passing tests</span>
           <span class="demo-spacer"></span>
-          <span class="micro">depth</span>
+          <span class="demo-depth-label">depth</span>
           <span class="seg" role="group" aria-label="Canvas depth">
             <button type="button" class="seg-btn is-on" data-depth="workflow">workflow</button>
             <button type="button" class="seg-btn" data-depth="modules">modules</button>
@@ -228,130 +215,63 @@
         </footer>
       </div>
 
-      <p class="demo-caption micro reveal">live demo · rendered from <code>examples/motiona/.observatory/workflows/generate-video.json</code></p>
+      <p class="demo-caption reveal">Rendered from <code>examples/motiona/.observatory/workflows/generate-video.json</code></p>
     </section>
 
-    <!-- ============ 04 / diagnostics ============ -->
-    <section class="section" id="diagnostics" data-section="diagnostics">
+    <!-- ============ principles: the spine runs as a bus with four taps ============ -->
+    <section class="section" id="principles">
       <header class="section-head">
-        <p class="micro reveal">04 / Honest failure</p>
-        <h2 class="section-title">
-          <span class="line-sans reveal">When the agent stumbles,</span>
-          <span class="line-serif reveal">the map doesn't.</span>
-        </h2>
+        <h2 class="section-title reveal">An instrument, not a chatbot.</h2>
       </header>
 
-      <div class="diag-grid">
-        <div class="diag-copy">
-          <p class="reveal">Agents write partial JSON. Schemas get violated. It happens mid-keystroke,
-            mid-refactor, mid-everything. HQ's answer is <strong>last-valid-state preservation</strong>:
-            the last good map stays on screen, marked <span class="chip chip-stale">stale</span>, while
-            a precise diagnostics file tells the agent exactly how to repair what it broke.</p>
-          <ul class="diag-points">
-            <li class="reveal"><span class="pt-idx">a</span><div><strong>Errors are sentences, not stack traces.</strong><br/>Every issue carries a JSON pointer, a human-readable message, and a hint.</div></li>
-            <li class="reveal"><span class="pt-idx">b</span><div><strong>The loop closes itself.</strong><br/>Agents read <code>diagnostics.json</code> after every write and fix what they introduced.</div></li>
-            <li class="reveal"><span class="pt-idx">c</span><div><strong>The board never blanks out.</strong><br/>A workflow that was once valid stays rendered until a newer valid version replaces it.</div></li>
-          </ul>
-        </div>
-
-        <div class="diag-card reveal" role="img" aria-label="Example diagnostics report showing one error and one warning">
-          <header class="diag-card-head">
-            <span class="mono">.observatory/diagnostics.json</span>
-            <span class="chip chip-stale">stale · 12s</span>
-          </header>
-          <pre class="diag-json"><code><span class="j-p">{</span>
-  <span class="j-k">"valid"</span><span class="j-p">:</span> <span class="j-b">false</span><span class="j-p">,</span>
-  <span class="j-k">"issues"</span><span class="j-p">:</span> <span class="j-p">[</span>
-    <span class="j-p">{</span>
-      <span class="j-k">"severity"</span><span class="j-p">:</span> <span class="j-e">"error"</span><span class="j-p">,</span>
-      <span class="j-k">"file"</span><span class="j-p">:</span> <span class="j-s">"workflows/checkout.json"</span><span class="j-p">,</span>
-      <span class="j-k">"path"</span><span class="j-p">:</span> <span class="j-s">"connections[3].to"</span><span class="j-p">,</span>
-      <span class="j-k">"message"</span><span class="j-p">:</span> <span class="j-s">"Connection references step
-        \"send-receipt\", which does not exist."</span><span class="j-p">,</span>
-      <span class="j-k">"hint"</span><span class="j-p">:</span> <span class="j-s">"Create the step, or point the
-        connection at an existing step id."</span>
-    <span class="j-p">},</span>
-    <span class="j-p">{</span>
-      <span class="j-k">"severity"</span><span class="j-p">:</span> <span class="j-w">"warning"</span><span class="j-p">,</span>
-      <span class="j-k">"message"</span><span class="j-p">:</span> <span class="j-s">"Workflow has 15 steps.
-        Prefer 5–9 top-level steps."</span>
-    <span class="j-p">}</span>
-  <span class="j-p">]</span>
-<span class="j-p">}</span></code></pre>
-          <footer class="diag-card-foot micro">read by your agent · repaired in the next pass</footer>
-        </div>
-      </div>
-    </section>
-
-    <!-- ============ 05 / principles ============ -->
-    <section class="section" id="principles" data-section="principles">
-      <header class="section-head">
-        <p class="micro reveal">05 / Principles</p>
-        <h2 class="section-title">
-          <span class="line-sans reveal">An instrument,</span>
-          <span class="line-serif reveal">not a chatbot.</span>
-        </h2>
-      </header>
-
-      <div class="prin-grid">
-        <article class="prin-card reveal">
-          <span class="prin-idx">01</span>
+      <div class="bus">
+        <article class="tap reveal">
+          <span class="sp-node" data-sp="prin-1" aria-hidden="true"></span>
           <h3>Local-first</h3>
-          <p>Renders from files on disk. No accounts, no telemetry, no runtime network calls
-            beyond localhost. Your code never leaves the machine.</p>
-          <span class="prin-tag micro">offline by construction</span>
+          <p>Renders from files on disk. No accounts, no telemetry, no runtime network calls beyond localhost. Your code never leaves the machine.</p>
         </article>
-        <article class="prin-card reveal">
-          <span class="prin-idx">02</span>
+        <article class="tap reveal">
+          <span class="sp-node" data-sp="prin-2" aria-hidden="true"></span>
           <h3>No LLM inside</h3>
-          <p>HQ contains no model and no prompts. Your agent is the brain; HQ is the instrument
-            that keeps it honest.</p>
-          <span class="prin-tag micro">bring your own agent</span>
+          <p>HQ contains no model and no prompts. Your agent is the brain. HQ is the instrument that keeps it honest.</p>
         </article>
-        <article class="prin-card reveal">
-          <span class="prin-idx">03</span>
+        <article class="tap reveal">
+          <span class="sp-node" data-sp="prin-3" aria-hidden="true"></span>
           <h3>Agent-proof schema</h3>
-          <p>Strict Zod schemas reject invented fields — especially visual ones. Layout, colour
-            and typography are computed by HQ, never authored by a model.</p>
-          <span class="prin-tag micro">semantics in, pixels out</span>
+          <p>Strict Zod schemas reject invented fields, especially visual ones. Layout, colour and typography are computed by HQ, never authored by a model.</p>
         </article>
-        <article class="prin-card reveal">
-          <span class="prin-idx">04</span>
+        <article class="tap reveal">
+          <span class="sp-node" data-sp="prin-4" aria-hidden="true"></span>
           <h3>Last-valid-state</h3>
-          <p>A half-written file never blanks the board. The last valid map stays on screen while
-            diagnostics guide the repair.</p>
-          <span class="prin-tag micro">failures stay legible</span>
+          <p>A half-written file never blanks the board. The last valid map stays on screen while diagnostics guide the repair.</p>
         </article>
       </div>
     </section>
 
-    <!-- ============ 06 / install ============ -->
-    <section class="section install" id="install" data-section="install">
+    <!-- ============ install: everything converges ============ -->
+    <section class="section install" id="install">
       <header class="section-head">
-        <p class="micro reveal">06 / Get started</p>
-        <h2 class="section-title">
-          <span class="line-sans reveal">Point it at</span>
-          <span class="line-serif reveal">a repository.</span>
-        </h2>
+        <span class="sp-node is-terminal" data-sp="install-node" aria-hidden="true"></span>
+        <h2 class="section-title reveal">Point it at a repository.</h2>
       </header>
 
       <div class="install-grid">
         <div class="cmd cmd-lg reveal" role="group" aria-label="Getting started commands">
-          <div class="cmd-line"><span class="cmd-prompt">$</span><code>npx hq init</code><span class="cmd-comment"># scaffold .observatory/</span></div>
-          <div class="cmd-line"><span class="cmd-prompt">$</span><code>npx hq open</code><span class="cmd-comment"># start the local canvas</span></div>
-          <div class="cmd-line"><span class="cmd-prompt">$</span><code>npx hq validate</code><span class="cmd-comment"># check what your agent wrote</span></div>
-          <button class="cmd-copy" type="button" data-copy="npx hq init" aria-label="Copy install command">
+          <div class="cmd-line"><span class="cmd-prompt">$</span><code>npx code-observatory init</code><span class="cmd-comment">scaffold .observatory/</span></div>
+          <div class="cmd-line"><span class="cmd-prompt">$</span><code>npx code-observatory open</code><span class="cmd-comment">start the local canvas</span></div>
+          <div class="cmd-line"><span class="cmd-prompt">$</span><code>npx code-observatory validate</code><span class="cmd-comment">check what your agent wrote</span></div>
+          <button class="cmd-copy" type="button" data-copy="npx code-observatory init" aria-label="Copy install command">
             <svg viewBox="0 0 16 16" width="13" height="13" aria-hidden="true"><path d="M5 2.5h7A1.5 1.5 0 0 1 13.5 4v7M3.5 5H11a1 1 0 0 1 1 1v6.5a1 1 0 0 1-1 1H3.5a1 1 0 0 1-1-1V6a1 1 0 0 1 1-1Z" fill="none" stroke="currentColor" stroke-width="1.2"/></svg>
             <span>copy</span>
           </button>
         </div>
         <div class="install-note reveal">
-          <p class="micro">then ask your agent</p>
+          <p class="install-cue">then ask your agent</p>
           <blockquote class="install-quote">
-            “Read <code>.observatory/SKILL.md</code>, then document the checkout workflow.
-            Trace it through order creation, payment, and the confirmation email.”
+            “Map how checkout actually works in this repo: steps, sources, failure paths.
+            I’ll review the architecture on the canvas.”
           </blockquote>
-          <p class="micro dim">works with cursor · claude code · codex — anything that can read a repo</p>
+          <p class="install-compat">Works with Cursor, Claude Code and Codex. Anything that can read a repo.</p>
         </div>
       </div>
     </section>
@@ -365,16 +285,17 @@
         <span class="brand-mark" aria-hidden="true">H</span>
         <div>
           <strong>HQ</strong> <span class="dim">/ code observatory</span>
-          <p class="micro dim">built local. stays local.</p>
+          <p class="foot-tag">built local. stays local.</p>
         </div>
       </div>
       <nav class="foot-links" aria-label="Footer">
+        <a href="#why">Why</a>
         <a href="#loop">The loop</a>
         <a href="#canvas">Canvas</a>
-        <a href="#diagnostics">Diagnostics</a>
+        <a href="#principles">Principles</a>
         <a href="#install">Install</a>
       </nav>
-      <p class="micro dim foot-c">© 2026 · closed source, open loop</p>
+      <p class="foot-c">© 2026 · closed source, open loop</p>
     </div>
   </footer>
 
