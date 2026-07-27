@@ -1,0 +1,117 @@
+/**
+ * Roving-tabindex keyboard navigation over the canvas's real `StepNode` elements (contract §11).
+ * Exactly one node is ever part of the natural Tab order (`tabIndex === 0`); arrow keys move
+ * both the roving target and actual DOM focus synchronously inside the keydown handler, and pan
+ * the viewport so the newly-focused node stays visible — deliberately not a `useEffect`, so
+ * focus never moves on its own outside a direct key press.
+ */
+import { useCallback, useState, type KeyboardEvent as ReactKeyboardEvent, type RefObject } from "react";
+import type { ReactFlowInstance } from "@xyflow/react";
+import type { Workflow } from "@schema/workflow";
+import { computeTopologicalOrder, predecessorIds, successorIds } from "./graph";
+import type { LayoutNode } from "./layout";
+
+export interface UseCanvasKeyboardNavParams {
+  workflow: Workflow;
+  layoutNodes: LayoutNode[];
+  containerRef: RefObject<HTMLDivElement | null>;
+  reactFlowInstance: Pick<ReactFlowInstance, "setCenter" | "getZoom">;
+  selectedStepId: string | null;
+  onSelect: (stepId: string) => void;
+  onClear: () => void;
+  reducedMotion: boolean;
+}
+
+export interface UseCanvasKeyboardNavResult {
+  /** `0` for the single node currently in the natural Tab order, `-1` for every other node. */
+  getTabIndex: (stepId: string) => 0 | -1;
+  handleNodeKeyDown: (event: ReactKeyboardEvent<HTMLElement>, stepId: string) => void;
+  /** Called on pointer interaction so Tab-ing away and back resumes at the last-used node. */
+  setRovingId: (stepId: string) => void;
+}
+
+const ACTIVATION_KEYS = new Set(["Enter", " "]);
+
+export function useCanvasKeyboardNav(params: UseCanvasKeyboardNavParams): UseCanvasKeyboardNavResult {
+  const { workflow, layoutNodes, containerRef, reactFlowInstance, selectedStepId, onSelect, onClear, reducedMotion } = params;
+  const [rovingId, setRovingId] = useState<string | null>(null);
+
+  const effectiveRovingId = rovingId ?? selectedStepId ?? workflow.steps[0]?.id ?? null;
+
+  const getTabIndex = useCallback(
+    (stepId: string): 0 | -1 => (stepId === effectiveRovingId ? 0 : -1),
+    [effectiveRovingId],
+  );
+
+  const focusAndCenter = useCallback(
+    (stepId: string): void => {
+      setRovingId(stepId);
+
+      const elements = containerRef.current?.querySelectorAll<HTMLElement>("[data-step-node]") ?? [];
+      for (const element of Array.from(elements)) {
+        if (element.dataset.stepNode === stepId) {
+          element.focus();
+          break;
+        }
+      }
+
+      const node = layoutNodes.find((candidate) => candidate.id === stepId);
+      if (node !== undefined) {
+        void reactFlowInstance.setCenter(node.x + node.width / 2, node.y + node.height / 2, {
+          zoom: reactFlowInstance.getZoom(),
+          duration: reducedMotion ? 0 : 300,
+        });
+      }
+    },
+    [containerRef, layoutNodes, reactFlowInstance, reducedMotion],
+  );
+
+  const handleNodeKeyDown = useCallback(
+    (event: ReactKeyboardEvent<HTMLElement>, stepId: string): void => {
+      if (event.key === "ArrowRight" || event.key === "ArrowDown") {
+        event.preventDefault();
+        const next = successorIds(workflow, stepId)[0];
+        if (next !== undefined) {
+          focusAndCenter(next);
+        }
+        return;
+      }
+      if (event.key === "ArrowLeft" || event.key === "ArrowUp") {
+        event.preventDefault();
+        const previous = predecessorIds(workflow, stepId)[0];
+        if (previous !== undefined) {
+          focusAndCenter(previous);
+        }
+        return;
+      }
+      if (event.key === "Home") {
+        event.preventDefault();
+        const first = computeTopologicalOrder(workflow)[0];
+        if (first !== undefined) {
+          focusAndCenter(first);
+        }
+        return;
+      }
+      if (event.key === "End") {
+        event.preventDefault();
+        const order = computeTopologicalOrder(workflow);
+        const last = order[order.length - 1];
+        if (last !== undefined) {
+          focusAndCenter(last);
+        }
+        return;
+      }
+      if (ACTIVATION_KEYS.has(event.key)) {
+        event.preventDefault();
+        onSelect(stepId);
+        return;
+      }
+      if (event.key === "Escape") {
+        onClear();
+      }
+    },
+    [workflow, focusAndCenter, onSelect, onClear],
+  );
+
+  return { getTabIndex, handleNodeKeyDown, setRovingId };
+}

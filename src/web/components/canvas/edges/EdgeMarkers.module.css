@@ -1,0 +1,18 @@
+.defs {
+  position: absolute;
+  width: 0;
+  height: 0;
+}
+
+.markerSuccess,
+.markerAsync {
+  fill: var(--accent-neutral);
+}
+
+.markerFailure {
+  fill: var(--accent-red);
+}
+
+.markerConditional {
+  fill: var(--accent-amber);
+}

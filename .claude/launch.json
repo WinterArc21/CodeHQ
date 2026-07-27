@@ -9,6 +9,12 @@
       "env": {
         "VITE_OBSERVATORY_FIXTURE": "1"
       }
+    },
+    {
+      "name": "observatory-web-live",
+      "runtimeExecutable": "pnpm",
+      "runtimeArgs": ["exec", "vite"],
+      "port": 5173
     }
   ]
 }

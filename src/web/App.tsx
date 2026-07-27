@@ -5,7 +5,7 @@ import { AppShell, TopBar, type ObservatoryStatus } from "./components/shell";
 import { WorkflowNavigator } from "./components/navigator";
 import { EmptyState, ErrorState, LoadingState, UninitializedState } from "./components/states";
 import { DiagnosticsBanner } from "./components/diagnostics";
-import { StepsPreview } from "./components/StepsPreview";
+import { WorkflowCanvas } from "./components/canvas";
 import { EXAMPLE_WORKFLOW } from "./design/exampleWorkflow";
 import { useObservatoryStore } from "./store/useObservatoryStore";
 
@@ -65,6 +65,7 @@ export function App() {
 
   const selectedRecord = snapshot.workflows.find((record) => record.id === selectedWorkflowId) ?? null;
   const displayedWorkflow = showExample ? EXAMPLE_WORKFLOW : (selectedRecord?.workflow ?? null);
+  const displayedSourceChecks = showExample ? {} : (selectedRecord?.sourceChecks ?? {});
 
   const handleSelect = (workflowId: string): void => {
     setShowExample(false);
@@ -97,7 +98,7 @@ export function App() {
     >
       <DiagnosticsBanner diagnostics={snapshot.diagnostics} onOpenDiagnostics={toggleDiagnostics} />
       {displayedWorkflow !== null ? (
-        <StepsPreview workflow={displayedWorkflow} />
+        <WorkflowCanvas workflow={displayedWorkflow} sourceChecks={displayedSourceChecks} />
       ) : (
         <EmptyState onShowExample={() => setShowExample(true)} onRecheck={handleRecheck} />
       )}

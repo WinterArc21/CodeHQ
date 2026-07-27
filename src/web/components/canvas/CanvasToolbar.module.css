@@ -1,0 +1,21 @@
+.toolbar {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  padding: var(--space-2);
+  background-color: var(--bg-surface);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-md);
+}
+
+.zoomGroup {
+  display: flex;
+  align-items: center;
+  gap: var(--space-1);
+}
+
+.divider {
+  width: 1px;
+  height: 20px;
+  background-color: var(--border-subtle);
+}
