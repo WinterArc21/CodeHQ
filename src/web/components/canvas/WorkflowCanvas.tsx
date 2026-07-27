@@ -1,5 +1,5 @@
 import "@xyflow/react/dist/style.css";
-import { useCallback, useEffect, useLayoutEffect, useMemo, useRef } from "react";
+import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { MiniMap, ReactFlow, ReactFlowProvider, useReactFlow, type NodeMouseHandler } from "@xyflow/react";
 import type { Workflow } from "@schema/workflow";
 import type { SourceStatus } from "../../api/types";
@@ -7,6 +7,7 @@ import { usePrefersReducedMotion } from "../../lib/usePrefersReducedMotion";
 import { useObservatoryStore } from "../../store/useObservatoryStore";
 import { buildFlowEdges, buildFlowNodes } from "./buildFlowElements";
 import { CanvasHeader } from "./CanvasHeader";
+import { CanvasOverflowIndicator } from "./CanvasOverflowIndicator";
 import { EdgeMarkers } from "./edges/EdgeMarkers";
 import { WorkflowEdge } from "./edges/WorkflowEdge";
 import { computeFitViewport } from "./fitViewport";
@@ -51,6 +52,11 @@ function WorkflowCanvasInner({ workflow, sourceChecks }: WorkflowCanvasProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const reactFlowInstance = useReactFlow<StepFlowNode, WorkflowFlowEdge>();
   const reducedMotion = usePrefersReducedMotion();
+  // Whether the fitted graph still has more content below the visible stage — a deeper depth
+  // (`modules`/`symbols` grow every node, contract §11) or a large workflow can be taller than
+  // even the minimum legible zoom allows. Drives the "more below" affordance so a reader never
+  // mistakes a cut-off last card for the end of the workflow.
+  const [overflowsBottom, setOverflowsBottom] = useState(false);
 
   const theme = useObservatoryStore((state) => state.theme);
   const depth = useObservatoryStore((state) => state.depth);
@@ -114,6 +120,7 @@ function WorkflowCanvasInner({ workflow, sourceChecks }: WorkflowCanvasProps) {
       });
       if (viewport !== null) {
         void reactFlowInstance.setViewport(viewport, { duration });
+        setOverflowsBottom(viewport.overflowsBottom);
       }
     },
     [layout.nodes, reactFlowInstance],
@@ -198,6 +205,7 @@ function WorkflowCanvasInner({ workflow, sourceChecks }: WorkflowCanvasProps) {
         >
           {showMinimap ? <MiniMap pannable zoomable={false} ariaLabel={`${workflow.name} overview map`} /> : null}
         </ReactFlow>
+        {overflowsBottom ? <CanvasOverflowIndicator /> : null}
       </div>
     </div>
   );

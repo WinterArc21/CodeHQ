@@ -24,6 +24,7 @@ describe("computeFitViewport", () => {
     // Vertically centred: the content's vertical midpoint lands on the container's midpoint.
     const contentMidY = result!.y + (100 * result!.zoom);
     expect(contentMidY).toBeCloseTo(400, 1);
+    expect(result!.overflowsBottom).toBe(false);
   });
 
   it("clamps to minZoom and top-aligns instead of centring when content is too tall to fit", () => {
@@ -34,6 +35,9 @@ describe("computeFitViewport", () => {
     // (which would push a large negative y and crop an equal amount off the top and bottom).
     const contentTopY = result!.y;
     expect(contentTopY).toBeCloseTo(800 * 0.05, 1);
+    // Too tall to fit even at the floor zoom: a reader panning down would still find more graph,
+    // so the "more below" affordance must be told to show itself.
+    expect(result!.overflowsBottom).toBe(true);
   });
 
   it("clamps to maxZoom for a small workflow instead of zooming in arbitrarily far", () => {

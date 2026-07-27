@@ -3,36 +3,57 @@
  * `Workflow` plus the current depth/expansion UI state: same input always produces an
  * identical `LayoutResult` — no `Date`, no randomness, no dependence on object iteration order
  * (every loop below walks `workflow.steps`/`workflow.connections`, both real arrays with a
- * fixed order). Node *positions* come from dagre; node *sizes* come from `nodeContent.ts`, so a
- * node that grows at a deeper depth or when expanded pushes its neighbours instead of
- * overlapping them.
+ * fixed order). Node *heights* come from `nodeContent.ts`, so a node that grows at a deeper
+ * depth or when expanded pushes its neighbours instead of overlapping them. Node *vertical*
+ * position (rank) comes from dagre; node *horizontal* position is decided by this file, not
+ * dagre — see "the spine" below.
  *
  * Direction is top-to-bottom (contract §11's original left-to-right default did not survive
  * measurement: a 300px-wide, 120px-ranksep chain of 7 steps renders ~3100px wide, which cannot
  * fit a ~1100px canvas viewport at a legible zoom). Reading a code path top-down is also the
  * natural direction for "what happens next", and it lets the fixed-width node grow wide
- * instead of thin, which serves the
- * information-density goal directly. Primary (`success`/default) connections therefore run
- * downward; `failure`/`conditional` branches that target a later, already-downstream step (most
- * commonly a shared error-handling step) route as smoothstep diagonals rather than new columns,
- * so the graph stays essentially single-file for a linear workflow and only gains a second
- * column when a step's *only* onward path is a branch.
+ * instead of thin, which serves the information-density goal directly.
+ *
+ * ### The spine
+ *
+ * Letting dagre choose x for every node produced a "staircase": a `failure`/`conditional`
+ * connection that skips several ranks (e.g. an early decision step failing straight to the
+ * terminal step) makes dagre insert invisible routing (dummy) nodes through every rank in
+ * between, and dagre's crossing-minimization then nudges each real node in those ranks sideways
+ * to make room — so the primary chain drifted a little further right on every rank, reading as a
+ * layout artifact instead of a deliberate line. Since `WorkflowEdge` computes its own path from
+ * each node's own rendered position (`getSmoothStepPath`) rather than from dagre's routing
+ * points, dagre's x is never actually load-bearing for edge rendering — only for avoiding node
+ * overlap — which means it is safe to override.
+ *
+ * So x is decided in two passes: dagre still assigns y/rank (it is good at ordering by
+ * dependency depth and sizing ranks for variable node heights). Then `computeSpine` walks the
+ * *primary*-weight connections only (`type` `undefined`/`"success"` — the same classification
+ * `design/semantics.ts` already uses to render the primary path bolder than a branch) from the
+ * entry step, following the longest remaining primary chain at each fork, and every step on that
+ * walk is pinned to one constant x: a true vertical spine. Any step the spine walk never reaches
+ * (a step only reachable via a `failure`/`conditional`/`async` connection) is a genuine branch:
+ * it renders in a fixed column to the spine's right, stacked further right only if another branch
+ * step already claims that column at the same rank.
  */
 import * as dagre from "dagre";
 import type { Workflow, WorkflowConnection } from "@schema/workflow";
 import type { Depth } from "../../store/useObservatoryStore";
+import { connectionStyle } from "../../design/semantics";
 import { computeNodeHeight, effectiveDepthForStep, NODE_WIDTH } from "./nodeContent";
 
 /** Vertical gap between ranks — small relative to `LAYOUT_NODE_SEP` because the node itself is
  * now wide and short: most of the workflow's readable footprint should come from row height, not
  * air between rows, or a 6-9 step workflow cannot fit a 900px-tall viewport without panning. */
-export const LAYOUT_RANK_SEP = 28;
-/** Horizontal gap between two nodes sharing a rank (e.g. a failure branch sitting beside the
- * step that continues past it) — generous enough that a branch reads as a clearly separate
- * column, not a graze against the main line. */
+export const LAYOUT_RANK_SEP = 18;
+/** Horizontal gap between two nodes sharing a rank (e.g. two branch steps stacked in the same
+ * side column) — generous enough that they read as clearly separate columns, not a graze. */
 export const LAYOUT_NODE_SEP = 72;
 export const LAYOUT_MARGIN_X = 40;
 export const LAYOUT_MARGIN_Y = 28;
+/** Horizontal distance from the spine's x to the first branch column (contract mandate: branch
+ * steps depart visibly to the side, never crowd the spine itself). */
+export const LAYOUT_BRANCH_OFFSET = NODE_WIDTH + LAYOUT_NODE_SEP;
 
 export interface LayoutNode {
   id: string;
@@ -91,6 +112,85 @@ function partitionSteps(workflow: Workflow): { connectedIds: Set<string>; isolat
   return { connectedIds, isolatedIds };
 }
 
+/** Whether a connection renders as the visually dominant "primary" path — delegated to
+ * `design/semantics.ts` so the spine can never disagree with what the edge itself renders as. */
+function isPrimaryConnection(connection: WorkflowConnection): boolean {
+  return connectionStyle(connection.type).weight === "primary";
+}
+
+/**
+ * The set of step ids forming the spine: the single dominant chain of primary (`success`/default)
+ * connections from the entry step onward. Walks greedily; at a fork it prefers the successor with
+ * the longest remaining primary chain ahead of it, tie-broken by the successor's original
+ * position in `workflow.steps` for determinism. In the common case — one primary connection in,
+ * one out, per step — this puts every connected step on the spine; a step is only left off it
+ * when its *only* inbound connection is a `failure`/`conditional`/`async` branch.
+ */
+function computeSpine(workflow: Workflow, connectedIds: ReadonlySet<string>): Set<string> {
+  const order = new Map(workflow.steps.map((step, index) => [step.id, index] as const));
+  const primarySuccessors = new Map<string, string[]>();
+  const primaryInDegree = new Map<string, number>();
+  for (const id of connectedIds) {
+    primarySuccessors.set(id, []);
+    primaryInDegree.set(id, 0);
+  }
+  for (const connection of workflow.connections) {
+    if (!isValidConnection(connectedIds, connection) || connection.from === connection.to) {
+      continue;
+    }
+    if (!isPrimaryConnection(connection)) {
+      continue;
+    }
+    primarySuccessors.get(connection.from)?.push(connection.to);
+    primaryInDegree.set(connection.to, (primaryInDegree.get(connection.to) ?? 0) + 1);
+  }
+
+  // Longest remaining primary chain starting at each step, memoized. `visiting` breaks a cycle
+  // deterministically (the back-edge contributes zero further length) instead of recursing
+  // forever — mirrors the cycle guard in `graph.ts`'s topological order.
+  const longestFrom = new Map<string, number>();
+  const visiting = new Set<string>();
+  function longestChain(id: string): number {
+    const memoized = longestFrom.get(id);
+    if (memoized !== undefined) {
+      return memoized;
+    }
+    if (visiting.has(id)) {
+      return 0;
+    }
+    visiting.add(id);
+    let best = 0;
+    for (const next of primarySuccessors.get(id) ?? []) {
+      best = Math.max(best, 1 + longestChain(next));
+    }
+    visiting.delete(id);
+    longestFrom.set(id, best);
+    return best;
+  }
+  for (const id of connectedIds) {
+    longestChain(id);
+  }
+
+  const connectedSteps = workflow.steps.filter((step) => connectedIds.has(step.id));
+  const uniqueEntryStep = connectedSteps.filter((step) => step.category === "entry");
+  const entryRoot = uniqueEntryStep.length === 1 ? uniqueEntryStep[0] : undefined;
+  const zeroInDegreeRoot = connectedSteps.find((step) => (primaryInDegree.get(step.id) ?? 0) === 0);
+  const root = (entryRoot ?? zeroInDegreeRoot ?? connectedSteps[0])?.id;
+
+  const spine = new Set<string>();
+  let current = root;
+  while (current !== undefined && !spine.has(current)) {
+    spine.add(current);
+    const candidates = (primarySuccessors.get(current) ?? []).filter((id) => !spine.has(id));
+    candidates.sort((a, b) => {
+      const byChainLength = longestChain(b) - longestChain(a);
+      return byChainLength !== 0 ? byChainLength : (order.get(a) ?? 0) - (order.get(b) ?? 0);
+    });
+    current = candidates[0];
+  }
+  return spine;
+}
+
 export function computeLayout(workflow: Workflow, opts: ComputeLayoutOptions): LayoutResult {
   const sizeById = new Map(
     workflow.steps.map((step) => {
@@ -125,12 +225,36 @@ export function computeLayout(workflow: Workflow, opts: ComputeLayoutOptions): L
 
     dagre.layout(graph);
 
+    const spine = computeSpine(workflow, connectedIds);
+    const spineX = LAYOUT_MARGIN_X;
+    const branchColumnX = LAYOUT_MARGIN_X + LAYOUT_BRANCH_OFFSET;
+
     for (const id of connectedIds) {
+      if (!spine.has(id)) {
+        continue;
+      }
       const node = graph.node(id);
-      const size = sizeById.get(id);
-      const width = size?.width ?? NODE_WIDTH;
-      const height = size?.height ?? 0;
-      positioned.set(id, { x: node.x - width / 2, y: node.y - height / 2 });
+      const height = sizeById.get(id)?.height ?? 0;
+      positioned.set(id, { x: spineX, y: node.y - height / 2 });
+    }
+
+    // Branch steps that land in the same dagre rank (identical centerline y) stack into
+    // successive columns instead of overlapping each other, closest column first. Walked in
+    // `workflow.steps` order (not `connectedIds`' insertion order, which follows connection
+    // declaration order and would put branch columns in an arbitrary sequence) so the column a
+    // branch step lands in is a stable function of its own position in the workflow, and keyed by
+    // the rounded centerline so dagre's float arithmetic can't split one rank into two groups.
+    const branchColumnCountByRank = new Map<number, number>();
+    for (const step of workflow.steps) {
+      if (!connectedIds.has(step.id) || spine.has(step.id)) {
+        continue;
+      }
+      const node = graph.node(step.id);
+      const height = sizeById.get(step.id)?.height ?? 0;
+      const rankKey = Math.round(node.y);
+      const column = branchColumnCountByRank.get(rankKey) ?? 0;
+      branchColumnCountByRank.set(rankKey, column + 1);
+      positioned.set(step.id, { x: branchColumnX + column * LAYOUT_BRANCH_OFFSET, y: node.y - height / 2 });
     }
   }
 

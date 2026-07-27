@@ -21,14 +21,31 @@ const STROKE_WIDTH: Record<ConnectionVisual["weight"], number> = {
   branch: 1.25,
 };
 
+/** How far below the source node's own edge a label sits — small enough to land inside the gap
+ * between ranks (`layout.ts`'s `LAYOUT_RANK_SEP`) rather than drifting onto whatever step is
+ * next. A branch connection on the spine layout commonly skips several ranks to reach a shared
+ * downstream step (e.g. three different decision steps all failing through to the same terminal
+ * step); the path's geometric *midpoint* then lands wherever that shared target happens to be
+ * relative to every source, pulling otherwise-unrelated labels toward the same patch of canvas
+ * and reading as clutter instead of three distinct annotations (contract mandate: "anchor each
+ * label on or immediately beside its own path ... ensure the three never collide"). Anchoring to
+ * the source's own y instead keeps every label pinned to the step it actually describes. */
+const LABEL_Y_OFFSET_FROM_SOURCE = 9;
+/** How far horizontally to blend a label from the source's x toward the target's x. Two branch
+ * connections that share one source but diverge to different targets (e.g. a scan step's "clean"
+ * and "flagged" outcomes) would otherwise both anchor at the same point right below their shared
+ * source; blending partway toward each one's own target x pulls them apart along the same axis
+ * their paths actually diverge on, so they read as two distinct lines, not a stacked pair. */
+const LABEL_X_BLEND_TOWARD_TARGET = 0.5;
+
 /**
  * A thin, directional connector styled entirely from `connectionStyle` (contract §10): neutral
  * solid for success/default, muted red dashed for failure, amber dashed with its label always
  * shown for conditional, neutral dotted for async. The primary path renders bolder than a
  * branch so a reader can trace "what happens next" without consciously parsing colour. The
- * label — when either `label` or `condition` is present — is a small mono chip placed at the
- * path's midpoint via `EdgeLabelRenderer`, with its own opaque background so it stays legible
- * over the canvas grid and any edge it happens to cross.
+ * label — when either `label` or `condition` is present — is a small mono chip with its own
+ * opaque background so it stays legible over the canvas grid, anchored near the connection's own
+ * source point (see the constants above) rather than the routed path's raw midpoint.
  */
 export function WorkflowEdge({ data, sourceX, sourceY, sourcePosition, targetX, targetY, targetPosition }: EdgeProps<WorkflowFlowEdge>) {
   if (data === undefined) {
@@ -37,7 +54,7 @@ export function WorkflowEdge({ data, sourceX, sourceY, sourcePosition, targetX, 
 
   const { connection } = data;
   const visual = connectionStyle(connection.type);
-  const [path, labelX, labelY] = getSmoothStepPath({
+  const [path] = getSmoothStepPath({
     sourceX,
     sourceY,
     sourcePosition,
@@ -58,6 +75,8 @@ export function WorkflowEdge({ data, sourceX, sourceY, sourcePosition, targetX, 
 
   const labelText = connection.label ?? connection.condition;
   const showLabel = labelText !== undefined && labelText.trim().length > 0;
+  const labelX = sourceX + (targetX - sourceX) * LABEL_X_BLEND_TOWARD_TARGET;
+  const labelY = sourceY + LABEL_Y_OFFSET_FROM_SOURCE;
 
   return (
     <>

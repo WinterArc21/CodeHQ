@@ -2,7 +2,7 @@ import { CaretDown, CaretUp, Check } from "@phosphor-icons/react";
 import { Handle, Position, type NodeProps } from "@xyflow/react";
 import { categoryToken, confidenceStyle } from "../../../design/semantics";
 import { Badge, IconButton } from "../../primitives";
-import { formatCountsSummary, formatDataReferenceNames, stepCounts, stepIoSummary } from "../nodeContent";
+import { formatCountsSummary, formatDataReferenceNames, purposeLineCount, stepCounts, stepIoSummary } from "../nodeContent";
 import type { StepFlowNode } from "../types";
 import { StepNodeDetail } from "./StepNodeDetail";
 import styles from "./StepNode.module.css";
@@ -27,6 +27,8 @@ export function StepNode({ data }: NodeProps<StepFlowNode>) {
 
   const cardClassName = selected ? `${styles.card} ${styles.selected}` : styles.card;
   const markerClassName = confidence.marker === "dashed" ? `${styles.marker} ${styles.markerDashed}` : styles.marker;
+  const purposeClassName =
+    purposeLineCount(step.purpose) === 2 ? `${styles.purpose} ${styles.purposeTwoLine}` : styles.purpose;
   const accessibleName = `${index + 1}. ${step.name}. ${category.label} category. ${confidence.label} confidence.${
     hasMissingSource ? " Missing sources." : ""
   }`;
@@ -73,7 +75,7 @@ export function StepNode({ data }: NodeProps<StepFlowNode>) {
           />
         </div>
 
-        <p className={styles.purpose}>{step.purpose}</p>
+        <p className={purposeClassName}>{step.purpose}</p>
 
         <div className={styles.meta}>
           <span className={styles.categoryLabel} style={{ color: `var(${category.varName})` }}>

@@ -27,6 +27,12 @@ export interface Viewport {
   x: number;
   y: number;
   zoom: number;
+  /** Whether the fitted content's bottom edge still falls below the container even after
+   * top-anchoring — i.e. panning down would reveal more graph. `WorkflowCanvas` uses this to
+   * show a quiet "more below" affordance instead of letting a reader assume a cut-off card is
+   * the whole workflow (a deeper depth or a large workflow can be taller than any zoom floor
+   * allows, contract §11's progressive depth: "same canvas, same nodes — nodes grow"). */
+  overflowsBottom: boolean;
 }
 
 export function computeFitViewport(input: FitViewportInput): Viewport | null {
@@ -54,5 +60,5 @@ export function computeFitViewport(input: FitViewportInput): Viewport | null {
       ? (containerHeight - contentHeight) / 2 - bounds.minY * zoom
       : paddingY - bounds.minY * zoom;
 
-  return { x, y, zoom };
+  return { x, y, zoom, overflowsBottom: y + contentHeight > containerHeight };
 }

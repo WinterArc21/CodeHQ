@@ -63,7 +63,7 @@
   min-width: 0;
   display: flex;
   flex-direction: column;
-  padding: var(--space-2) var(--space-3);
+  padding: var(--space-1) var(--space-3);
 }
 
 .header {
@@ -107,14 +107,26 @@
   color: var(--accent-blue);
 }
 
+/* Height mirrors `PURPOSE_LINE_HEIGHT * purposeLineCount(...)` in `../nodeContent.ts` exactly —
+   one line by default, two when `.purposeTwoLine` is also applied. */
 .purpose {
-  height: 18px;
+  height: 16px;
   flex-shrink: 0;
   font-size: var(--fs-tiny);
+  line-height: 16px;
   color: var(--text-secondary);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+}
+
+.purposeTwoLine {
+  height: 32px;
+  white-space: normal;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
 }
 
 .meta {
@@ -134,7 +146,7 @@
 }
 
 .facts {
-  height: 18px;
+  height: 16px;
   flex-shrink: 0;
   display: flex;
   align-items: center;
@@ -166,7 +178,7 @@
   align-items: baseline;
   gap: 3px;
   min-width: 0;
-  max-width: 132px;
+  max-width: 180px;
 }
 
 /* `text-overflow: ellipsis` has no effect on a flex container (`.ioTag`, above) — it only
@@ -175,7 +187,7 @@
  * silently-broken mid-glyph cut a flexed ellipsis produces. */
 .ioValue {
   display: inline-block;
-  max-width: 96px;
+  max-width: 144px;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -202,7 +214,7 @@
 
 .sectionLabel {
   display: block;
-  height: 16px;
+  height: 14px;
   font-family: var(--font-ui);
   font-size: var(--fs-micro);
   font-weight: 600;
@@ -212,7 +224,7 @@
 }
 
 .fileRow {
-  height: 16px;
+  height: 14px;
   display: flex;
   align-items: center;
   font-family: var(--font-mono);
@@ -222,7 +234,7 @@
 }
 
 .symbolRow {
-  height: 18px;
+  height: 16px;
   display: flex;
   align-items: center;
   font-family: var(--font-mono);

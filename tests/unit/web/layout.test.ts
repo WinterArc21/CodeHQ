@@ -170,4 +170,100 @@ describe("computeLayout", () => {
     const viaSet = computeLayout(workflow, { depth: "workflow", expandedStepIds: new Set(["a"]) });
     expect(viaSet).toEqual(viaRecord);
   });
+
+  describe("the spine", () => {
+    it("pins every step on a linear primary chain to one constant x, even when early failure/conditional connections skip ranks ahead to a shared terminal step", () => {
+      // Mirrors the shape that produced the "staircase": three decision steps each also fail
+      // straight through to the terminal step, which used to push every later rank rightward.
+      const workflow = makeWorkflow(
+        [
+          makeStep("entry", { category: "entry" }),
+          makeStep("validate"),
+          makeStep("quota"),
+          makeStep("scrape"),
+          makeStep("understand"),
+          makeStep("story"),
+          makeStep("save"),
+        ],
+        [
+          { from: "entry", to: "validate" },
+          { from: "validate", to: "quota", type: "success" },
+          { from: "validate", to: "save", type: "failure", label: "rejected" },
+          { from: "quota", to: "scrape", type: "success" },
+          { from: "quota", to: "save", type: "failure", label: "quota exceeded" },
+          { from: "scrape", to: "understand", type: "success" },
+          { from: "scrape", to: "save", type: "conditional", label: "scrape failed" },
+          { from: "understand", to: "story" },
+          { from: "story", to: "save" },
+        ],
+      );
+      const result = computeLayout(workflow, BASE_OPTS);
+      const xs = new Set(result.nodes.map((node) => node.x));
+      expect(xs.size).toBe(1);
+      assertNoOverlap(result.nodes);
+    });
+
+    it("keeps a step reached only via a failure/conditional connection off the spine, in a side column beside it", () => {
+      const workflow = makeWorkflow(
+        [
+          makeStep("entry", { category: "entry" }),
+          makeStep("validate"),
+          makeStep("scan"),
+          makeStep("persist"),
+          makeStep("reject"),
+        ],
+        [
+          { from: "entry", to: "validate" },
+          { from: "validate", to: "scan", type: "success" },
+          { from: "validate", to: "reject", type: "failure", label: "invalid" },
+          { from: "scan", to: "persist", type: "conditional", label: "clean" },
+          { from: "scan", to: "reject", type: "conditional", label: "flagged" },
+        ],
+      );
+      const result = computeLayout(workflow, BASE_OPTS);
+      const byId = new Map(result.nodes.map((node) => [node.id, node] as const));
+      const spineX = byId.get("entry")!.x;
+      expect(byId.get("validate")!.x).toBe(spineX);
+      expect(byId.get("scan")!.x).toBe(spineX);
+      // Neither "persist" nor "reject" is reachable from "entry" via an unbroken chain of
+      // success/default connections, so both depart from the spine into the branch column.
+      expect(byId.get("persist")!.x).not.toBe(spineX);
+      expect(byId.get("reject")!.x).not.toBe(spineX);
+      assertNoOverlap(result.nodes);
+    });
+
+    it("stacks two branch steps that land in the same rank into separate columns instead of overlapping", () => {
+      const workflow = makeWorkflow(
+        [makeStep("start", { category: "entry" }), makeStep("main"), makeStep("branchA"), makeStep("branchB")],
+        [
+          { from: "start", to: "main" },
+          { from: "start", to: "branchA", type: "failure", label: "a" },
+          { from: "start", to: "branchB", type: "conditional", label: "b" },
+        ],
+      );
+      const result = computeLayout(workflow, BASE_OPTS);
+      const byId = new Map(result.nodes.map((node) => [node.id, node] as const));
+      expect(byId.get("branchA")!.y).toBe(byId.get("branchB")!.y);
+      expect(byId.get("branchA")!.x).not.toBe(byId.get("branchB")!.x);
+      assertNoOverlap(result.nodes);
+    });
+
+    it("prefers the longest remaining primary chain at a fork with multiple primary successors", () => {
+      const workflow = makeWorkflow(
+        [makeStep("start", { category: "entry" }), makeStep("short"), makeStep("longA"), makeStep("longB")],
+        [
+          { from: "start", to: "short" },
+          { from: "start", to: "longA" },
+          { from: "longA", to: "longB" },
+        ],
+      );
+      const result = computeLayout(workflow, BASE_OPTS);
+      const byId = new Map(result.nodes.map((node) => [node.id, node] as const));
+      const spineX = byId.get("start")!.x;
+      expect(byId.get("longA")!.x).toBe(spineX);
+      expect(byId.get("longB")!.x).toBe(spineX);
+      expect(byId.get("short")!.x).not.toBe(spineX);
+      assertNoOverlap(result.nodes);
+    });
+  });
 });

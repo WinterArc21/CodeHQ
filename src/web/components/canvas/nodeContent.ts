@@ -9,27 +9,41 @@ import type { SourceStatus } from "../../api/types";
 import type { Depth } from "../../store/useObservatoryStore";
 
 /** Fixed node width across every depth — only height grows with content (contract §10/§11).
- * Wider than the original 300px: a top-to-bottom layout has horizontal room to spare, and a
- * wider card lets category/confidence/counts/io share single rows instead of stacking, which is
- * what keeps a 7-step workflow's total height inside a legible viewport (see layout.ts). */
-export const NODE_WIDTH = 340;
+ * Wider than the original 300/340px: the spine layout (see layout.ts) no longer needs dagre's
+ * horizontal room to route long branch edges through intermediate ranks, which freed up canvas
+ * width for the card itself — spent here on the purpose line and the in/out tags, which were
+ * truncating too aggressively to read as the comprehension surface the product needs them to
+ * be. */
+export const NODE_WIDTH = 380;
 
 export const MAX_MODULE_ROWS = 5;
 export const MAX_SYMBOL_ROWS = 8;
 
-const NODE_PADDING_Y = 8;
+// Mirrors `--space-1` (4px) — see `.body`'s padding in `StepNode.module.css`. Tighter than the
+// original 8px: the two-line purpose reservation below (needed to stop hard-truncating purpose
+// text) has to be paid for somewhere, and slack padding is cheaper to spend than row content.
+const NODE_PADDING_Y = 4;
 // Matches the 24px `IconButton` "sm" square that now lives inline in the header (the per-step
 // expand toggle moved there from its own row, see StepNode.tsx) so the row never clips it.
 const HEADER_ROW_HEIGHT = 24;
-const PURPOSE_ROW_HEIGHT = 18;
+/** Height of one purpose line. `purposeLineCount` decides whether a card reserves one or two of
+ * these — see its own doc comment for why that's a character count, not a DOM measurement. */
+export const PURPOSE_LINE_HEIGHT = 16;
+/** Purposes at or under this length almost always fit on one line at `NODE_WIDTH`; anything
+ * longer gets a second line reserved instead of hard-truncating mid-sentence (contract: "the
+ * purpose is a primary comprehension surface — losing half of it defeats the product's point").
+ * A character-count heuristic, not a DOM measurement: `computeNodeHeight` must stay pure and
+ * DOM-free (contract §11), so it can only approximate what will wrap, not know it exactly — an
+ * approximation is an acceptable trade for a layout that never needs the browser to compute. */
+export const PURPOSE_SINGLE_LINE_MAX_CHARS = 52;
 const META_ROW_HEIGHT = 18;
-const FACTS_ROW_HEIGHT = 18;
-const SECTION_LABEL_HEIGHT = 16;
-const FILE_ROW_HEIGHT = 16;
+const FACTS_ROW_HEIGHT = 16;
+const SECTION_LABEL_HEIGHT = 14;
+const FILE_ROW_HEIGHT = 14;
 // Slightly taller than a file row: a symbol row carries more content (file + arrow + symbol()),
 // and keeping it taller guarantees `symbols` depth is strictly taller than `modules` depth even
 // when both show the same number of rows (contract requirement: node height grows with depth).
-const SYMBOL_ROW_HEIGHT = 18;
+const SYMBOL_ROW_HEIGHT = 16;
 const MORE_ROW_HEIGHT = 14;
 
 export interface StepCounts {
@@ -79,6 +93,12 @@ export function stepHasFacts(step: WorkflowStep): boolean {
   const counts = stepCounts(step);
   const io = stepIoSummary(step);
   return counts.sources > 0 || counts.edgeCases > 0 || counts.tests > 0 || io.inputs.length > 0 || io.outputs.length > 0;
+}
+
+/** Whether a step's purpose should reserve one or two lines on its card (see
+ * `PURPOSE_SINGLE_LINE_MAX_CHARS`'s doc comment for why this is a length heuristic). */
+export function purposeLineCount(purpose: string): 1 | 2 {
+  return purpose.length > PURPOSE_SINGLE_LINE_MAX_CHARS ? 2 : 1;
 }
 
 /** Renders a short "first name, +N more" summary for a list of `DataReference`s — used for the
@@ -195,7 +215,11 @@ export function stepHasMissingSource(step: WorkflowStep, sourceChecks: Record<st
  * so it is identical in a Node test and in the browser (contract §11: "Do not measure the DOM").
  */
 export function computeNodeHeight(step: WorkflowStep, effectiveDepth: Depth): number {
-  let height = NODE_PADDING_Y * 2 + HEADER_ROW_HEIGHT + PURPOSE_ROW_HEIGHT + META_ROW_HEIGHT;
+  let height =
+    NODE_PADDING_Y * 2 +
+    HEADER_ROW_HEIGHT +
+    PURPOSE_LINE_HEIGHT * purposeLineCount(step.purpose) +
+    META_ROW_HEIGHT;
 
   if (stepHasFacts(step)) {
     height += FACTS_ROW_HEIGHT;

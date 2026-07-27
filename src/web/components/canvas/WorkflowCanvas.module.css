@@ -69,3 +69,38 @@
   display: inline;
   max-width: none;
 }
+
+/* A quiet "more below" affordance (contract mandate: a user must never believe they're seeing
+ * the whole graph when they aren't). Shown only when the fitted graph's bottom edge still falls
+ * below the stage after top-anchoring — see `fitViewport.ts`'s `overflowsBottom`. Purely a fade
+ * plus a small label, not a scrollbar or a button: panning/scrolling already works, this only
+ * needs to say that panning further is worth doing. */
+.overflowFade {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: 56px;
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  padding-bottom: var(--space-2);
+  background-image: linear-gradient(to bottom, transparent, var(--bg-canvas) 85%);
+  pointer-events: none;
+}
+
+.overflowLabel {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1);
+  padding: var(--space-1) var(--space-2);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-sm);
+  background-color: var(--bg-surface);
+  color: var(--text-tertiary);
+  font-family: var(--font-ui);
+  font-size: var(--fs-micro);
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
