@@ -229,16 +229,23 @@ main { position: relative; }
 .fork-row.is-live p { color: var(--ink-2); font-size: 16px; }
 
 /* ==========================================================================
-   LOOP: three stations, and a return edge back to the first.
+   LOOP: a hub above three stations. The spine fans out into each card,
+   then leaves through Observe into the canvas.
    ========================================================================== */
 
-.cycle { display: flex; flex-direction: column; gap: clamp(38px, 4vw, 52px); }
-.station { position: relative; display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.05fr); gap: clamp(24px, 3vw, 48px); align-items: start; }
-.station .sp-node { top: 6px; }
+.cycle { position: relative; padding-top: 96px; }
+.cycle-row { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: clamp(16px, 2vw, 28px); align-items: stretch; }
+.sp-node.is-hub { left: 50%; top: 0; width: 14px; height: 14px; transform: translateX(-50%); --node-c: var(--ink); border-color: var(--ink); }
+.station { position: relative; display: flex; flex-direction: column; gap: 14px; padding: 28px 22px 20px; border: 1px solid var(--line-strong); border-radius: var(--r-2); background: white; box-shadow: var(--shadow-card); }
+.station .sp-node { left: 50%; top: 0; transform: translate(-50%, -50%); }
+.sp-anchor { position: absolute; left: 50%; bottom: 0; width: 1px; height: 1px; pointer-events: none; }
+.station-head { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; }
 .station h3 { font-size: 21px; font-weight: 680; letter-spacing: -.02em; }
-.station-copy p { max-width: 46ch; margin-top: 10px; color: var(--ink-2); }
-.station-copy p em { color: var(--amber-ink); font-style: normal; }
-.mini { width: 100%; overflow: auto; padding: 16px 18px; border: 1px solid var(--line); border-radius: var(--r-2); color: var(--ink-2); background: white; box-shadow: var(--shadow-card); font-size: 11.5px; line-height: 1.75; white-space: pre; }
+.station-copy h3 { margin-bottom: 8px; }
+.cycle-repeat { flex: none; color: var(--amber-ink); font: 10px/1 var(--mono); letter-spacing: .1em; text-transform: uppercase; }
+.station-copy p { color: var(--ink-2); font-size: 14.5px; line-height: 1.55; }
+.station-copy p em { color: var(--amber-ink); font-style: normal; padding: 1px 5px; border-radius: var(--r-1); background: color-mix(in oklch, var(--amber) 14%, white); }
+.station .mini { margin-top: auto; width: 100%; overflow: auto; padding: 14px 14px; border: 1px solid var(--line); border-radius: var(--r-2); color: var(--ink-2); background: var(--paper-2); box-shadow: none; font-size: 11px; line-height: 1.7; white-space: pre; }
 
 /* ==========================================================================
    CANVAS DEMO
@@ -400,7 +407,11 @@ main { position: relative; }
 @media (max-width: 960px) {
   .hero-inner { grid-template-columns: 1fr; }
   .hero-graph { max-width: 560px; }
-  .station { grid-template-columns: 1fr; gap: 20px; }
+  .cycle-row { grid-template-columns: 1fr; gap: 28px; }
+  .sp-node.is-hub { left: var(--sp-x); transform: none; }
+  .station .sp-node { left: var(--sp-x); top: 30px; transform: none; }
+  .station { padding: 22px 20px 18px 28px; }
+  .cycle { padding-top: 8px; }
   .install-grid { grid-template-columns: 1fr; }
   .tap { grid-template-columns: 1fr; gap: 6px; }
 }

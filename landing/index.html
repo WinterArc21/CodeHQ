@@ -104,7 +104,7 @@
       </div>
     </section>
 
-    <!-- ============ loop: the spine closes on itself ============ -->
+    <!-- ============ loop: hub above three stations ============ -->
     <section class="section" id="loop">
       <header class="section-head">
         <h2 class="section-title reveal">One loop, three moves.</h2>
@@ -112,45 +112,53 @@
       </header>
 
       <div class="cycle">
-        <article class="station reveal">
-          <span class="sp-node" data-sp="loop-1" aria-hidden="true"></span>
-          <div class="station-copy">
-            <h3>Scaffold</h3>
-            <p><code>code-observatory init</code> drops a <code>.observatory/</code> into your repo: a strict JSON contract and a <code>SKILL.md</code> your agent already knows how to read.</p>
-          </div>
-          <pre class="mini" aria-label="Scaffolded files">.observatory/
+        <span class="sp-node is-hub" data-sp="loop-hub" aria-hidden="true"></span>
+
+        <div class="cycle-row">
+          <article class="station reveal">
+            <span class="sp-node" data-sp="loop-1" aria-hidden="true"></span>
+            <div class="station-copy">
+              <h3>Scaffold</h3>
+              <p><code>code-observatory init</code> drops a <code>.observatory/</code> into your repo: a strict JSON contract and a <code>SKILL.md</code> your agent already knows how to read.</p>
+            </div>
+            <pre class="mini" aria-label="Scaffolded files">.observatory/
 ├── project.json
 ├── SKILL.md          agent contract
 ├── diagnostics.json  repair loop
 └── workflows/</pre>
-        </article>
+          </article>
 
-        <article class="station reveal">
-          <span class="sp-node" data-sp="loop-2" aria-hidden="true"></span>
-          <div class="station-copy">
-            <h3>Author</h3>
-            <p>Your agent traces real code paths and writes workflow JSON: steps, sources, edge cases, tests. Every claim marked <em>verified</em> or <em>inferred</em>.</p>
-          </div>
-          <pre class="mini" aria-label="Workflow excerpt">{
+          <article class="station reveal">
+            <span class="sp-node" data-sp="loop-2" aria-hidden="true"></span>
+            <div class="station-head">
+              <h3>Author</h3>
+              <span class="cycle-repeat" aria-hidden="true">↑ repeat</span>
+            </div>
+            <div class="station-copy">
+              <p>Your agent traces real code paths and writes workflow JSON: steps, sources, edge cases, tests. Every claim marked <em>verified</em> or <em>inferred</em>.</p>
+            </div>
+            <pre class="mini" aria-label="Workflow excerpt">{
   "id": "check-quota",
   "category": "decision",
   "confidence": "verified",
   "sources": [{ "file": "lib/validation.ts",
                "symbol": "hasRemainingQuota" }]
 }</pre>
-        </article>
+          </article>
 
-        <article class="station reveal">
-          <span class="sp-node" data-sp="loop-3" aria-hidden="true"></span>
-          <div class="station-copy">
-            <h3>Observe</h3>
-            <p>HQ validates every file, watches for changes, and re-renders the canvas live. Invalid files become precise diagnostics, never a blank board.</p>
-          </div>
-          <pre class="mini" aria-label="Diagnostics excerpt">issues[0]: error
+          <article class="station reveal">
+            <span class="sp-node" data-sp="loop-3" aria-hidden="true"></span>
+            <div class="station-copy">
+              <h3>Observe</h3>
+              <p>HQ validates every file, watches for changes, and re-renders the canvas live. Invalid files become precise diagnostics, never a blank board.</p>
+            </div>
+            <pre class="mini" aria-label="Diagnostics excerpt">issues[0]: error
   connections[3].to  step "send-receipt"
   does not exist.
   hint: point to an existing step id.</pre>
-        </article>
+            <span class="sp-anchor" data-sp="loop-out" aria-hidden="true"></span>
+          </article>
+        </div>
       </div>
     </section>
 

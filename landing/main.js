@@ -452,8 +452,8 @@ function initHeroGraph() {
 /* ==========================================================================
    3. THE SPINE
    One line down the page in the canvas notation. It forks where the argument
-   forks, closes into a cycle where the product is a cycle, enters the canvas,
-   runs as a bus past the principles, and terminates at the install step.
+   forks, fans into the three-move loop, enters the canvas, runs as a bus past
+   the principles, and terminates at the install step.
    ========================================================================== */
 
 function initSpine() {
@@ -498,7 +498,6 @@ function initSpine() {
     const origin = box("origin");
     if (!origin) return;
     const railX = Math.round(origin.cx) + 0.5;
-    const wide = window.innerWidth > 760;
 
     const contentEl = main.querySelector("#principles .tap h3");
     const contentX = contentEl ? contentEl.getBoundingClientRect().left - M.left : railX + 78;
@@ -509,10 +508,20 @@ function initSpine() {
     const dots = [];
 
     const why1 = box("why-1"), why2 = box("why-2"), why3 = box("why-3");
+    const hub = box("loop-hub");
     const l1 = box("loop-1"), l2 = box("loop-2"), l3 = box("loop-3");
+    const lOut = box("loop-out");
     const frame = box("canvas-frame");
     const p1 = box("prin-1"), p4 = box("prin-4");
     const term = box("install-node");
+
+    /* gentle cubic from a hub down into a station top */
+    const fan = (from, to) => {
+      const dy = Math.max(56, to.y - from.bottom);
+      const c1y = from.bottom + dy * 0.55;
+      const c2y = to.y - Math.min(28, dy * 0.35);
+      return `M ${from.cx} ${from.bottom} C ${from.cx} ${c1y}, ${to.cx} ${c2y}, ${to.cx} ${to.y}`;
+    };
 
     /* hero into the fork */
     if (why3) push("why", `M ${railX} ${origin.bottom + 6} V ${why3.cy}`);
@@ -527,22 +536,49 @@ function initSpine() {
     }
     if (why3) push("why", `M ${why3.right + 3} ${why3.cy} H ${contentX - 10}`);
 
-    /* the loop, and the return edge that makes it a loop */
-    if (why3 && l1) push("loop", `M ${railX} ${why3.cy} V ${l1.cy}`);
-    if (l1 && l3) {
-      push("loop", `M ${railX} ${l1.cy} V ${l3.cy}`);
-      const bulge = Math.min(48, Math.max(12, railX - 10));
-      push("loop", `M ${railX} ${l3.cy} C ${railX - bulge} ${l3.cy}, ${railX - bulge} ${l1.cy}, ${railX} ${l1.cy}`, "is-return", false);
-      if (wide) text.push({ sec: "loop", x: railX + 11, y: (l1.cy + l3.cy) / 2 + 3, s: "repeat" });
+    /* the loop: rail runs to the hub, then fans into three stations.
+       on the stacked layout the hub sits on the rail and the fan collapses
+       into short left-side taps. */
+    const hubbed = hub && Math.abs(hub.cx - railX) > 36;
+    if (why3 && hub) {
+      if (hubbed) {
+        /* leave the rail, rise into the hub from the left so the fan sits
+           above the row instead of reading as a left-to-right bus */
+        const approachY = hub.cy;
+        push("loop", `M ${railX} ${why3.cy} V ${approachY}`);
+        push("loop", `M ${railX} ${approachY} H ${hub.x - 4}`);
+      } else {
+        push("loop", `M ${railX} ${why3.cy} V ${hub.cy}`);
+      }
     }
-    for (const s of [l1, l2, l3]) {
-      if (s) push("loop", `M ${s.right + 3} ${s.cy} H ${contentX - 10}`);
+
+    if (hub && l1 && l2 && l3) {
+      if (hubbed) {
+        push("loop", fan(hub, l1));
+        push("loop", fan(hub, l2));
+        push("loop", fan(hub, l3));
+      } else {
+        push("loop", `M ${railX} ${hub.cy} V ${l3.cy}`);
+        for (const s of [l1, l2, l3]) {
+          if (s && s.x - 4 > railX + 8) push("loop", `M ${railX} ${s.cy} H ${s.x - 4}`);
+        }
+      }
+    }
+
+    /* leave through Observe, rejoin the rail, then enter the canvas */
+    let joinY = null;
+    if (hubbed && lOut) {
+      joinY = lOut.cy + 36;
+      push("loop", `M ${lOut.cx} ${lOut.cy} V ${joinY}`);
+      push("loop", `M ${lOut.cx} ${joinY} H ${railX}`);
+    } else if (l3) {
+      joinY = l3.cy;
     }
 
     /* the line enters the canvas frame and the workflow graph continues it,
        then it picks back up on the way out */
-    if (l3 && frame) {
-      push("canvas", elbowRight(railX, l3.cy, frame.y + 46, frame.x - 4), "", true, true);
+    if (l3 && frame && joinY != null) {
+      push("canvas", elbowRight(railX, joinY, frame.y + 46, frame.x - 4), "", true, true);
       push("canvas", elbowLeft(frame.x - 3, frame.bottom - 46, railX, frame.bottom + 34));
     }
 
