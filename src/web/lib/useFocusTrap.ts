@@ -10,19 +10,35 @@ const FOCUSABLE_SELECTOR = [
 ].join(",");
 
 /**
- * Traps Tab focus inside `containerRef` for as long as the owning component stays mounted,
- * moves focus into it on mount, restores focus to whatever had it beforehand on unmount, and
- * calls `onClose` on Escape. `onClose` is read through a ref so a new function identity on
- * every render never re-runs the mount/unmount effect (which would re-capture "previously
- * focused" mid-session and keep stealing focus back to the first field).
+ * Traps Tab focus inside `containerRef` for as long as `active` is true, moves focus into it on
+ * activation, restores focus to whatever had it beforehand on deactivation, and calls `onClose`
+ * on Escape. `onClose` is read through a ref so a new function identity on every render never
+ * re-runs the activate/deactivate effect (which would re-capture "previously focused" mid-session
+ * and keep stealing focus back to the first field).
+ *
+ * `active` must be a real dependency of the effect (not just checked inside it): callers such as
+ * `CommandPalette` stay mounted at all times so a global keyboard shortcut keeps working, and only
+ * flip `active` on and off as the dialog opens and closes. If the effect only re-ran on
+ * `containerRef` identity (a ref object never changes identity) it would run exactly once, at
+ * first mount, and never again when the dialog later opens — which is the bug this hook exists to
+ * avoid regressing.
+ *
+ * The Escape/Tab listener is attached to `document`, not the container: focus can legitimately
+ * leave the container while the dialog is still open (autofocus lands in an input, but clicking a
+ * non-focusable row inside the dialog blurs it back to `document.body`), and a container-scoped
+ * listener would silently stop handling Escape at that point. The listener is only ever attached
+ * while `active` is true, so a closed dialog never intercepts Escape meant for something else.
  */
-export function useFocusTrap(containerRef: RefObject<HTMLElement | null>, onClose: () => void): void {
+export function useFocusTrap(containerRef: RefObject<HTMLElement | null>, active: boolean, onClose: () => void): void {
   const onCloseRef = useRef(onClose);
   useEffect(() => {
     onCloseRef.current = onClose;
   }, [onClose]);
 
   useEffect(() => {
+    if (!active) {
+      return;
+    }
     const container = containerRef.current;
     if (container === null) {
       return;
@@ -57,12 +73,12 @@ export function useFocusTrap(containerRef: RefObject<HTMLElement | null>, onClos
       }
     };
 
-    container.addEventListener("keydown", handleKeyDown);
+    document.addEventListener("keydown", handleKeyDown);
     return () => {
-      container.removeEventListener("keydown", handleKeyDown);
+      document.removeEventListener("keydown", handleKeyDown);
       if (previouslyFocused !== null && document.contains(previouslyFocused)) {
         previouslyFocused.focus();
       }
     };
-  }, [containerRef]);
+  }, [active, containerRef]);
 }

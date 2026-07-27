@@ -30,7 +30,7 @@ export interface StepDrawerProps {
 export function StepDrawer({ workflow, stepId, sourceChecks, onClose, onSelectStep }: StepDrawerProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const titleId = useId();
-  useFocusTrap(containerRef, onClose);
+  useFocusTrap(containerRef, true, onClose);
 
   const stepIndex = workflow.steps.findIndex((candidate) => candidate.id === stepId);
   const step = workflow.steps[stepIndex];

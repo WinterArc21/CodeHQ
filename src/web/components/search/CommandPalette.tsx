@@ -3,6 +3,7 @@ import { MagnifyingGlass } from "@phosphor-icons/react";
 import type { ObservatorySnapshot } from "../../api/types";
 import { useObservatoryStore } from "../../store/useObservatoryStore";
 import { useFocusTrap } from "../../lib/useFocusTrap";
+import { useBackdropDismiss } from "../../lib/useBackdropDismiss";
 import { Kbd } from "../primitives";
 import { buildPaletteActions } from "./paletteActions";
 import { buildPaletteGroups } from "./paletteGroups";
@@ -31,7 +32,8 @@ export function CommandPalette({ snapshot, onRecheck }: CommandPaletteProps) {
   const [activeIndex, setActiveIndex] = useState(0);
   const listboxId = useId();
 
-  useFocusTrap(containerRef, closeSearch);
+  useFocusTrap(containerRef, searchOpen, closeSearch);
+  const backdropDismiss = useBackdropDismiss(closeSearch);
 
   useEffect(() => {
     function handleKeyDown(event: KeyboardEvent): void {
@@ -104,7 +106,7 @@ export function CommandPalette({ snapshot, onRecheck }: CommandPaletteProps) {
   };
 
   return (
-    <div className={styles.backdrop}>
+    <div className={styles.backdrop} {...backdropDismiss}>
       <div ref={containerRef} className={styles.palette} role="dialog" aria-modal="true" aria-label="Search Code Observatory">
         <div className={styles.inputRow}>
           <MagnifyingGlass size={16} aria-hidden="true" />

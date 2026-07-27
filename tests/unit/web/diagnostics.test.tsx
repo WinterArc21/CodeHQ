@@ -1,6 +1,6 @@
 import "@testing-library/jest-dom/vitest";
 import { useState } from "react";
-import { render, screen, waitFor } from "@testing-library/react";
+import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type { DiagnosticsReport } from "@schema/diagnostics";
@@ -156,6 +156,36 @@ describe("DiagnosticsPanel", () => {
 
     await user.click(screen.getByRole("button", { name: "Close diagnostics" }));
     await waitFor(() => expect(screen.queryByRole("dialog")).not.toBeInTheDocument());
+  });
+
+  it("closes when a click starts and ends on the backdrop", async () => {
+    render(<DiagnosticsHarness diagnostics={UNHEALTHY_REPORT} onRecheck={() => Promise.resolve()} />);
+    await userEvent.setup().click(screen.getByRole("button", { name: "Open diagnostics" }));
+
+    const dialog = screen.getByRole("dialog");
+    const backdrop = dialog.parentElement as HTMLElement;
+    expect(backdrop).not.toBe(dialog);
+
+    fireEvent.pointerDown(backdrop);
+    fireEvent.pointerUp(backdrop);
+
+    await waitFor(() => expect(screen.queryByRole("dialog")).not.toBeInTheDocument());
+  });
+
+  it("does not close when a click lands inside the panel, nor when it starts inside and is released on the backdrop", async () => {
+    render(<DiagnosticsHarness diagnostics={UNHEALTHY_REPORT} onRecheck={() => Promise.resolve()} />);
+    await userEvent.setup().click(screen.getByRole("button", { name: "Open diagnostics" }));
+
+    const dialog = screen.getByRole("dialog");
+    const backdrop = dialog.parentElement as HTMLElement;
+
+    fireEvent.pointerDown(dialog);
+    fireEvent.pointerUp(dialog);
+    expect(screen.getByRole("dialog")).toBeInTheDocument();
+
+    fireEvent.pointerDown(dialog);
+    fireEvent.pointerUp(backdrop);
+    expect(screen.getByRole("dialog")).toBeInTheDocument();
   });
 
   it("wires 'Recheck files' to the real recheck action", async () => {

@@ -145,4 +145,61 @@ describe("CommandPalette", () => {
 
     await waitFor(() => expect(screen.queryByRole("dialog")).not.toBeInTheDocument());
   });
+
+  it("closes on Escape when opened via the store after the initial (closed) mount", async () => {
+    // Regression test: CommandPalette is always mounted so Ctrl/Cmd+K keeps working, and used to
+    // wire its focus trap's effect to a dependency array that never changed identity, so the trap
+    // (and its Escape handler) only ever attached if the palette happened to already be open at
+    // first mount. Rendering closed, then opening afterwards, reproduces the real bug.
+    render(<CommandPalette snapshot={SNAPSHOT} onRecheck={() => Promise.resolve()} />);
+    expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
+
+    useObservatoryStore.getState().openSearch();
+    await waitFor(() => expect(screen.getByRole("dialog")).toBeInTheDocument());
+
+    const user = userEvent.setup();
+    await user.keyboard("{Escape}");
+
+    await waitFor(() => expect(screen.queryByRole("dialog")).not.toBeInTheDocument());
+  });
+
+  it("closes when a click starts and ends on the backdrop", async () => {
+    useObservatoryStore.getState().openSearch();
+    render(<CommandPalette snapshot={SNAPSHOT} onRecheck={() => Promise.resolve()} />);
+
+    const dialog = screen.getByRole("dialog");
+    const backdrop = dialog.parentElement as HTMLElement;
+    expect(backdrop).not.toBe(dialog);
+
+    fireEvent.pointerDown(backdrop);
+    fireEvent.pointerUp(backdrop);
+
+    await waitFor(() => expect(screen.queryByRole("dialog")).not.toBeInTheDocument());
+  });
+
+  it("does not close when a click lands inside the dialog", async () => {
+    useObservatoryStore.getState().openSearch();
+    render(<CommandPalette snapshot={SNAPSHOT} onRecheck={() => Promise.resolve()} />);
+
+    const dialog = screen.getByRole("dialog");
+    fireEvent.pointerDown(dialog);
+    fireEvent.pointerUp(dialog);
+
+    expect(screen.getByRole("dialog")).toBeInTheDocument();
+  });
+
+  it("does not close on a pointer-down inside the dialog that drags out and releases on the backdrop", async () => {
+    useObservatoryStore.getState().openSearch();
+    render(<CommandPalette snapshot={SNAPSHOT} onRecheck={() => Promise.resolve()} />);
+
+    const dialog = screen.getByRole("dialog");
+    const backdrop = dialog.parentElement as HTMLElement;
+
+    // Simulates selecting text in the input, then dragging the mouse out and releasing on the
+    // backdrop — a real, common gesture that must not be misread as "clicked outside."
+    fireEvent.pointerDown(dialog);
+    fireEvent.pointerUp(backdrop);
+
+    expect(screen.getByRole("dialog")).toBeInTheDocument();
+  });
 });

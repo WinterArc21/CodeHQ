@@ -47,3 +47,34 @@ test("Ctrl+K opens the palette, typing filters results, and Enter opens the matc
   // centering), not just selected off-screen.
   await expect(page.locator('[data-step-node="validate-file"]')).toBeInViewport();
 });
+
+test("Escape dismisses the palette, including when opened after the initial page load", async ({ page }) => {
+  await page.keyboard.press("Control+k");
+  const dialog = page.getByRole("dialog", { name: "Search Code Observatory" });
+  await expect(dialog).toBeVisible();
+
+  await page.keyboard.press("Escape");
+  await expect(dialog).toBeHidden();
+
+  // Regression: the palette is mounted for the whole page lifetime so Ctrl/Cmd+K keeps working,
+  // and the focus trap used to only ever attach on the very first mount. Reopening it here,
+  // well after initial load, and dismissing it again is the scenario that used to hang.
+  await page.keyboard.press("Control+k");
+  await expect(dialog).toBeVisible();
+  await page.keyboard.press("Escape");
+  await expect(dialog).toBeHidden();
+});
+
+test("clicking outside the palette dismisses it, but clicking inside does not", async ({ page }) => {
+  await page.keyboard.press("Control+k");
+  const dialog = page.getByRole("dialog", { name: "Search Code Observatory" });
+  await expect(dialog).toBeVisible();
+
+  // Click inside the dialog (on its own chrome, not a result row) must not close it.
+  await dialog.click({ position: { x: 10, y: 10 } });
+  await expect(dialog).toBeVisible();
+
+  // Click on the backdrop, well outside the dialog's bounding box, must close it.
+  await page.mouse.click(5, 5);
+  await expect(dialog).toBeHidden();
+});

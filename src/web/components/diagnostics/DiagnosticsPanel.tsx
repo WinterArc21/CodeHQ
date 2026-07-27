@@ -4,6 +4,7 @@ import type { DiagnosticsReport } from "@schema/diagnostics";
 import { useAsyncAction } from "../../lib/useAsyncAction";
 import { formatRelativeTime } from "../../lib/relativeTime";
 import { useFocusTrap } from "../../lib/useFocusTrap";
+import { useBackdropDismiss } from "../../lib/useBackdropDismiss";
 import { Button, IconButton } from "../primitives";
 import { DiagnosticsFileGroup } from "./DiagnosticsFileGroup";
 import { groupIssuesByFile, summarizeIssues } from "./groupIssues";
@@ -23,7 +24,8 @@ export interface DiagnosticsPanelProps {
 export function DiagnosticsPanel({ diagnostics, onClose, onRecheck }: DiagnosticsPanelProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const titleId = useId();
-  useFocusTrap(containerRef, onClose);
+  useFocusTrap(containerRef, true, onClose);
+  const backdropDismiss = useBackdropDismiss(onClose);
   const recheck = useAsyncAction(onRecheck);
 
   const groups = useMemo(() => groupIssuesByFile(diagnostics.issues), [diagnostics.issues]);
@@ -31,7 +33,7 @@ export function DiagnosticsPanel({ diagnostics, onClose, onRecheck }: Diagnostic
   const generatedLabel = formatRelativeTime(diagnostics.generatedAt);
 
   return (
-    <div className={styles.backdrop}>
+    <div className={styles.backdrop} {...backdropDismiss}>
       <div ref={containerRef} className={styles.panel} role="dialog" aria-modal="true" aria-labelledby={titleId}>
         <header className={styles.header}>
           <div className={styles.headerText}>

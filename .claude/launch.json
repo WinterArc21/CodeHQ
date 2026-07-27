@@ -15,6 +15,12 @@
       "runtimeExecutable": "pnpm",
       "runtimeArgs": ["exec", "vite"],
       "port": 5173
+    },
+    {
+      "name": "observatory-app",
+      "runtimeExecutable": "node",
+      "runtimeArgs": ["dist/node/cli.js", "open", "--no-open", "--port", "4310", "--root", "examples/motiona"],
+      "port": 4310
     }
   ]
 }
