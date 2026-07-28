@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import type { Workflow, WorkflowStep } from "@schema/workflow";
-import { computeLayout } from "@web/components/canvas/layout";
+import { computeLayout, LAYOUT_MARGIN_X } from "@web/components/canvas/layout";
 
 function makeStep(id: string, overrides: Partial<WorkflowStep> = {}): WorkflowStep {
   return { id, name: `Step ${id}`, purpose: `Purpose of ${id}.`, ...overrides };
@@ -329,6 +329,161 @@ describe("computeLayout", () => {
       const spineX = byId.get("start")!.x;
       expect(byId.get("middle")!.x).toBe(spineX);
       expect(byId.get("end")!.x).not.toBe(spineX);
+      assertNoOverlap(result.nodes);
+    });
+  });
+
+  describe("fan-out (genuine parallelism)", () => {
+    it("does not alter a linear chain with no fan-out — every step stays pinned to LAYOUT_MARGIN_X", () => {
+      const workflow = makeWorkflow(
+        [makeStep("entry", { category: "entry" }), makeStep("a"), makeStep("b"), makeStep("c")],
+        [
+          { from: "entry", to: "a" },
+          { from: "a", to: "b" },
+          { from: "b", to: "c" },
+        ],
+      );
+      const result = computeLayout(workflow, BASE_OPTS);
+      const byId = new Map(result.nodes.map((node) => [node.id, node] as const));
+      for (const id of ["entry", "a", "b"]) {
+        expect(byId.get(id)!.x).toBe(LAYOUT_MARGIN_X);
+      }
+      assertNoOverlap(result.nodes);
+    });
+
+    it("spreads a 2-way fan-out horizontally, centred on the fork, at the same rank", () => {
+      const workflow = makeWorkflow(
+        [makeStep("fork", { category: "entry" }), makeStep("left"), makeStep("right"), makeStep("join")],
+        [
+          { from: "fork", to: "left" },
+          { from: "fork", to: "right" },
+          { from: "left", to: "join" },
+          { from: "right", to: "join" },
+        ],
+      );
+      const result = computeLayout(workflow, BASE_OPTS);
+      const byId = new Map(result.nodes.map((node) => [node.id, node] as const));
+      const fork = byId.get("fork")!;
+      const left = byId.get("left")!;
+      const right = byId.get("right")!;
+      expect(left.x).not.toBe(right.x);
+      expect(left.y).toBe(right.y);
+      // Centred beneath the fork: the two lanes' own centroid lands exactly on the fork's x.
+      expect((left.x + right.x) / 2).toBeCloseTo(fork.x, 5);
+      assertNoOverlap(result.nodes);
+    });
+
+    it("spreads a 3-way fan-out into three distinct columns, the middle one on the fork's own x", () => {
+      // Each lane keeps a real outgoing connection (to "join") so it is a genuine work step, not
+      // a terminal outcome pill — a step with zero outgoing connections is always an outcome
+      // (see "the outcome column" in this file's own header comment), which is a different,
+      // unrelated placement rule this test isn't about.
+      const workflow = makeWorkflow(
+        [makeStep("fork", { category: "entry" }), makeStep("a"), makeStep("b"), makeStep("c"), makeStep("join")],
+        [
+          { from: "fork", to: "a" },
+          { from: "fork", to: "b" },
+          { from: "fork", to: "c" },
+          { from: "a", to: "join" },
+          { from: "b", to: "join" },
+          { from: "c", to: "join" },
+        ],
+      );
+      const result = computeLayout(workflow, BASE_OPTS);
+      const byId = new Map(result.nodes.map((node) => [node.id, node] as const));
+      const fork = byId.get("fork")!;
+      const xs = [byId.get("a")!.x, byId.get("b")!.x, byId.get("c")!.x];
+      expect(new Set(xs).size).toBe(3);
+      // "b" is the declared middle child, so it lands on the fork's own centreline.
+      expect(byId.get("b")!.x).toBeCloseTo(fork.x, 5);
+      assertNoOverlap(result.nodes);
+    });
+
+    it("returns a fan-out's join point to the fork's own x", () => {
+      // "join" itself needs an outgoing connection too, or it is a terminal outcome rather than
+      // the mid-pipeline join step this test means to exercise.
+      const workflow = makeWorkflow(
+        [makeStep("fork", { category: "entry" }), makeStep("left"), makeStep("right"), makeStep("join"), makeStep("after")],
+        [
+          { from: "fork", to: "left" },
+          { from: "fork", to: "right" },
+          { from: "left", to: "join" },
+          { from: "right", to: "join" },
+          { from: "join", to: "after" },
+        ],
+      );
+      const result = computeLayout(workflow, BASE_OPTS);
+      const byId = new Map(result.nodes.map((node) => [node.id, node] as const));
+      expect(byId.get("join")!.x).toBeCloseTo(byId.get("fork")!.x, 5);
+      assertNoOverlap(result.nodes);
+    });
+
+    it("keeps each branch's own lane x constant through an unequal-length branch, until it rejoins", () => {
+      // "left" is a single step; "right" is a two-step chain — genuinely different lengths, so
+      // dagre ranks them differently, but each branch must still read as one vertical lane.
+      // "join" itself continues on to "after" so it reads as a real rejoin, not a terminal
+      // outcome (a step with zero outgoing connections is always an outcome, a different and
+      // unrelated placement rule).
+      const workflow = makeWorkflow(
+        [
+          makeStep("fork", { category: "entry" }),
+          makeStep("left"),
+          makeStep("right-1"),
+          makeStep("right-2"),
+          makeStep("join"),
+          makeStep("after"),
+        ],
+        [
+          { from: "fork", to: "left" },
+          { from: "fork", to: "right-1" },
+          { from: "right-1", to: "right-2" },
+          { from: "left", to: "join" },
+          { from: "right-2", to: "join" },
+          { from: "join", to: "after" },
+        ],
+      );
+      const result = computeLayout(workflow, BASE_OPTS);
+      const byId = new Map(result.nodes.map((node) => [node.id, node] as const));
+      // The two-step branch keeps one constant x across both of its own steps.
+      expect(byId.get("right-1")!.x).toBe(byId.get("right-2")!.x);
+      // The shorter branch's x differs from the longer branch's lane.
+      expect(byId.get("left")!.x).not.toBe(byId.get("right-1")!.x);
+      // Symmetric 2-way fan-out rejoins exactly back on the fork's own x.
+      expect(byId.get("join")!.x).toBeCloseTo(byId.get("fork")!.x, 5);
+      assertNoOverlap(result.nodes);
+    });
+
+    it("lays out nested fan-out relative to its own outer lane, not the global spine", () => {
+      // "fork" spreads to "outer-left"/"outer-right"; "outer-right" is itself a fork into
+      // "inner-a"/"inner-b" — a fork nested inside another fork's own lane. Both inner steps
+      // continue to their own downstream step so neither reads as a terminal outcome.
+      const workflow = makeWorkflow(
+        [
+          makeStep("fork", { category: "entry" }),
+          makeStep("outer-left"),
+          makeStep("outer-right"),
+          makeStep("inner-a"),
+          makeStep("inner-b"),
+          makeStep("inner-join"),
+        ],
+        [
+          { from: "fork", to: "outer-left" },
+          { from: "fork", to: "outer-right" },
+          { from: "outer-right", to: "inner-a" },
+          { from: "outer-right", to: "inner-b" },
+          { from: "inner-a", to: "inner-join" },
+          { from: "inner-b", to: "inner-join" },
+        ],
+      );
+      const result = computeLayout(workflow, BASE_OPTS);
+      const byId = new Map(result.nodes.map((node) => [node.id, node] as const));
+      const outerRight = byId.get("outer-right")!;
+      const innerA = byId.get("inner-a")!;
+      const innerB = byId.get("inner-b")!;
+      expect(innerA.x).not.toBe(innerB.x);
+      // The inner fan-out is centred on its own immediate parent ("outer-right"), not on "fork".
+      expect((innerA.x + innerB.x) / 2).toBeCloseTo(outerRight.x, 5);
+      expect(innerA.x).not.toBe(byId.get("fork")!.x);
       assertNoOverlap(result.nodes);
     });
   });

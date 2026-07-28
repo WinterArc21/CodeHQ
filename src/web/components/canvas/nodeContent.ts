@@ -75,6 +75,29 @@ export function computeOutcomeNodeWidth(step: WorkflowStep): number {
   return Math.min(OUTCOME_NODE_MAX_WIDTH, Math.max(OUTCOME_NODE_MIN_WIDTH, estimated));
 }
 
+/** Estimated rendered height of a connection label chip (`WorkflowEdge.module.css`'s `.label`):
+ * `--fs-micro` (11px) at a system sans's typical ~1.4 line-height ≈ 15px, plus 1px padding and
+ * 1px border on both the top and bottom ≈ 4px more. A DOM-free estimate, like every other size in
+ * this file (contract: "Do not measure the DOM") — deliberately rounds up a little so a rank gap
+ * sized from it always has a pixel or two to spare rather than exactly touching the chip. Shared
+ * by `layout.ts` (sizes the rank gap around it) and tests that assert a label chip never overlaps
+ * a node box, so both reason about the same estimate the renderer's own CSS actually produces. */
+export const EDGE_LABEL_CHIP_HEIGHT = 20;
+/** Approximate px-per-character for a label chip's mono text at `--fs-micro` — calibrated from a
+ * real measurement already on record in this codebase (`edgeRouting.ts`'s `LANE_GAP`: the
+ * rendered "unreachable" chip, 11 characters, measured ~78 flow units wide via a real
+ * `getBoundingClientRect()`, not estimated): `(78 - EDGE_LABEL_CHROME_WIDTH) / 11 ≈ 5.45`. */
+const EDGE_LABEL_CHAR_WIDTH = 5.5;
+/** Fixed chrome a label chip reserves regardless of text: `--space-2` (8px) horizontal padding on
+ * each side plus a 1px border on each side. */
+const EDGE_LABEL_CHROME_WIDTH = 18;
+
+/** Estimated rendered width of a connection label chip for a given label string — same
+ * DOM-free-estimate approach as `EDGE_LABEL_CHIP_HEIGHT`. */
+export function estimateLabelChipWidth(text: string): number {
+  return EDGE_LABEL_CHROME_WIDTH + text.length * EDGE_LABEL_CHAR_WIDTH;
+}
+
 export interface StepCounts {
   sources: number;
   edgeCases: number;

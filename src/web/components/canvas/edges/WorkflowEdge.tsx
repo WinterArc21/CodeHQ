@@ -1,6 +1,7 @@
 import type { CSSProperties } from "react";
 import { BaseEdge, EdgeLabelRenderer, getSmoothStepPath, type EdgeProps } from "@xyflow/react";
 import { connectionStyle, RETRY_EDGE_VISUAL, type ConnectionVisual } from "../../../design/semantics";
+import { connectionLabelText, LABEL_X_BLEND_TOWARD_TARGET, LABEL_Y_OFFSET_FROM_SOURCE } from "../edgeLabel";
 import { buildOrthogonalPath, buildRetryLoopPath, SIDECAR_CORNER_RADIUS } from "../edgeRouting";
 import type { WorkflowFlowEdge } from "../types";
 import { edgeMarkerId } from "./EdgeMarkers";
@@ -26,23 +27,6 @@ const STROKE_WIDTH: Record<ConnectionVisual["weight"], number> = {
  * tracing) — multiplicative, so a dimmed branch edge (already 0.85) still reads as visibly
  * fainter than a dimmed primary edge, preserving the same relative hierarchy while both fade. */
 const DIMMED_OPACITY_FACTOR = 0.3;
-
-/** How far below the source node's own edge a label sits — small enough to land inside the gap
- * between ranks (`layout.ts`'s `LAYOUT_RANK_SEP`) rather than drifting onto whatever step is
- * next. A branch connection on the spine layout commonly skips several ranks to reach a shared
- * downstream step (e.g. three different decision steps all failing through to the same terminal
- * step); the path's geometric *midpoint* then lands wherever that shared target happens to be
- * relative to every source, pulling otherwise-unrelated labels toward the same patch of canvas
- * and reading as clutter instead of three distinct annotations (contract mandate: "anchor each
- * label on or immediately beside its own path ... ensure the three never collide"). Anchoring to
- * the source's own y instead keeps every label pinned to the step it actually describes. */
-const LABEL_Y_OFFSET_FROM_SOURCE = 9;
-/** How far horizontally to blend a label from the source's x toward the target's x. Two branch
- * connections that share one source but diverge to different targets (e.g. a scan step's "clean"
- * and "flagged" outcomes) would otherwise both anchor at the same point right below their shared
- * source; blending partway toward each one's own target x pulls them apart along the same axis
- * their paths actually diverge on, so they read as two distinct lines, not a stacked pair. */
-const LABEL_X_BLEND_TOWARD_TARGET = 0.5;
 
 /**
  * A thin, directional connector styled entirely from `connectionStyle` (contract §10): neutral
@@ -97,8 +81,8 @@ export function WorkflowEdge({ id, data, sourceX, sourceY, sourcePosition, targe
     edgeStyle.strokeDasharray = DASH_PATTERNS[visual.dash];
   }
 
-  const labelText = isRetryLoop ? (connection.label ?? connection.condition ?? "retry") : (connection.label ?? connection.condition);
-  const showLabel = labelText !== undefined && labelText.trim().length > 0;
+  const labelText = isRetryLoop ? (connectionLabelText(connection) ?? "retry") : connectionLabelText(connection);
+  const showLabel = labelText !== undefined;
 
   return (
     <>

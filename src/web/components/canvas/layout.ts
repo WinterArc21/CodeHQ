@@ -69,7 +69,8 @@ import * as dagre from "dagre";
 import type { Workflow, WorkflowConnection } from "@schema/workflow";
 import type { Depth } from "../../store/useObservatoryStore";
 import { connectionStyle } from "../../design/semantics";
-import { computeOutDegree } from "./graph";
+import { connectionLabelText, MIN_LABELED_RANK_GAP } from "./edgeLabel";
+import { computeOutDegree, computeTopologicalOrder } from "./graph";
 import { computeNodeHeight, computeOutcomeNodeWidth, effectiveDepthForStep, NODE_WIDTH, OUTCOME_NODE_HEIGHT } from "./nodeContent";
 
 /** Vertical gap between ranks — small relative to `LAYOUT_NODE_SEP` because the node itself is
@@ -235,6 +236,203 @@ function computeSpine(workflow: Workflow, connectedIds: ReadonlySet<string>, out
   return spine;
 }
 
+/**
+ * Overrides the x of every step involved in genuine parallelism — a step with two or more *step*
+ * successors reached by a primary (`success`/default) connection (outcomes don't count: an
+ * outcome is a result, not concurrent work — same exclusion `computeSpine` already applies; a
+ * `failure`/`conditional`/`async` branch doesn't count either: that is "what happens when this
+ * doesn't go to plan", the existing side branch-column's job, not concurrency) is a fan-out
+ * source. Its children spread into horizontal lanes centred under it (`LAYOUT_BRANCH_OFFSET`
+ * apart, the same pitch the side-branch column already used, so a fan-out reads as "the same kind
+ * of departure from the spine" rather than a new visual language) instead of the single-column
+ * spine/branch-column placement the pass above already computed. A downstream step where two or
+ * more of those lanes reconverge — a join — returns to the group's own centreline by averaging
+ * its parents' lane x, which lands exactly back on the fork's own x for a symmetric fan-out (the
+ * common case) and close to it for an asymmetric one.
+ *
+ * A pure single-chain workflow — every step has at most one *primary* non-outcome successor,
+ * which both bundled example workflows and every existing spine-layout test fixture are — never
+ * puts anything into `laneX` at all (the `siblings.length >= 2` branch below is the only way a
+ * step enters the map, and that branch requires an actual fork), so every step's position is left
+ * byte-identical to whatever the spine/branch-column pass already assigned it: this function can
+ * only ever widen a genuinely parallel workflow, never change a linear one.
+ *
+ * Deterministic: walks a topological order (`graph.ts`'s `computeTopologicalOrder`, itself
+ * tie-broken by original `steps[]` position) so a step's predecessors are always resolved before
+ * the step itself, and a fork's own children are processed in `workflow.steps` declaration order.
+ * Recurses "for free" for nested fan-out: a fork whose own x already came from an *outer* fork's
+ * lane simply reads that already-overridden x as its own children's centreline
+ * (`laneX.get(parentId) ?? positioned.get(parentId)?.x`), so a fork nested inside another fork's
+ * lane needs no special-case code — it is exactly the same branch as a top-level fork, just
+ * starting from a non-zero base x.
+ */
+function applyFanOutLanes(
+  workflow: Workflow,
+  connectedIds: ReadonlySet<string>,
+  isOutcomeStep: (stepId: string) => boolean,
+  positioned: Map<string, { x: number; y: number }>,
+): void {
+  const order = new Map(workflow.steps.map((step, index) => [step.id, index] as const));
+  const primaryNonOutcomeSuccessors = (stepId: string): string[] => {
+    const seen = new Set<string>();
+    for (const connection of workflow.connections) {
+      if (
+        connection.from === stepId &&
+        isPrimaryConnection(connection) &&
+        connectedIds.has(connection.to) &&
+        !isOutcomeStep(connection.to)
+      ) {
+        seen.add(connection.to);
+      }
+    }
+    return Array.from(seen).sort((a, b) => (order.get(a) ?? 0) - (order.get(b) ?? 0));
+  };
+  const primaryNonOutcomePredecessors = (stepId: string): string[] => {
+    const seen = new Set<string>();
+    for (const connection of workflow.connections) {
+      if (
+        connection.to === stepId &&
+        isPrimaryConnection(connection) &&
+        connectedIds.has(connection.from) &&
+        !isOutcomeStep(connection.from)
+      ) {
+        seen.add(connection.from);
+      }
+    }
+    return Array.from(seen).sort((a, b) => (order.get(a) ?? 0) - (order.get(b) ?? 0));
+  };
+
+  const laneX = new Map<string, number>();
+  const topoOrder = computeTopologicalOrder(workflow).filter((id) => connectedIds.has(id) && !isOutcomeStep(id));
+
+  for (const id of topoOrder) {
+    const preds = primaryNonOutcomePredecessors(id);
+    if (preds.length === 1) {
+      const parentId = preds[0]!;
+      const siblings = primaryNonOutcomeSuccessors(parentId);
+      if (siblings.length >= 2) {
+        // `id` is one lane among its fork parent's children — offsets are symmetric around 0
+        // (e.g. a 2-way fork is [-0.5, +0.5], a 3-way fork is [-1, 0, +1]) so the group's own
+        // centroid always lands exactly on the parent's x, "centred beneath their common source".
+        const index = siblings.indexOf(id);
+        const offset = index - (siblings.length - 1) / 2;
+        const parentX = laneX.get(parentId) ?? positioned.get(parentId)?.x;
+        if (parentX !== undefined) {
+          laneX.set(id, parentX + offset * LAYOUT_BRANCH_OFFSET);
+        }
+      } else if (laneX.has(parentId)) {
+        // A single-successor continuation of an already-laned step: same lane, further down.
+        laneX.set(id, laneX.get(parentId)!);
+      }
+    } else if (preds.length >= 2) {
+      const touchedXs = preds
+        .filter((predecessorId) => laneX.has(predecessorId))
+        .map((predecessorId) => laneX.get(predecessorId)!);
+      if (touchedXs.length > 0) {
+        // A join: at least one incoming lane reconverges here. Average every predecessor's x
+        // (falling back to its already-computed spine/branch-column x for any predecessor this
+        // pass never touched) rather than tracking which fork "owns" this join explicitly — for
+        // a fan-out's own children the average always resolves to the fork's own x; for a partial
+        // rejoin (only some branches merge here) it still lands sensibly between them.
+        const allXs = preds.map((predecessorId) => laneX.get(predecessorId) ?? positioned.get(predecessorId)?.x ?? 0);
+        laneX.set(id, allXs.reduce((sum, x) => sum + x, 0) / allXs.length);
+      }
+    }
+  }
+
+  for (const [id, x] of laneX) {
+    const point = positioned.get(id);
+    if (point !== undefined) {
+      positioned.set(id, { x, y: point.y });
+    }
+  }
+}
+
+interface RankBand {
+  /** dagre's own centre-y for every node in this band (all equal in a simple TB layout, since
+   * dagre positions an entire rank tier at once). */
+  y: number;
+  /** Tallest node height in this band — the same "a rank's height is its tallest member" fact
+   * `edgeRouting.ts`'s `clearDepartureY` doc comment already relies on. */
+  height: number;
+  ids: string[];
+}
+
+/**
+ * Widens only the rank gaps that actually need it: when a labelled primary connection spans two
+ * adjacent dagre ranks, the default `LAYOUT_RANK_SEP` (18px) can be narrower than the label chip
+ * itself needs to sit in without touching the next rank's node — the "clean" label on
+ * `scan-for-malware -> persist-asset` sitting on `persist-asset`'s own top border. Mutates the
+ * dagre graph's own node `y` values in place (the same mutable label objects every later read of
+ * `graph.node(id)` in `computeLayout` sees), so it must run right after `dagre.layout(graph)` and
+ * before anything else reads node positions.
+ *
+ * Groups nodes into rank "bands" by their (rounded) dagre y — the same `Math.round(node.y)`
+ * grouping key the branch-column placement below already uses for the same reason: dagre's rank
+ * tiers, not floating-point noise. For each adjacent band pair with a labelled primary edge
+ * crossing it, computes the deficit between the actual gap and `MIN_LABELED_RANK_GAP`, then
+ * shifts every band at or after the widened gap down by that deficit — cascading, so two
+ * consecutive crowded gaps each get exactly the room they individually need rather than one
+ * gap "borrowing" space meant for another.
+ */
+function expandLabeledRankGaps(
+  workflow: Workflow,
+  graph: dagre.graphlib.Graph,
+  connectedIds: ReadonlySet<string>,
+  sizeById: ReadonlyMap<string, { width: number; height: number }>,
+): void {
+  const bandIndexById = new Map<string, number>();
+  const bandByKey = new Map<number, RankBand>();
+  const bands: RankBand[] = [];
+  for (const id of connectedIds) {
+    const node = graph.node(id);
+    const height = sizeById.get(id)?.height ?? 0;
+    const key = Math.round(node.y);
+    let band = bandByKey.get(key);
+    if (band === undefined) {
+      band = { y: node.y, height, ids: [] };
+      bandByKey.set(key, band);
+      bands.push(band);
+    } else {
+      band.height = Math.max(band.height, height);
+    }
+    band.ids.push(id);
+  }
+  bands.sort((a, b) => a.y - b.y);
+  bands.forEach((band, index) => band.ids.forEach((id) => bandIndexById.set(id, index)));
+
+  const deficitAfterBand = new Array<number>(bands.length).fill(0);
+  for (const connection of workflow.connections) {
+    if (!isPrimaryConnection(connection) || connectionLabelText(connection) === undefined) {
+      continue;
+    }
+    if (!connectedIds.has(connection.from) || !connectedIds.has(connection.to)) {
+      continue;
+    }
+    const sourceBand = bandIndexById.get(connection.from);
+    const targetBand = bandIndexById.get(connection.to);
+    if (sourceBand === undefined || targetBand === undefined || targetBand !== sourceBand + 1) {
+      continue;
+    }
+    const source = bands[sourceBand]!;
+    const target = bands[targetBand]!;
+    const actualGap = target.y - target.height / 2 - (source.y + source.height / 2);
+    const deficit = Math.max(0, MIN_LABELED_RANK_GAP - actualGap);
+    deficitAfterBand[sourceBand] = Math.max(deficitAfterBand[sourceBand]!, deficit);
+  }
+
+  let cumulativeShift = 0;
+  for (const band of bands) {
+    if (cumulativeShift > 0) {
+      for (const id of band.ids) {
+        graph.node(id).y += cumulativeShift;
+      }
+    }
+    const bandIndex = bandIndexById.get(band.ids[0]!)!;
+    cumulativeShift += deficitAfterBand[bandIndex]!;
+  }
+}
+
 export function computeLayout(workflow: Workflow, opts: ComputeLayoutOptions): LayoutResult {
   const outDegree = computeOutDegree(workflow);
   const { connectedIds, isolatedIds } = partitionSteps(workflow);
@@ -279,6 +477,7 @@ export function computeLayout(workflow: Workflow, opts: ComputeLayoutOptions): L
     }
 
     dagre.layout(graph);
+    expandLabeledRankGaps(workflow, graph, connectedIds, sizeById);
 
     const spine = computeSpine(workflow, connectedIds, outDegree);
     const spineX = LAYOUT_MARGIN_X;
@@ -367,6 +566,8 @@ export function computeLayout(workflow: Workflow, opts: ComputeLayoutOptions): L
       positioned.set(anchor.id, { x: outcomeColumnX, y });
       outcomeCursorY = y + anchor.height + LAYOUT_RANK_SEP;
     }
+
+    applyFanOutLanes(workflow, connectedIds, isOutcomeStep, positioned);
   }
 
   const connectedMaxY = Math.max(
