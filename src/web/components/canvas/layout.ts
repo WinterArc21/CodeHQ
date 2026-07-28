@@ -65,7 +65,7 @@
  * dagre-rank placement instead — which is exactly the shape `edgeRouting.ts`'s gutter-lane sidecar
  * routing was built for.
  */
-import * as dagre from "dagre";
+import * as dagre from "@dagrejs/dagre";
 import type { Workflow, WorkflowConnection } from "@schema/workflow";
 import type { Depth } from "../../store/useObservatoryStore";
 import { connectionStyle } from "../../design/semantics";

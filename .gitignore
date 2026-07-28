@@ -5,5 +5,6 @@ coverage
 playwright-report
 test-results
 *.local
+.vercel
 **/.observatory/.runtime/
 prototypes/edge-grammar/shots/
