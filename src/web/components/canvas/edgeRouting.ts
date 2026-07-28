@@ -248,6 +248,41 @@ export function buildOrthogonalPath(rawPoints: Point[], radius: number): string 
   return d;
 }
 
+/** How far right of the node's own edge the retry loop bulges out. */
+const RETRY_LOOP_OUTSET = 46;
+/** How far below the node's top edge the loop re-enters — kept well clear of the header row
+ * (`StepNode.module.css`'s 24px `.header`) so the arrowhead doesn't land on top of the title. */
+const RETRY_LOOP_TOP_INSET = 20;
+/** Vertical fraction of the node's own height the loop departs from — comfortably below the
+ * header, clear of the top-inset re-entry point above it. */
+const RETRY_LOOP_EXIT_FRACTION = 0.55;
+
+export interface RetryLoopRoute {
+  /** SVG path `d` for a compact loop that departs and re-enters the *same* side of the node
+   * (contract mandate: "loop edges always enter and exit on ONE designated side of the node;
+   * terminal/branch exits use a DIFFERENT side" — every other edge in this renderer departs a
+   * node's bottom and arrives its top, so the retry loop deliberately uses the right side
+   * instead, the one side nothing else ever touches). */
+  d: string;
+  labelPoint: Point;
+}
+
+/**
+ * Builds the local retry-loop geometry for a step that retries itself (or, more generally, any
+ * detected back edge — `canvas/graph.ts`'s `computeBackEdgeIds`): a small bulge that leaves the
+ * node's right edge partway down, arcs outward, and re-enters the same right edge near the top —
+ * never a long line back across the canvas. Pure geometry over the node's own already-computed
+ * `Rect`, so it needs nothing from the DOM and stays unit-testable like every other function here.
+ */
+export function buildRetryLoopPath(rect: Rect): RetryLoopRoute {
+  const rightX = rect.x + rect.width;
+  const exitY = rect.y + rect.height * RETRY_LOOP_EXIT_FRACTION;
+  const enterY = rect.y + RETRY_LOOP_TOP_INSET;
+  const bulgeX = rightX + RETRY_LOOP_OUTSET;
+  const d = `M${rightX},${exitY} C${bulgeX},${exitY} ${bulgeX},${enterY} ${rightX},${enterY}`;
+  return { d, labelPoint: { x: bulgeX - 2, y: (exitY + enterY) / 2 } };
+}
+
 function movePointTowards(from: Point, to: Point, distance: number): Point {
   const total = Math.hypot(to.x - from.x, to.y - from.y);
   if (total === 0) {

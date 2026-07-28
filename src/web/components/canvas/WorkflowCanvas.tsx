@@ -1,5 +1,5 @@
 import "@xyflow/react/dist/style.css";
-import { useMemo } from "react";
+import { useCallback, useMemo, useState } from "react";
 import { MiniMap, ReactFlow, ReactFlowProvider, useReactFlow, type NodeMouseHandler } from "@xyflow/react";
 import type { Workflow } from "@schema/workflow";
 import type { SourceStatus } from "../../api/types";
@@ -11,9 +11,11 @@ import { CanvasOverflowIndicator } from "./CanvasOverflowIndicator";
 import { computeEdgeRoutes } from "./edgeRouting";
 import { EdgeMarkers } from "./edges/EdgeMarkers";
 import { WorkflowEdge } from "./edges/WorkflowEdge";
+import { computeBackEdgeIds, computeTracePath } from "./graph";
 import { computeLayout } from "./layout";
+import { OutcomeNode } from "./nodes/OutcomeNode";
 import { StepNode } from "./nodes/StepNode";
-import type { StepFlowNode, WorkflowFlowEdge } from "./types";
+import type { CanvasFlowNode, WorkflowFlowEdge } from "./types";
 import { useCanvasFit } from "./useCanvasFit";
 import { useCanvasKeyboardNav } from "./useCanvasKeyboardNav";
 import styles from "./WorkflowCanvas.module.css";
@@ -21,7 +23,7 @@ import styles from "./WorkflowCanvas.module.css";
 /** A minimap only earns its screen space once a graph is big enough to get lost in. */
 const MINIMAP_NODE_THRESHOLD = 10;
 
-const NODE_TYPES = { step: StepNode };
+const NODE_TYPES = { step: StepNode, outcome: OutcomeNode };
 const EDGE_TYPES = { workflow: WorkflowEdge };
 
 export interface WorkflowCanvasProps {
@@ -39,7 +41,7 @@ export function WorkflowCanvas(props: WorkflowCanvasProps) {
 }
 
 function WorkflowCanvasInner({ workflow, sourceChecks }: WorkflowCanvasProps) {
-  const reactFlowInstance = useReactFlow<StepFlowNode, WorkflowFlowEdge>();
+  const reactFlowInstance = useReactFlow<CanvasFlowNode, WorkflowFlowEdge>();
   const reducedMotion = usePrefersReducedMotion();
 
   const theme = useObservatoryStore((state) => state.theme);
@@ -56,6 +58,22 @@ function WorkflowCanvasInner({ workflow, sourceChecks }: WorkflowCanvasProps) {
   // (edgeRouting.ts) — computed once here so both edge rendering and viewport fitting agree on
   // exactly the same routed geometry.
   const edgeRoutes = useMemo(() => computeEdgeRoutes(layout.nodes, layout.edges), [layout]);
+  const backEdgeIds = useMemo(() => computeBackEdgeIds(workflow), [workflow]);
+
+  // Path tracing (contract §11): hover wins over keyboard focus, which wins over the persisted
+  // selection, matching how each one takes over the user's attention — a hover is the most
+  // momentary/explicit signal, selection the most passive/lingering one.
+  const [hoveredStepId, setHoveredStepId] = useState<string | null>(null);
+  const [focusedStepId, setFocusedStepId] = useState<string | null>(null);
+  const traceAnchorId = hoveredStepId ?? focusedStepId ?? selectedStepId;
+  const tracePath = useMemo(
+    () => (traceAnchorId !== null ? computeTracePath(workflow, traceAnchorId) : null),
+    [workflow, traceAnchorId],
+  );
+  const onHoverStart = useCallback((stepId: string) => setHoveredStepId(stepId), []);
+  const onHoverEnd = useCallback(() => setHoveredStepId(null), []);
+  const onFocusStep = useCallback((stepId: string) => setFocusedStepId(stepId), []);
+  const onBlurStep = useCallback(() => setFocusedStepId(null), []);
 
   const { containerRef, overflowsBottom, fitToViewport } = useCanvasFit({
     layoutNodes: layout.nodes,
@@ -86,15 +104,38 @@ function WorkflowCanvasInner({ workflow, sourceChecks }: WorkflowCanvasProps) {
         expandedStepIds,
         sourceChecks,
         selectedStepId,
+        traceStepIds: tracePath?.stepIds ?? null,
         getTabIndex,
         onToggleExpand: toggleStepExpanded,
         onNodeKeyDown: handleNodeKeyDown,
+        onHoverStart,
+        onHoverEnd,
+        onFocusStep,
+        onBlurStep,
       }),
-    [workflow, layout, depth, expandedStepIds, sourceChecks, selectedStepId, getTabIndex, toggleStepExpanded, handleNodeKeyDown],
+    [
+      workflow,
+      layout,
+      depth,
+      expandedStepIds,
+      sourceChecks,
+      selectedStepId,
+      tracePath,
+      getTabIndex,
+      toggleStepExpanded,
+      handleNodeKeyDown,
+      onHoverStart,
+      onHoverEnd,
+      onFocusStep,
+      onBlurStep,
+    ],
   );
-  const edges = useMemo(() => buildFlowEdges(layout, edgeRoutes), [layout, edgeRoutes]);
+  const edges = useMemo(
+    () => buildFlowEdges(layout, edgeRoutes, backEdgeIds, tracePath?.edgeIds ?? null),
+    [layout, edgeRoutes, backEdgeIds, tracePath],
+  );
 
-  const handleNodeClick: NodeMouseHandler<StepFlowNode> = (_event, node) => {
+  const handleNodeClick: NodeMouseHandler<CanvasFlowNode> = (_event, node) => {
     selectStep(node.id);
     setRovingId(node.id);
   };

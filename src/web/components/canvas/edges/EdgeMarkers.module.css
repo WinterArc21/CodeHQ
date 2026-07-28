@@ -13,6 +13,7 @@
   fill: var(--accent-red);
 }
 
-.markerConditional {
+.markerConditional,
+.markerRetry {
   fill: var(--accent-amber);
 }

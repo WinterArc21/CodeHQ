@@ -172,9 +172,13 @@ describe("computeLayout", () => {
   });
 
   describe("the spine", () => {
-    it("pins every step on a linear primary chain to one constant x, even when early failure/conditional connections skip ranks ahead to a shared terminal step", () => {
+    it("pins every step on a linear primary chain to one constant x, even when early failure/conditional connections skip ranks ahead to a shared step", () => {
       // Mirrors the shape that produced the "staircase": three decision steps each also fail
-      // straight through to the terminal step, which used to push every later rank rightward.
+      // straight through to the same downstream step, which used to push every later rank
+      // rightward. "save" itself continues on to "done" (an actual outcome pill) so it stays a
+      // real pipeline step, not a terminal one — the spine-exclusion rule for terminal/outcome
+      // steps is covered by its own dedicated test below instead of being conflated with this
+      // one's anti-staircase assertion.
       const workflow = makeWorkflow(
         [
           makeStep("entry", { category: "entry" }),
@@ -184,6 +188,7 @@ describe("computeLayout", () => {
           makeStep("understand"),
           makeStep("story"),
           makeStep("save"),
+          makeStep("done"),
         ],
         [
           { from: "entry", to: "validate" },
@@ -195,11 +200,17 @@ describe("computeLayout", () => {
           { from: "scrape", to: "save", type: "conditional", label: "scrape failed" },
           { from: "understand", to: "story" },
           { from: "story", to: "save" },
+          { from: "save", to: "done", type: "success" },
         ],
       );
       const result = computeLayout(workflow, BASE_OPTS);
-      const xs = new Set(result.nodes.map((node) => node.x));
+      const spineIds = ["entry", "validate", "quota", "scrape", "understand", "story", "save"];
+      const byId = new Map(result.nodes.map((node) => [node.id, node] as const));
+      const xs = new Set(spineIds.map((id) => byId.get(id)!.x));
       expect(xs.size).toBe(1);
+      // "done" is the actual terminal step here, so it is the one that renders as an outcome
+      // pill off the spine.
+      expect(byId.get("done")!.x).not.toBe(byId.get("entry")!.x);
       assertNoOverlap(result.nodes);
     });
 
@@ -249,12 +260,23 @@ describe("computeLayout", () => {
     });
 
     it("prefers the longest remaining primary chain at a fork with multiple primary successors", () => {
+      // "longB" is a terminal step (nothing points out of it), so per the outcome-node rule
+      // below it renders as an outcome pill and is deliberately excluded from the spine even
+      // though it is reached by a primary connection — the walk still has to get there via
+      // "longA", though, which is what this test actually verifies.
       const workflow = makeWorkflow(
-        [makeStep("start", { category: "entry" }), makeStep("short"), makeStep("longA"), makeStep("longB")],
+        [
+          makeStep("start", { category: "entry" }),
+          makeStep("short"),
+          makeStep("longA"),
+          makeStep("longB"),
+          makeStep("longC"),
+        ],
         [
           { from: "start", to: "short" },
           { from: "start", to: "longA" },
           { from: "longA", to: "longB" },
+          { from: "longB", to: "longC" },
         ],
       );
       const result = computeLayout(workflow, BASE_OPTS);
@@ -263,6 +285,25 @@ describe("computeLayout", () => {
       expect(byId.get("longA")!.x).toBe(spineX);
       expect(byId.get("longB")!.x).toBe(spineX);
       expect(byId.get("short")!.x).not.toBe(spineX);
+      // "longC" is the actual terminal step in this version of the graph, and an outcome pill
+      // never joins the spine (see "excludes a terminal step from the spine" below).
+      expect(byId.get("longC")!.x).not.toBe(spineX);
+      assertNoOverlap(result.nodes);
+    });
+
+    it("excludes a terminal step from the spine even when it is reached only by a primary connection", () => {
+      const workflow = makeWorkflow(
+        [makeStep("start", { category: "entry" }), makeStep("middle"), makeStep("end")],
+        [
+          { from: "start", to: "middle" },
+          { from: "middle", to: "end", type: "success" },
+        ],
+      );
+      const result = computeLayout(workflow, BASE_OPTS);
+      const byId = new Map(result.nodes.map((node) => [node.id, node] as const));
+      const spineX = byId.get("start")!.x;
+      expect(byId.get("middle")!.x).toBe(spineX);
+      expect(byId.get("end")!.x).not.toBe(spineX);
       assertNoOverlap(result.nodes);
     });
   });

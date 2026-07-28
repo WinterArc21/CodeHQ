@@ -1,0 +1,104 @@
+.handle {
+  opacity: 0;
+  pointer-events: none;
+}
+
+/* Pill shape, not a card: `border-radius: 999px` plus a two-tone border always reads as "this is
+ * a result", not "this is a step to open" (contract: "clearly not units of work"). Sized
+ * end-to-end by `layout.ts` (see `computeOutcomeNodeWidth`), so this only ever needs to fill the
+ * box React Flow gives it — never its own intrinsic sizing, matching every other node here. */
+.card {
+  box-sizing: border-box;
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  padding: 0 var(--space-4);
+  border-radius: 999px;
+  border-width: 2px;
+  border-style: solid;
+  cursor: pointer;
+  outline-offset: 2px;
+  transition:
+    opacity var(--dur-fast) var(--ease-standard),
+    border-color var(--dur-fast) var(--ease-standard);
+}
+
+.card:focus-visible {
+  outline: 2px solid var(--focus-ring);
+}
+
+.dimmed {
+  opacity: 0.35;
+}
+
+.success {
+  border-color: var(--accent-output);
+  background-color: color-mix(in srgb, var(--accent-output) 14%, var(--bg-surface));
+}
+
+.failure {
+  border-color: var(--accent-red);
+  background-color: color-mix(in srgb, var(--accent-red) 14%, var(--bg-surface));
+}
+
+.neutral {
+  border-color: var(--border-strong);
+  background-color: var(--bg-surface);
+}
+
+.glyph {
+  flex-shrink: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.success .glyph {
+  color: var(--accent-output);
+}
+
+.failure .glyph {
+  color: var(--accent-red);
+}
+
+.neutral .glyph {
+  color: var(--text-secondary);
+}
+
+.text {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 1px;
+}
+
+.name {
+  font-size: var(--fs-sm);
+  font-weight: 600;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.success .name {
+  color: var(--accent-output);
+}
+
+.failure .name {
+  color: var(--accent-red);
+}
+
+.neutral .name {
+  color: var(--text-primary);
+}
+
+.purpose {
+  font-size: var(--fs-micro);
+  color: var(--text-secondary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}

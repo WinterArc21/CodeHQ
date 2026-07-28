@@ -109,7 +109,7 @@
     {
       "id": "save-result",
       "name": "Save Result",
-      "purpose": "Persists the generation and returns it to the caller, or returns an error response for any failed step above.",
+      "purpose": "Persists the generation and returns it to the caller.",
       "category": "output",
       "confidence": "verified",
       "sources": [
@@ -117,9 +117,42 @@
         { "file": "app/api/generate/route.ts", "symbol": "POST" }
       ],
       "inputs": [{ "name": "StoryPlan" }],
+      "outputs": [{ "name": "Generation" }],
       "tests": [
         { "file": "tests/integration/api/generate.test.ts", "symbol": "returns the generated story plan", "status": "passing" }
       ]
+    },
+    {
+      "id": "outcome-invalid-request",
+      "name": "400 Bad Request",
+      "purpose": "Malformed URL, unreachable URL, or too many reference images.",
+      "category": "output",
+      "confidence": "verified",
+      "sources": [{ "file": "lib/validation.ts", "symbol": "validateGenerateRequest" }]
+    },
+    {
+      "id": "outcome-quota-exceeded",
+      "name": "429 Too Many",
+      "purpose": "Monthly generation quota already reached.",
+      "category": "output",
+      "confidence": "verified",
+      "sources": [{ "file": "lib/validation.ts", "symbol": "hasRemainingQuota" }]
+    },
+    {
+      "id": "outcome-scrape-failed",
+      "name": "502 Upstream",
+      "purpose": "The submitted website could not be fetched.",
+      "category": "output",
+      "confidence": "verified",
+      "sources": [{ "file": "lib/scraper.ts", "symbol": "scrapeWebsite" }]
+    },
+    {
+      "id": "outcome-generation-created",
+      "name": "201 Created",
+      "purpose": "Generation saved and returned to the caller.",
+      "category": "output",
+      "confidence": "verified",
+      "sources": [{ "file": "app/api/generate/route.ts", "symbol": "POST" }]
     }
   ],
   "connections": [
@@ -127,29 +160,30 @@
     { "from": "validate-request", "to": "check-quota", "type": "success" },
     {
       "from": "validate-request",
-      "to": "save-result",
+      "to": "outcome-invalid-request",
       "type": "failure",
-      "label": "rejected",
+      "label": "invalid",
       "condition": "URL or reference image validation fails."
     },
     { "from": "check-quota", "to": "scrape-website", "type": "success" },
     {
       "from": "check-quota",
-      "to": "save-result",
+      "to": "outcome-quota-exceeded",
       "type": "failure",
-      "label": "quota exceeded",
+      "label": "over limit",
       "condition": "The account has reached its monthly generation quota."
     },
     { "from": "scrape-website", "to": "understand-product", "type": "success" },
     {
       "from": "scrape-website",
-      "to": "save-result",
-      "type": "conditional",
-      "label": "scrape failed",
+      "to": "outcome-scrape-failed",
+      "type": "failure",
+      "label": "unreachable",
       "condition": "The website could not be fetched."
     },
     { "from": "understand-product", "to": "generate-story" },
-    { "from": "generate-story", "to": "save-result" }
+    { "from": "generate-story", "to": "save-result" },
+    { "from": "save-result", "to": "outcome-generation-created", "type": "success" }
   ],
   "notes": [
     "Reference implementation shipped as Code Observatory's example project; see examples/motiona."

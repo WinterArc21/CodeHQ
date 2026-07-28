@@ -35,12 +35,21 @@
  * (a step only reachable via a `failure`/`conditional`/`async` connection) is a genuine branch:
  * it renders in a fixed column to the spine's right, stacked further right only if another branch
  * step already claims that column at the same rank.
+ *
+ * One more exclusion: a terminal ("outcome") step is never added to the spine even when its only
+ * incoming connection is primary-weight — e.g. `Save Result --success--> 201 Created`. An outcome
+ * is a *result*, not the next unit of work, so it belongs in the outcome column beside the other
+ * results (contract's own worked example puts a plain 200/201 success pill in the same right-hand
+ * column as the failure pills, not back on the spine). `computeSpine` simply refuses to walk onto
+ * any step with zero outgoing connections; it naturally falls through to the existing branch-
+ * column placement below instead.
  */
 import * as dagre from "dagre";
 import type { Workflow, WorkflowConnection } from "@schema/workflow";
 import type { Depth } from "../../store/useObservatoryStore";
 import { connectionStyle } from "../../design/semantics";
-import { computeNodeHeight, effectiveDepthForStep, NODE_WIDTH } from "./nodeContent";
+import { computeOutDegree } from "./graph";
+import { computeNodeHeight, computeOutcomeNodeWidth, effectiveDepthForStep, NODE_WIDTH, OUTCOME_NODE_HEIGHT } from "./nodeContent";
 
 /** Vertical gap between ranks — small relative to `LAYOUT_NODE_SEP` because the node itself is
  * now wide and short: most of the workflow's readable footprint should come from row height, not
@@ -63,6 +72,10 @@ export interface LayoutNode {
   height: number;
   /** The step's position in `workflow.steps`, for stable rendering (e.g. the index badge). */
   index: number;
+  /** Out-degree 0 in `workflow.connections` (contract: terminal steps render as outcome pills,
+   * not work-step cards). Carried on the layout node itself so `buildFlowElements.ts` has a
+   * single source of truth for "which node type" instead of re-deriving it. */
+  isOutcome: boolean;
 }
 
 export interface LayoutEdge {
@@ -126,7 +139,7 @@ function isPrimaryConnection(connection: WorkflowConnection): boolean {
  * one out, per step — this puts every connected step on the spine; a step is only left off it
  * when its *only* inbound connection is a `failure`/`conditional`/`async` branch.
  */
-function computeSpine(workflow: Workflow, connectedIds: ReadonlySet<string>): Set<string> {
+function computeSpine(workflow: Workflow, connectedIds: ReadonlySet<string>, outDegree: ReadonlyMap<string, number>): Set<string> {
   const order = new Map(workflow.steps.map((step, index) => [step.id, index] as const));
   const primarySuccessors = new Map<string, string[]>();
   const primaryInDegree = new Map<string, number>();
@@ -181,7 +194,9 @@ function computeSpine(workflow: Workflow, connectedIds: ReadonlySet<string>): Se
   let current = root;
   while (current !== undefined && !spine.has(current)) {
     spine.add(current);
-    const candidates = (primarySuccessors.get(current) ?? []).filter((id) => !spine.has(id));
+    const candidates = (primarySuccessors.get(current) ?? []).filter(
+      (id) => !spine.has(id) && (outDegree.get(id) ?? 0) > 0,
+    );
     candidates.sort((a, b) => {
       const byChainLength = longestChain(b) - longestChain(a);
       return byChainLength !== 0 ? byChainLength : (order.get(a) ?? 0) - (order.get(b) ?? 0);
@@ -192,14 +207,25 @@ function computeSpine(workflow: Workflow, connectedIds: ReadonlySet<string>): Se
 }
 
 export function computeLayout(workflow: Workflow, opts: ComputeLayoutOptions): LayoutResult {
-  const sizeById = new Map(
+  const outDegree = computeOutDegree(workflow);
+  const { connectedIds, isolatedIds } = partitionSteps(workflow);
+  // A step only reads as a terminal "outcome" when something actually connects into it —
+  // otherwise "isolatedIds" (a step with *no* connections at all, e.g. a lone step in a
+  // single-step workflow, or one an agent hasn't wired up yet) would count as terminal too and
+  // lose its normal work-step sizing/depth growth for no real reason: an outcome is specifically
+  // "where a path lands", which requires there to be a path.
+  const isOutcomeStep = (stepId: string): boolean => connectedIds.has(stepId) && (outDegree.get(stepId) ?? 0) === 0;
+
+  const sizeById = new Map<string, { width: number; height: number }>(
     workflow.steps.map((step) => {
+      if (isOutcomeStep(step.id)) {
+        return [step.id, { width: computeOutcomeNodeWidth(step), height: OUTCOME_NODE_HEIGHT }];
+      }
       const effectiveDepth = effectiveDepthForStep(step, opts.depth, opts.expandedStepIds);
-      return [step.id, { width: NODE_WIDTH, height: computeNodeHeight(step, effectiveDepth) }] as const;
+      return [step.id, { width: NODE_WIDTH, height: computeNodeHeight(step, effectiveDepth) }];
     }),
   );
 
-  const { connectedIds, isolatedIds } = partitionSteps(workflow);
   const positioned = new Map<string, { x: number; y: number }>();
 
   if (connectedIds.size > 0) {
@@ -225,7 +251,7 @@ export function computeLayout(workflow: Workflow, opts: ComputeLayoutOptions): L
 
     dagre.layout(graph);
 
-    const spine = computeSpine(workflow, connectedIds);
+    const spine = computeSpine(workflow, connectedIds, outDegree);
     const spineX = LAYOUT_MARGIN_X;
     const branchColumnX = LAYOUT_MARGIN_X + LAYOUT_BRANCH_OFFSET;
 
@@ -280,6 +306,7 @@ export function computeLayout(workflow: Workflow, opts: ComputeLayoutOptions): L
       width: size?.width ?? NODE_WIDTH,
       height: size?.height ?? 0,
       index,
+      isOutcome: isOutcomeStep(step.id),
     };
   });
 

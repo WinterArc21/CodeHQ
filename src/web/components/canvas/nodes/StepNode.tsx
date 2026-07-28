@@ -15,7 +15,22 @@ import styles from "./StepNode.module.css";
  * — never measured, its box is exactly the size `layout.ts` computed for it.
  */
 export function StepNode({ data }: NodeProps<StepFlowNode>) {
-  const { step, index, effectiveDepth, expanded, selected, hasMissingSource, tabIndex, onToggleExpand, onKeyDown } = data;
+  const {
+    step,
+    index,
+    effectiveDepth,
+    expanded,
+    selected,
+    hasMissingSource,
+    dimmed,
+    tabIndex,
+    onToggleExpand,
+    onKeyDown,
+    onHoverStart,
+    onHoverEnd,
+    onFocusStep,
+    onBlurStep,
+  } = data;
   const category = categoryToken(step.category);
   const confidence = confidenceStyle(step.confidence);
   const counts = stepCounts(step);
@@ -25,7 +40,9 @@ export function StepNode({ data }: NodeProps<StepFlowNode>) {
   const outSummary = formatDataReferenceNames(io.outputs);
   const hasFacts = countsSummary.length > 0 || inSummary.length > 0 || outSummary.length > 0;
 
-  const cardClassName = selected ? `${styles.card} ${styles.selected}` : styles.card;
+  const cardClassName = [styles.card, selected ? styles.selected : "", dimmed ? styles.dimmed : ""]
+    .filter(Boolean)
+    .join(" ");
   const markerClassName = confidence.marker === "dashed" ? `${styles.marker} ${styles.markerDashed}` : styles.marker;
   const purposeClassName =
     purposeLineCount(step.purpose) === 2 ? `${styles.purpose} ${styles.purposeTwoLine}` : styles.purpose;
@@ -42,6 +59,10 @@ export function StepNode({ data }: NodeProps<StepFlowNode>) {
       aria-label={accessibleName}
       aria-current={selected ? "true" : undefined}
       onKeyDown={onKeyDown}
+      onMouseEnter={onHoverStart}
+      onMouseLeave={onHoverEnd}
+      onFocus={onFocusStep}
+      onBlur={onBlurStep}
     >
       {/* Invisible anchors React Flow needs to compute where an edge attaches (contract: no
           interaction that requires precision dragging — connecting isn't offered, so these are

@@ -3,6 +3,8 @@ import {
   categoryToken,
   confidenceStyle,
   connectionStyle,
+  outcomeTone,
+  RETRY_EDGE_VISUAL,
   sourceStatusTone,
   statusTone,
 } from "@web/design/semantics";
@@ -49,11 +51,11 @@ describe("confidenceStyle", () => {
 });
 
 describe("connectionStyle", () => {
-  it("renders failure as muted red and dashed, without a forced label", () => {
+  it("renders failure as muted red and dashed, with its short label shown", () => {
     const result = connectionStyle("failure");
     expect(result.varName).toBe("--accent-red");
     expect(result.dash).toBe("dashed");
-    expect(result.showLabel).toBe(false);
+    expect(result.showLabel).toBe(true);
   });
 
   it("renders conditional as amber, dashed, with the label shown", () => {
@@ -63,18 +65,59 @@ describe("connectionStyle", () => {
     expect(result.showLabel).toBe(true);
   });
 
-  it("renders async as neutral and dotted", () => {
+  it("renders async as blue and dotted, with its short label shown", () => {
     const result = connectionStyle("async");
-    expect(result.varName).toBe("--accent-neutral");
+    expect(result.varName).toBe("--accent-blue");
     expect(result.dash).toBe("dotted");
+    expect(result.showLabel).toBe(true);
   });
 
-  it("renders success (and the default) as neutral and solid", () => {
+  it("renders success (and the default) as neutral and solid, without a label", () => {
     const success = connectionStyle("success");
     const fallback = connectionStyle(undefined);
     expect(success.varName).toBe("--accent-neutral");
     expect(success.dash).toBe("none");
+    expect(success.showLabel).toBe(false);
     expect(fallback).toEqual(success);
+  });
+
+  it("every branch connection type distinguishes itself by stroke pattern, not colour alone", () => {
+    expect(connectionStyle("failure").dash).not.toBe("none");
+    expect(connectionStyle("conditional").dash).not.toBe("none");
+    expect(connectionStyle("async").dash).not.toBe("none");
+    // Failure and conditional would be indistinguishable to someone who can't perceive their
+    // colour difference if they shared a dash pattern too — they don't.
+    expect(connectionStyle("failure").dash).toBe(connectionStyle("conditional").dash);
+    expect(connectionStyle("failure").varName).not.toBe(connectionStyle("conditional").varName);
+  });
+});
+
+describe("RETRY_EDGE_VISUAL", () => {
+  it("is amber and dashed, distinct from a plain failure edge's colour", () => {
+    expect(RETRY_EDGE_VISUAL.varName).toBe("--accent-amber");
+    expect(RETRY_EDGE_VISUAL.dash).toBe("dashed");
+    expect(RETRY_EDGE_VISUAL.varName).not.toBe(connectionStyle("failure").varName);
+  });
+});
+
+describe("outcomeTone", () => {
+  it("reads as failure when every incoming connection is failure/conditional", () => {
+    expect(outcomeTone(["failure"])).toBe("failure");
+    expect(outcomeTone(["conditional", "failure"])).toBe("failure");
+  });
+
+  it("reads as success when every incoming connection is success/default/async", () => {
+    expect(outcomeTone(["success"])).toBe("success");
+    expect(outcomeTone([undefined])).toBe("success");
+    expect(outcomeTone(["async", "success"])).toBe("success");
+  });
+
+  it("falls back to neutral for a genuinely mixed set of incoming types", () => {
+    expect(outcomeTone(["success", "failure"])).toBe("neutral");
+  });
+
+  it("falls back to neutral when nothing points at the step at all", () => {
+    expect(outcomeTone([])).toBe("neutral");
   });
 });
 

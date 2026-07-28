@@ -22,7 +22,18 @@
   outline-offset: 2px;
   transition:
     border-color var(--dur-fast) var(--ease-standard),
-    background-color var(--dur-fast) var(--ease-standard);
+    background-color var(--dur-fast) var(--ease-standard),
+    opacity var(--dur-fast) var(--ease-standard);
+}
+
+/* Path tracing (contract §11): everything off the hovered/focused/selected step's
+ * upstream-downstream path fades instead of disappearing, so the rest of the graph stays legible
+ * as context. `--dur-fast` collapses to 0ms under `prefers-reduced-motion` (tokens.css), so this
+ * dims instantly rather than animating for anyone who asked for that. Opacity only — never
+ * `display`/`visibility` — so it composes with `.selected`'s own border/background instead of
+ * fighting it. */
+.dimmed {
+  opacity: 0.35;
 }
 
 .card:hover {

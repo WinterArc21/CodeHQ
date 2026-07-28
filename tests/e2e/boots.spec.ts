@@ -28,19 +28,22 @@ test("loads the example project, auto-selects the default workflow, and renders 
   const defaultWorkflowItem = page.locator('button[data-workflow-item][aria-current="true"]');
   await expect(defaultWorkflowItem).toContainText("Generate Video Prompt");
 
-  // Its 7 step nodes render.
-  await expect(page.locator("[data-step-node]")).toHaveCount(7);
+  // Its 11 step nodes render — 7 work steps plus 4 terminal outcome pills (400/429/502/201),
+  // split out of the single "Save Result" catch-all so each real failure mode (invalid request,
+  // over quota, unreachable site) reads as its own named result (contract mandate: honest
+  // outcome nodes, not a shared error sink).
+  await expect(page.locator("[data-step-node]")).toHaveCount(11);
 
-  // Its 9 connectors render, each with non-zero rendered geometry.
+  // Its 10 connectors render, each with non-zero rendered geometry.
   const edges = page.locator(".react-flow__edge");
-  await expect(edges).toHaveCount(9);
+  await expect(edges).toHaveCount(10);
 
   const edgePathLengths = await page.evaluate(() =>
     Array.from(document.querySelectorAll(".react-flow__edge path.react-flow__edge-path")).map((el) =>
       (el as SVGPathElement).getTotalLength(),
     ),
   );
-  expect(edgePathLengths).toHaveLength(9);
+  expect(edgePathLengths).toHaveLength(10);
   for (const length of edgePathLengths) {
     expect(length).toBeGreaterThan(0);
   }

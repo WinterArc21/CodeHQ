@@ -1,41 +1,84 @@
 /** Converts a `LayoutResult` plus current UI state into the plain node/edge arrays React Flow
  * renders. Kept out of `WorkflowCanvas.tsx` so that component stays focused on wiring. */
-import type { KeyboardEvent as ReactKeyboardEvent } from "react";
+import type { FocusEvent as ReactFocusEvent, KeyboardEvent as ReactKeyboardEvent } from "react";
 import { Position } from "@xyflow/react";
 import type { Workflow } from "@schema/workflow";
 import type { SourceStatus } from "../../api/types";
 import type { Depth } from "../../store/useObservatoryStore";
+import { outcomeTone } from "../../design/semantics";
 import type { RoutedEdge } from "./edgeRouting";
+import { computeIncomingTypes } from "./graph";
 import type { LayoutResult } from "./layout";
 import { effectiveDepthForStep, stepHasMissingSource } from "./nodeContent";
-import type { StepFlowNode, WorkflowFlowEdge } from "./types";
+import type { OutcomeFlowNode, StepFlowNode, WorkflowFlowEdge } from "./types";
 
 function isStepExpanded(expandedStepIds: Record<string, true>, stepId: string): boolean {
   return expandedStepIds[stepId] === true;
 }
 
-export interface BuildFlowNodesParams {
+/** Shared hover/focus wiring every node (step or outcome) needs for path tracing (contract §11:
+ * "Must work for keyboard focus too, not just mouse"). */
+export interface TraceHandlers {
+  onHoverStart: (stepId: string) => void;
+  onHoverEnd: () => void;
+  onFocusStep: (stepId: string) => void;
+  onBlurStep: () => void;
+}
+
+export interface BuildFlowNodesParams extends TraceHandlers {
   workflow: Workflow;
   layout: LayoutResult;
   depth: Depth;
   expandedStepIds: Record<string, true>;
   sourceChecks: Record<string, SourceStatus>;
   selectedStepId: string | null;
+  /** The active trace's full step set (anchor + upstream + downstream), or `null` when nothing
+   * is hovered/focused/selected — every node dims when this is non-null and doesn't contain it. */
+  traceStepIds: ReadonlySet<string> | null;
   getTabIndex: (stepId: string) => 0 | -1;
   onToggleExpand: (stepId: string) => void;
   onNodeKeyDown: (event: ReactKeyboardEvent<HTMLElement>, stepId: string) => void;
 }
 
-export function buildFlowNodes(params: BuildFlowNodesParams): StepFlowNode[] {
+export function buildFlowNodes(params: BuildFlowNodesParams): Array<StepFlowNode | OutcomeFlowNode> {
   const stepById = new Map(params.workflow.steps.map((step) => [step.id, step] as const));
+  const incomingTypesByStep = computeIncomingTypes(params.workflow);
 
-  return params.layout.nodes.map((layoutNode) => {
+  return params.layout.nodes.map((layoutNode): StepFlowNode | OutcomeFlowNode => {
     const step = stepById.get(layoutNode.id);
     if (step === undefined) {
       // computeLayout only ever produces one LayoutNode per workflow.steps entry, so this
       // would mean layout and workflow have desynchronized — a programming error, not
       // something a malformed workflow file could trigger (schema validation already ran).
       throw new Error(`Layout produced a node for unknown step '${layoutNode.id}'.`);
+    }
+
+    const dimmed = params.traceStepIds !== null && !params.traceStepIds.has(step.id);
+    const traceHandlers = {
+      onHoverStart: () => params.onHoverStart(step.id),
+      onHoverEnd: params.onHoverEnd,
+      onFocusStep: (_event: ReactFocusEvent<HTMLElement>) => params.onFocusStep(step.id),
+      onBlurStep: (_event: ReactFocusEvent<HTMLElement>) => params.onBlurStep(),
+    };
+
+    if (layoutNode.isOutcome) {
+      return {
+        id: layoutNode.id,
+        type: "outcome",
+        position: { x: layoutNode.x, y: layoutNode.y },
+        width: layoutNode.width,
+        height: layoutNode.height,
+        sourcePosition: Position.Bottom,
+        targetPosition: Position.Top,
+        data: {
+          step,
+          tone: outcomeTone(incomingTypesByStep.get(step.id) ?? []),
+          dimmed,
+          tabIndex: params.getTabIndex(step.id),
+          onKeyDown: (event: ReactKeyboardEvent<HTMLElement>) => params.onNodeKeyDown(event, step.id),
+          ...traceHandlers,
+        },
+      };
     }
 
     return {
@@ -55,24 +98,44 @@ export function buildFlowNodes(params: BuildFlowNodesParams): StepFlowNode[] {
         expanded: isStepExpanded(params.expandedStepIds, step.id),
         selected: step.id === params.selectedStepId,
         hasMissingSource: stepHasMissingSource(step, params.sourceChecks),
+        dimmed,
         tabIndex: params.getTabIndex(step.id),
         onToggleExpand: () => params.onToggleExpand(step.id),
         onKeyDown: (event: ReactKeyboardEvent<HTMLElement>) => params.onNodeKeyDown(event, step.id),
+        ...traceHandlers,
       },
     };
   });
 }
 
-export function buildFlowEdges(layout: LayoutResult, routes: ReadonlyMap<string, RoutedEdge>): WorkflowFlowEdge[] {
+export function buildFlowEdges(
+  layout: LayoutResult,
+  routes: ReadonlyMap<string, RoutedEdge>,
+  backEdgeIds: ReadonlySet<string>,
+  traceEdgeIds: ReadonlySet<string> | null,
+): WorkflowFlowEdge[] {
+  const nodeById = new Map(layout.nodes.map((node) => [node.id, node] as const));
+
   return layout.edges.map((edge) => {
     const route = routes.get(edge.id);
+    const isRetryLoop = backEdgeIds.has(edge.id);
+    const sourceNode = nodeById.get(edge.source);
+    const dimmed = traceEdgeIds !== null && !traceEdgeIds.has(edge.id);
+
     return {
       id: edge.id,
       type: "workflow",
       source: edge.source,
       target: edge.target,
       focusable: false,
-      data: route !== undefined ? { connection: edge.connection, route } : { connection: edge.connection },
+      data: {
+        connection: edge.connection,
+        dimmed,
+        ...(route !== undefined ? { route } : {}),
+        ...(isRetryLoop && sourceNode !== undefined
+          ? { retryLoop: { x: sourceNode.x, y: sourceNode.y, width: sourceNode.width, height: sourceNode.height } }
+          : {}),
+      },
     };
   });
 }

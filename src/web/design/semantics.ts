@@ -5,6 +5,7 @@
  */
 import type { Workflow } from "@schema/workflow";
 import type { TestReference } from "@schema/workflow";
+import type { WorkflowConnection } from "@schema/workflow";
 import type { WorkflowStep } from "@schema/workflow";
 import type { SourceStatus } from "../api/types";
 
@@ -74,11 +75,21 @@ export function confidenceStyle(confidence?: WorkflowStep["confidence"]): Confid
 
 type ConnectionType = NonNullable<Parameters<typeof connectionStyle>[0]>;
 
+/**
+ * The approved edge grammar (see `prototypes/edge-grammar`, canvas-layout-discussion.md): stroke
+ * *pattern* always distinguishes a connection type too, never colour alone. Normal sync flow is
+ * solid and the visually dominant line; conditional/failure both dash but split amber/red;
+ * async dots in blue. Failure and async now carry short labels ("invalid", "queued") — collapsing
+ * every guard's exit into an unlabelled red dash was what originally made the failure fan-out
+ * unreadable; a 1-3 word label is what turns "a red line" into "invalid" or "over limit". Normal
+ * edges keep `showLabel: false` — on the single dominant path, a label is wallpaper, not
+ * information.
+ */
 const CONNECTION_VISUALS: Record<ConnectionType, ConnectionVisual> = {
   success: { varName: "--accent-neutral", dash: "none", showLabel: false, weight: "primary" },
-  failure: { varName: "--accent-red", dash: "dashed", showLabel: false, weight: "branch" },
+  failure: { varName: "--accent-red", dash: "dashed", showLabel: true, weight: "branch" },
   conditional: { varName: "--accent-amber", dash: "dashed", showLabel: true, weight: "branch" },
-  async: { varName: "--accent-neutral", dash: "dotted", showLabel: false, weight: "branch" },
+  async: { varName: "--accent-blue", dash: "dotted", showLabel: true, weight: "branch" },
 };
 
 /** Line colour/dash + whether to render the connection label (contract §10 table). */
@@ -87,6 +98,50 @@ export function connectionStyle(type?: "success" | "failure" | "conditional" | "
     return CONNECTION_VISUALS.success;
   }
   return CONNECTION_VISUALS[type];
+}
+
+/**
+ * The retry-loop grammar entry: a step retrying itself (or, more generally, any detected back
+ * edge — see `canvas/graph.ts`'s `computeBackEdgeIds`) is neither a plain failure nor a plain
+ * conditional. It reads as "recoverable" — amber, dashed, always labelled ("retry ≤3") — distinct
+ * from the red "this is final" failure exit a retry-exhausted step also has. Not keyed by
+ * `connection.type` (the schema has no "retry" type — the loop shape itself, not a JSON field, is
+ * what makes an edge a retry), so it lives here as its own constant rather than another
+ * `CONNECTION_VISUALS` entry.
+ */
+export const RETRY_EDGE_VISUAL: ConnectionVisual = {
+  varName: "--accent-amber",
+  dash: "dashed",
+  showLabel: true,
+  weight: "branch",
+};
+
+export type OutcomeTone = "success" | "failure" | "neutral";
+
+/**
+ * Visual tone for a terminal ("outcome") step — pill-shaped nodes with out-degree 0 (contract:
+ * "Terminal steps... render as visually distinct outcome nodes... Derive success/failure from the
+ * step's `category` and from the type of the connections arriving at it"). No schema change:
+ * driven entirely by the `type` of whatever connections land on the step, which `canvas/graph.ts`'s
+ * `computeIncomingTypes` already derives from the graph shape. A step reached only by
+ * `failure`/`conditional` connections reads as a failure outcome; one reached only by
+ * `success`/default/`async` connections reads as success; an outcome with a genuinely mixed set of
+ * incoming types (or none at all — an isolated terminal step) falls back to neutral rather than
+ * guessing which one "wins".
+ */
+export function outcomeTone(incomingTypes: ReadonlyArray<WorkflowConnection["type"]>): OutcomeTone {
+  if (incomingTypes.length === 0) {
+    return "neutral";
+  }
+  const hasFailure = incomingTypes.some((type) => type === "failure" || type === "conditional");
+  const hasSuccess = incomingTypes.some((type) => type === "success" || type === "async" || type === undefined);
+  if (hasFailure && !hasSuccess) {
+    return "failure";
+  }
+  if (hasSuccess && !hasFailure) {
+    return "success";
+  }
+  return "neutral";
 }
 
 const STATUS_VISUALS: Record<NonNullable<Workflow["status"]>, ToneVisual> = {

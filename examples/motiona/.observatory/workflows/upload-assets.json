@@ -81,9 +81,43 @@
       "outputs": [{ "name": "UploadedAsset" }]
     },
     {
-      "id": "reject-upload",
-      "name": "Reject Upload",
-      "purpose": "Returns an error response for any failed validation or scan step above.",
+      "id": "outcome-missing-file",
+      "name": "400 Bad Request",
+      "purpose": "The multipart body did not include a 'file' field.",
+      "category": "output",
+      "confidence": "verified",
+      "sources": [{ "file": "app/api/upload/route.ts", "symbol": "POST" }]
+    },
+    {
+      "id": "outcome-unsupported-type",
+      "name": "415 Unsupported Type",
+      "purpose": "The file is not a PNG, JPEG, WebP, or PDF.",
+      "category": "output",
+      "confidence": "verified",
+      "sources": [{ "file": "app/api/upload/route.ts", "symbol": "POST" }]
+    },
+    {
+      "id": "outcome-too-large",
+      "name": "413 Too Large",
+      "purpose": "The file exceeds the 10MB upload limit.",
+      "category": "output",
+      "confidence": "verified",
+      "sources": [{ "file": "app/api/upload/route.ts", "symbol": "POST" }]
+    },
+    {
+      "id": "outcome-malware-flagged",
+      "name": "Rejected: Malware",
+      "purpose": "The scan reported malware in the uploaded file.",
+      "category": "output",
+      "confidence": "inferred",
+      "details": {
+        "assumptions": ["The scanning module itself was not found in this repository snapshot, so its exact response shape (and status code) is inferred, not verified."]
+      }
+    },
+    {
+      "id": "outcome-asset-created",
+      "name": "201 Created",
+      "purpose": "Asset metadata saved and returned to the caller.",
       "category": "output",
       "confidence": "verified",
       "sources": [{ "file": "app/api/upload/route.ts", "symbol": "POST" }]
@@ -94,25 +128,40 @@
     { "from": "validate-file", "to": "scan-for-malware", "type": "success" },
     {
       "from": "validate-file",
-      "to": "reject-upload",
+      "to": "outcome-missing-file",
       "type": "failure",
-      "label": "invalid",
-      "condition": "Missing file, unsupported content type, or file too large."
+      "label": "missing",
+      "condition": "The multipart body does not contain a 'file' field."
+    },
+    {
+      "from": "validate-file",
+      "to": "outcome-unsupported-type",
+      "type": "failure",
+      "label": "unsupported",
+      "condition": "The file is not a PNG, JPEG, WebP, or PDF."
+    },
+    {
+      "from": "validate-file",
+      "to": "outcome-too-large",
+      "type": "failure",
+      "label": "too large",
+      "condition": "The file exceeds the 10MB limit."
     },
     {
       "from": "scan-for-malware",
       "to": "persist-asset",
-      "type": "conditional",
+      "type": "success",
       "label": "clean",
       "condition": "Scan reports no malware."
     },
     {
       "from": "scan-for-malware",
-      "to": "reject-upload",
-      "type": "conditional",
+      "to": "outcome-malware-flagged",
+      "type": "failure",
       "label": "flagged",
       "condition": "Scan reports malware."
-    }
+    },
+    { "from": "persist-asset", "to": "outcome-asset-created", "type": "success" }
   ],
   "notes": [
     "The malware-scanning step is inferred and its source file does not exist yet in this fixture — this is intentional, to demonstrate an honest 'missing source' diagnostic."

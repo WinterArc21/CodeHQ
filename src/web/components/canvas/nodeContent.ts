@@ -46,6 +46,35 @@ const FILE_ROW_HEIGHT = 14;
 const SYMBOL_ROW_HEIGHT = 16;
 const MORE_ROW_HEIGHT = 14;
 
+/** Fixed height for every outcome pill — always collapsed to a name + one purpose line, never
+ * growing with depth (contract: outcome nodes are "clearly not units of work", so they don't
+ * participate in the workflow/modules/symbols depth ladder at all). */
+export const OUTCOME_NODE_HEIGHT = 64;
+const OUTCOME_NODE_MIN_WIDTH = 200;
+const OUTCOME_NODE_MAX_WIDTH = 300;
+/** Fixed chrome every outcome pill reserves regardless of text: the glyph, its gap to the text
+ * column, and left/right padding. */
+const OUTCOME_NODE_CHROME_WIDTH = 76;
+/** Approximate px-per-character at the outcome name's font size/weight (`--fs-base`, 600) — the
+ * same character-count-heuristic approach `PURPOSE_SINGLE_LINE_MAX_CHARS` already uses, so
+ * `computeOutcomeNodeWidth` stays as DOM-free and pure as the rest of this file (contract: "Do
+ * not measure the DOM"). Deliberately generous (over-estimates) since undershooting a pill's
+ * width is the exact nit this sizing exists to fix (a name overrunning its own border). */
+const OUTCOME_NAME_CHAR_WIDTH = 8;
+
+/**
+ * A terminal ("outcome") step's pill sizes to its own name — long enough to read "429 Too Many"
+ * without clipping, capped so one long name can't blow the outcome column out to spine width.
+ * `StepNode`'s counterpart (`NODE_WIDTH`) is a fixed constant instead because a work-step's card
+ * carries file paths, counts, and I/O tags whose layout genuinely depends on a stable width; an
+ * outcome pill carries only a glyph and two lines of text, so sizing it to content is both safe
+ * and the fix the mockup review flagged ("text slightly overran its pill border").
+ */
+export function computeOutcomeNodeWidth(step: WorkflowStep): number {
+  const estimated = OUTCOME_NODE_CHROME_WIDTH + step.name.length * OUTCOME_NAME_CHAR_WIDTH;
+  return Math.min(OUTCOME_NODE_MAX_WIDTH, Math.max(OUTCOME_NODE_MIN_WIDTH, estimated));
+}
+
 export interface StepCounts {
   sources: number;
   edgeCases: number;

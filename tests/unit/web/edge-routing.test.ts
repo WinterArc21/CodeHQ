@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import type { Workflow, WorkflowStep } from "@schema/workflow";
-import { buildOrthogonalPath, computeEdgeRoutes, polylineIntersectsRect, type Point } from "@web/components/canvas/edgeRouting";
+import { buildOrthogonalPath, buildRetryLoopPath, computeEdgeRoutes, polylineIntersectsRect, type Point } from "@web/components/canvas/edgeRouting";
 import { computeLayout, type LayoutNode } from "@web/components/canvas/layout";
 
 function makeStep(id: string, overrides: Partial<WorkflowStep> = {}): WorkflowStep {
@@ -312,5 +312,34 @@ describe("buildOrthogonalPath", () => {
       { x: 10, y: 0 },
     ];
     expect(buildOrthogonalPath(points, 8)).toBe("M0,0 L10,0");
+  });
+});
+
+describe("buildRetryLoopPath", () => {
+  const rect = { x: 100, y: 200, width: 300, height: 80 };
+
+  it("departs and re-enters the same (right) edge of the node — never the top or bottom every other edge uses", () => {
+    const loop = buildRetryLoopPath(rect);
+    const rightX = rect.x + rect.width;
+    // Both endpoints of the loop's cubic (`M<start> C<c1> <c2> <end>`) sit on the node's right
+    // edge; the loop's own bulge (its control points) is the only part that goes further right.
+    const match = /^M([\d.]+),([\d.]+) C([\d.]+),([\d.]+) ([\d.]+),([\d.]+) ([\d.]+),([\d.]+)$/.exec(loop.d);
+    expect(match).not.toBeNull();
+    const [, startX, , , , , , endX] = match!;
+    expect(Number(startX)).toBe(rightX);
+    expect(Number(endX)).toBe(rightX);
+  });
+
+  it("stays local to the node: its bulge is a small outset, not a long line across the canvas", () => {
+    const loop = buildRetryLoopPath(rect);
+    expect(loop.labelPoint.x).toBeGreaterThan(rect.x + rect.width);
+    expect(loop.labelPoint.x).toBeLessThan(rect.x + rect.width + 100);
+  });
+
+  it("re-enters above where it departs, so the loop reads as a compact upward curl", () => {
+    const loop = buildRetryLoopPath(rect);
+    const match = /^M[\d.]+,([\d.]+) C[\d.]+,[\d.]+ [\d.]+,[\d.]+ [\d.]+,([\d.]+)$/.exec(loop.d);
+    const [, departY, enterY] = match!;
+    expect(Number(enterY)).toBeLessThan(Number(departY));
   });
 });

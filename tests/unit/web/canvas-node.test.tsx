@@ -41,9 +41,14 @@ function makeData(overrides: Partial<StepNodeData> = {}): StepNodeData {
     expanded: false,
     selected: false,
     hasMissingSource: false,
+    dimmed: false,
     tabIndex: -1,
     onToggleExpand: () => {},
     onKeyDown: () => {},
+    onHoverStart: () => {},
+    onHoverEnd: () => {},
+    onFocusStep: () => {},
+    onBlurStep: () => {},
     ...overrides,
   };
 }

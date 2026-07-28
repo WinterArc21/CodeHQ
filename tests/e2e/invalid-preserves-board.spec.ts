@@ -30,7 +30,7 @@ test.afterAll(async () => {
 test("a truncated write keeps the board on screen and surfaces diagnostics, then clears on repair", async ({ page }) => {
   await page.goto(server.url);
   await page.locator("[data-step-node]").first().waitFor({ state: "visible", timeout: 15_000 });
-  await expect(page.locator("[data-step-node]")).toHaveCount(7);
+  await expect(page.locator("[data-step-node]")).toHaveCount(11);
   await expect(page.locator('[data-step-node="receive-request"]')).toContainText("Receive Request");
 
   const workflowFile = path.join(root, ".observatory", "workflows", "generate-video.json");
@@ -47,7 +47,7 @@ test("a truncated write keeps the board on screen and surfaces diagnostics, then
   await expect(banner).toContainText("last valid version is still being displayed");
 
   // The board itself is untouched: same 7 steps, same content, nothing blanked out.
-  await expect(page.locator("[data-step-node]")).toHaveCount(7);
+  await expect(page.locator("[data-step-node]")).toHaveCount(11);
   await expect(page.locator('[data-step-node="receive-request"]')).toContainText("Receive Request");
 
   // Opening diagnostics from the banner shows the real, actionable error text — not a dead
@@ -64,7 +64,7 @@ test("a truncated write keeps the board on screen and surfaces diagnostics, then
   // Escape closes the panel without touching the board underneath.
   await page.keyboard.press("Escape");
   await expect(panel).toBeHidden();
-  await expect(page.locator("[data-step-node]")).toHaveCount(7);
+  await expect(page.locator("[data-step-node]")).toHaveCount(11);
 
   // The stale state is surfaced on the affected workflow's navigator entry too.
   const navigatorItem = page.locator("button[data-workflow-item]").filter({ hasText: "Generate Video Prompt" });
@@ -75,5 +75,5 @@ test("a truncated write keeps the board on screen and surfaces diagnostics, then
 
   await expect(banner).toBeHidden({ timeout: 10_000 });
   await expect(navigatorItem).not.toContainText("Stale");
-  await expect(page.locator("[data-step-node]")).toHaveCount(7);
+  await expect(page.locator("[data-step-node]")).toHaveCount(11);
 });

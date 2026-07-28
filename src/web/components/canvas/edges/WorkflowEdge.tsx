@@ -1,7 +1,7 @@
 import type { CSSProperties } from "react";
 import { BaseEdge, EdgeLabelRenderer, getSmoothStepPath, type EdgeProps } from "@xyflow/react";
-import { connectionStyle, type ConnectionVisual } from "../../../design/semantics";
-import { buildOrthogonalPath, SIDECAR_CORNER_RADIUS } from "../edgeRouting";
+import { connectionStyle, RETRY_EDGE_VISUAL, type ConnectionVisual } from "../../../design/semantics";
+import { buildOrthogonalPath, buildRetryLoopPath, SIDECAR_CORNER_RADIUS } from "../edgeRouting";
 import type { WorkflowFlowEdge } from "../types";
 import { edgeMarkerId } from "./EdgeMarkers";
 import styles from "./WorkflowEdge.module.css";
@@ -15,12 +15,17 @@ const DASH_PATTERNS: Record<"dashed" | "dotted", string> = {
   dotted: "1.5 4",
 };
 
-/** Stroke width per weight (contract §10.3: the primary path must read as visually dominant,
- * branches as clearly subordinate but legible — never invisible). */
+/** Stroke width per weight (contract §10.3 / edge-grammar table: normal sync flow is "solid,
+ * strongest weight"; every branch — conditional, failure, async, retry — reads as clearly
+ * subordinate but still legible, never invisible). */
 const STROKE_WIDTH: Record<ConnectionVisual["weight"], number> = {
-  primary: 2,
+  primary: 2.25,
   branch: 1.25,
 };
+/** Opacity applied on top of a dimmed edge's own weight-based opacity (contract §11 path
+ * tracing) — multiplicative, so a dimmed branch edge (already 0.85) still reads as visibly
+ * fainter than a dimmed primary edge, preserving the same relative hierarchy while both fade. */
+const DIMMED_OPACITY_FACTOR = 0.3;
 
 /** How far below the source node's own edge a label sits — small enough to land inside the gap
  * between ranks (`layout.ts`'s `LAYOUT_RANK_SEP`) rather than drifting onto whatever step is
@@ -58,30 +63,46 @@ export function WorkflowEdge({ id, data, sourceX, sourceY, sourcePosition, targe
     return null;
   }
 
-  const { connection, route } = data;
-  const visual = connectionStyle(connection.type);
-  const path =
-    route !== undefined
-      ? buildOrthogonalPath(route.points, SIDECAR_CORNER_RADIUS)
-      : getSmoothStepPath({ sourceX, sourceY, sourcePosition, targetX, targetY, targetPosition, borderRadius: EDGE_BORDER_RADIUS })[0];
+  const { connection, route, retryLoop, dimmed } = data;
+  const isRetryLoop = retryLoop !== undefined;
+  const visual = isRetryLoop ? RETRY_EDGE_VISUAL : connectionStyle(connection.type);
+  const markerVariant = isRetryLoop ? "retry" : connection.type;
 
+  let path: string;
+  let labelX: number;
+  let labelY: number;
+  if (retryLoop !== undefined) {
+    const loop = buildRetryLoopPath(retryLoop);
+    path = loop.d;
+    labelX = loop.labelPoint.x;
+    labelY = loop.labelPoint.y;
+  } else if (route !== undefined) {
+    path = buildOrthogonalPath(route.points, SIDECAR_CORNER_RADIUS);
+    labelX = route.labelPoint.x;
+    labelY = route.labelPoint.y;
+  } else {
+    path = getSmoothStepPath({ sourceX, sourceY, sourcePosition, targetX, targetY, targetPosition, borderRadius: EDGE_BORDER_RADIUS })[0];
+    labelX = sourceX + (targetX - sourceX) * LABEL_X_BLEND_TOWARD_TARGET;
+    labelY = sourceY + LABEL_Y_OFFSET_FROM_SOURCE;
+  }
+
+  const baseOpacity = visual.weight === "branch" ? 0.85 : 1;
   const edgeStyle: CSSProperties = {
     stroke: `var(${visual.varName})`,
     strokeWidth: STROKE_WIDTH[visual.weight],
-    opacity: visual.weight === "branch" ? 0.85 : 1,
+    opacity: dimmed ? baseOpacity * DIMMED_OPACITY_FACTOR : baseOpacity,
+    transition: "opacity var(--dur-fast) var(--ease-standard)",
   };
   if (visual.dash !== "none") {
     edgeStyle.strokeDasharray = DASH_PATTERNS[visual.dash];
   }
 
-  const labelText = connection.label ?? connection.condition;
+  const labelText = isRetryLoop ? (connection.label ?? connection.condition ?? "retry") : (connection.label ?? connection.condition);
   const showLabel = labelText !== undefined && labelText.trim().length > 0;
-  const labelX = route !== undefined ? route.labelPoint.x : sourceX + (targetX - sourceX) * LABEL_X_BLEND_TOWARD_TARGET;
-  const labelY = route !== undefined ? route.labelPoint.y : sourceY + LABEL_Y_OFFSET_FROM_SOURCE;
 
   return (
     <>
-      <BaseEdge path={path} markerEnd={`url(#${edgeMarkerId(connection.type)})`} style={edgeStyle} />
+      <BaseEdge path={path} markerEnd={`url(#${edgeMarkerId(markerVariant)})`} style={edgeStyle} />
       {showLabel ? (
         <EdgeLabelRenderer>
           <div
@@ -90,6 +111,8 @@ export function WorkflowEdge({ id, data, sourceX, sourceY, sourcePosition, targe
             style={{
               transform: `translate(-50%, -50%) translate(${labelX}px, ${labelY}px)`,
               color: `var(${visual.varName})`,
+              opacity: dimmed ? DIMMED_OPACITY_FACTOR : 1,
+              transition: "opacity var(--dur-fast) var(--ease-standard)",
             }}
           >
             {labelText}
