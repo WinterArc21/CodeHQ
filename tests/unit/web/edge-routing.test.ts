@@ -53,13 +53,22 @@ function generateVideoShapedWorkflow(): Workflow {
 /** Every branch edge's routed polyline (or, for an edge left unrouted, its direct two-point
  * path) must not intersect any node it doesn't itself connect to. The authoritative, non-eyeball
  * geometric proof the task asks for. */
-function assertNoNodeIsClipped(nodes: LayoutNode[], points: Point[], sourceId: string, targetId: string): void {
+function assertNoNodeIsClipped(
+  nodes: LayoutNode[],
+  points: Point[],
+  sourceId: string,
+  targetId: string,
+  clearance = 2,
+): void {
   for (const node of nodes) {
     if (node.id === sourceId || node.id === targetId) {
       continue;
     }
     const rect = { x: node.x, y: node.y, width: node.width, height: node.height };
-    expect(polylineIntersectsRect(points, rect), `route for ${sourceId}->${targetId} clips node '${node.id}'`).toBe(false);
+    expect(
+      polylineIntersectsRect(points, rect, clearance),
+      `route for ${sourceId}->${targetId} clips node '${node.id}' within ${clearance}px`,
+    ).toBe(false);
   }
 }
 
@@ -278,21 +287,25 @@ describe("computeEdgeRoutes", () => {
     }
   });
 
-  it("routes a non-self c-to-a back edge to a's right edge without clipping another node", () => {
+  it("routes a non-self return edge clear of the ranks immediately before and after it", () => {
     const workflow = makeWorkflow(
-      [makeStep("a", { category: "entry" }), makeStep("b"), makeStep("c")],
+      [makeStep("a", { category: "entry" }), makeStep("b"), makeStep("c"), makeStep("d")],
       [
         { from: "a", to: "b" },
         { from: "b", to: "c" },
-        { from: "c", to: "a", type: "conditional", label: "retry" },
+        { from: "c", to: "d" },
+        { from: "c", to: "b", type: "conditional", label: "retry" },
       ],
     );
     const layout = computeLayout(workflow, BASE_OPTS);
-    const edge = layout.edges.find((candidate) => candidate.source === "c" && candidate.target === "a")!;
+    const edge = layout.edges.find((candidate) => candidate.source === "c" && candidate.target === "b")!;
     const route = computeEdgeRoutes(layout.nodes, layout.edges, computeBackEdgeIds(workflow)).get(edge.id)!;
-    const target = layout.nodes.find((node) => node.id === "a")!;
+    const target = layout.nodes.find((node) => node.id === "b")!;
     expect(route.points.at(-1)).toEqual({ x: target.x + target.width, y: target.y + target.height / 2 });
-    assertNoNodeIsClipped(layout.nodes, route.points, edge.source, edge.target);
+    // Fourteen flow-space pixels remains roughly twelve visible pixels at the fitted browser zoom
+    // used by the review canvas. This guards against the subtler failure where a route does not
+    // mathematically intersect a card but sits close enough to look hidden by its border.
+    assertNoNodeIsClipped(layout.nodes, route.points, edge.source, edge.target, 14);
   });
 
   it("does not create a computeEdgeRoutes route for a self-loop", () => {

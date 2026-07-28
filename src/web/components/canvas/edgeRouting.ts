@@ -104,6 +104,14 @@ const LANE_PITCH = 130;
  * onto the lane — kept comfortably under `LAYOUT_RANK_SEP` (18px, see `layout.ts`) so the turn
  * always lands inside the free band between ranks, never inside a neighbouring rank. */
 const TURN_INSET = 8;
+/**
+ * Return edges already leave and re-enter through the connected cards' right sides. Their
+ * horizontal turns therefore sit just outside those cards, at the far edges of the surrounding
+ * rank gaps, rather than in the middle of each gap like bottom-to-top sidecars. This maximizes
+ * clearance from the unrelated cards in the ranks immediately after the source and before the
+ * target — the route stays visually continuous instead of appearing to disappear under a card.
+ */
+const RETURN_TURN_INSET = 1;
 /** How far below its own turn-onto-the-lane point a label sits. */
 const LABEL_OFFSET_Y = 11;
 /** Two nodes belong to the same dagre rank when their centre-y matches to within float error. */
@@ -220,10 +228,16 @@ function buildDirectHopRoute(source: LayoutNode, target: LayoutNode, labelText?:
  * into the next rank (a rank's height is defined as its tallest member, so no same-rank node's
  * bottom edge can exceed the true rank boundary the next rank's own top already respects).
  */
-function clearDepartureY(source: LayoutNode, sourceX: number, laneX: number, allNodes: LayoutNode[]): number {
+function clearDepartureY(
+  source: LayoutNode,
+  sourceX: number,
+  laneX: number,
+  allNodes: LayoutNode[],
+  turnInset = TURN_INSET,
+): number {
   const minX = Math.min(sourceX, laneX) - SIBLING_AVOIDANCE_MARGIN;
   const maxX = Math.max(sourceX, laneX) + SIBLING_AVOIDANCE_MARGIN;
-  let y = source.y + source.height + TURN_INSET;
+  let y = source.y + source.height + turnInset;
   for (const node of allNodes) {
     if (node.id === source.id || !sameRank(node, source)) {
       continue;
@@ -237,10 +251,16 @@ function clearDepartureY(source: LayoutNode, sourceX: number, laneX: number, all
 }
 
 /** Mirror of `clearDepartureY` for the approach into the target from above. */
-function clearArrivalY(target: LayoutNode, targetX: number, laneX: number, allNodes: LayoutNode[]): number {
+function clearArrivalY(
+  target: LayoutNode,
+  targetX: number,
+  laneX: number,
+  allNodes: LayoutNode[],
+  turnInset = TURN_INSET,
+): number {
   const minX = Math.min(targetX, laneX) - SIBLING_AVOIDANCE_MARGIN;
   const maxX = Math.max(targetX, laneX) + SIBLING_AVOIDANCE_MARGIN;
-  let y = target.y - TURN_INSET;
+  let y = target.y - turnInset;
   for (const node of allNodes) {
     if (node.id === target.id || !sameRank(node, target)) {
       continue;
@@ -387,8 +407,8 @@ export function computeEdgeRoutes(
     } else {
       externalReturnLaneCount += 1;
     }
-    const departY = clearDepartureY(source, sourceRight + TURN_INSET, laneX, nodes);
-    const arriveY = clearArrivalY(target, targetRight + TURN_INSET, laneX, nodes);
+    const departY = clearDepartureY(source, sourceRight + TURN_INSET, laneX, nodes, RETURN_TURN_INSET);
+    const arriveY = clearArrivalY(target, targetRight + TURN_INSET, laneX, nodes, RETURN_TURN_INSET);
     const points = dedupeConsecutive([
       { x: sourceRight, y: source.y + source.height / 2 },
       { x: sourceRight + TURN_INSET, y: source.y + source.height / 2 },

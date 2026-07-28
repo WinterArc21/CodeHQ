@@ -84,6 +84,13 @@ import {
  * now wide and short: most of the workflow's readable footprint should come from row height, not
  * air between rows, or a 6-9 step workflow cannot fit a 900px-tall viewport without panning. */
 export const LAYOUT_RANK_SEP = 18;
+/**
+ * Minimum vertical gap around a structural fan-out or fan-in. React Flow puts a smooth-step
+ * edge's horizontal run halfway through that gap; 44px leaves 22px on either side, enough for
+ * the 10px rounded corner plus a straight, visible arrowhead approach. The ordinary 18px gap is
+ * intentionally retained everywhere else so linear workflows stay compact.
+ */
+export const MIN_FAN_RANK_GAP = 44;
 /** Horizontal gap between two nodes sharing a rank (e.g. two branch steps stacked in the same
  * side column) — generous enough that they read as clearly separate columns, not a graze. */
 export const LAYOUT_NODE_SEP = 72;
@@ -364,27 +371,26 @@ interface RankBand {
 }
 
 /**
- * Widens only the rank gaps that actually need it: when a labelled primary connection spans two
- * adjacent dagre ranks, the default `LAYOUT_RANK_SEP` (18px) can be narrower than the label chip
- * itself needs to sit in without touching the next rank's node — the "clean" label on
- * `scan-for-malware -> persist-asset` sitting on `persist-asset`'s own top border. Mutates the
- * dagre graph's own node `y` values in place (the same mutable label objects every later read of
+ * Widens only rank gaps that actually need it: a labelled primary connection needs room for its
+ * chip, while a structural fan-out/fan-in needs room for the horizontal part and arrowhead of its
+ * smooth-step path to remain visibly separate from both endpoint cards. Mutates the dagre graph's
+ * own node `y` values in place (the same mutable label objects every later read of
  * `graph.node(id)` in `computeLayout` sees), so it must run right after `dagre.layout(graph)` and
  * before anything else reads node positions.
  *
  * Groups nodes into rank "bands" by their (rounded) dagre y — the same `Math.round(node.y)`
  * grouping key the branch-column placement below already uses for the same reason: dagre's rank
- * tiers, not floating-point noise. For each adjacent band pair with a labelled primary edge
- * crossing it, computes the deficit between the actual gap and `MIN_LABELED_RANK_GAP`, then
- * shifts every band at or after the widened gap down by that deficit — cascading, so two
- * consecutive crowded gaps each get exactly the room they individually need rather than one
- * gap "borrowing" space meant for another.
+ * tiers, not floating-point noise. For each adjacent band pair crossed by a labelled or fan
+ * connection, computes the deficit from that connection's required gap, then shifts every band
+ * at or after the widened gap down by that deficit — cascading, so consecutive crowded gaps each
+ * get exactly the room they individually need rather than one gap "borrowing" another's space.
  */
-function expandLabeledRankGaps(
+function expandCrowdedRankGaps(
   workflow: Workflow,
   graph: dagre.graphlib.Graph,
   connectedIds: ReadonlySet<string>,
   sizeById: ReadonlyMap<string, { width: number; height: number }>,
+  isOutcomeStep: (stepId: string) => boolean,
 ): void {
   const bandIndexById = new Map<string, number>();
   const bandByKey = new Map<number, RankBand>();
@@ -406,9 +412,34 @@ function expandLabeledRankGaps(
   bands.sort((a, b) => a.y - b.y);
   bands.forEach((band, index) => band.ids.forEach((id) => bandIndexById.set(id, index)));
 
+  // Count distinct primary work-step neighbours, matching `applyFanOutLanes`'s definition of
+  // genuine parallelism. Duplicate declarations must not manufacture a fork or join, and terminal
+  // outcomes remain results rather than parallel work.
+  const primarySuccessors = new Map<string, Set<string>>();
+  const primaryPredecessors = new Map<string, Set<string>>();
+  for (const connection of workflow.connections) {
+    if (
+      !isPrimaryConnection(connection) ||
+      connection.from === connection.to ||
+      !connectedIds.has(connection.from) ||
+      !connectedIds.has(connection.to)
+    ) {
+      continue;
+    }
+    if (!isOutcomeStep(connection.to)) {
+      const successors = primarySuccessors.get(connection.from) ?? new Set<string>();
+      successors.add(connection.to);
+      primarySuccessors.set(connection.from, successors);
+
+      const predecessors = primaryPredecessors.get(connection.to) ?? new Set<string>();
+      predecessors.add(connection.from);
+      primaryPredecessors.set(connection.to, predecessors);
+    }
+  }
+
   const deficitAfterBand = new Array<number>(bands.length).fill(0);
   for (const connection of workflow.connections) {
-    if (!isPrimaryConnection(connection) || connectionLabelText(connection) === undefined) {
+    if (!isPrimaryConnection(connection)) {
       continue;
     }
     if (!connectedIds.has(connection.from) || !connectedIds.has(connection.to)) {
@@ -422,7 +453,15 @@ function expandLabeledRankGaps(
     const source = bands[sourceBand]!;
     const target = bands[targetBand]!;
     const actualGap = target.y - target.height / 2 - (source.y + source.height / 2);
-    const deficit = Math.max(0, MIN_LABELED_RANK_GAP - actualGap);
+    const isLabeled = connectionLabelText(connection) !== undefined;
+    const isFanConnection =
+      (primarySuccessors.get(connection.from)?.size ?? 0) >= 2 ||
+      (primaryPredecessors.get(connection.to)?.size ?? 0) >= 2;
+    if (!isLabeled && !isFanConnection) {
+      continue;
+    }
+    const requiredGap = Math.max(isLabeled ? MIN_LABELED_RANK_GAP : 0, isFanConnection ? MIN_FAN_RANK_GAP : 0);
+    const deficit = Math.max(0, requiredGap - actualGap);
     deficitAfterBand[sourceBand] = Math.max(deficitAfterBand[sourceBand]!, deficit);
   }
 
@@ -478,7 +517,7 @@ export function computeLayout(workflow: Workflow, opts: ComputeLayoutOptions): L
     }
 
     dagre.layout(graph);
-    expandLabeledRankGaps(workflow, graph, connectedIds, sizeById);
+    expandCrowdedRankGaps(workflow, graph, connectedIds, sizeById, isOutcomeStep);
 
     const spine = computeSpine(workflow, connectedIds, outDegree);
     const spineX = LAYOUT_MARGIN_X;

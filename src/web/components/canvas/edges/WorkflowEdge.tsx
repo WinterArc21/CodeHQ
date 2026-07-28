@@ -42,7 +42,7 @@ const DIMMED_OPACITY_FACTOR = 0.3;
  * legible over the canvas grid, anchored near the connection's own source point (a routed edge
  * anchors on its own lane segment instead; see `route.labelPoint`).
  */
-export function WorkflowEdge({ id, data, sourceX, sourceY, sourcePosition, targetX, targetY, targetPosition }: EdgeProps<WorkflowFlowEdge>) {
+export function WorkflowEdge({ id, data, source, target, sourceX, sourceY, sourcePosition, targetX, targetY, targetPosition }: EdgeProps<WorkflowFlowEdge>) {
   if (data === undefined) {
     return null;
   }
@@ -86,7 +86,9 @@ export function WorkflowEdge({ id, data, sourceX, sourceY, sourcePosition, targe
 
   return (
     <>
-      <BaseEdge path={path} markerEnd={`url(#${edgeMarkerId(markerVariant)})`} style={edgeStyle} />
+      <g data-workflow-edge={id} data-edge-source={source} data-edge-target={target}>
+        <BaseEdge path={path} markerEnd={`url(#${edgeMarkerId(markerVariant)})`} style={edgeStyle} />
+      </g>
       {showLabel ? (
         <EdgeLabelRenderer>
           <div

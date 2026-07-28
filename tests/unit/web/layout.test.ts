@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import type { Workflow, WorkflowStep } from "@schema/workflow";
-import { computeLayout, LAYOUT_MARGIN_X } from "@web/components/canvas/layout";
+import { computeLayout, LAYOUT_MARGIN_X, LAYOUT_RANK_SEP, MIN_FAN_RANK_GAP } from "@web/components/canvas/layout";
 
 function makeStep(id: string, overrides: Partial<WorkflowStep> = {}): WorkflowStep {
   return { id, name: `Step ${id}`, purpose: `Purpose of ${id}.`, ...overrides };
@@ -34,6 +34,13 @@ function assertNoOverlap(nodes: { id: string; x: number; y: number; width: numbe
       expect(overlaps(a, b), `${a.id} and ${b.id} overlap`).toBe(false);
     }
   }
+}
+
+function verticalGap(
+  source: { y: number; height: number },
+  target: { y: number },
+): number {
+  return target.y - (source.y + source.height);
 }
 
 describe("computeLayout", () => {
@@ -386,6 +393,8 @@ describe("computeLayout", () => {
       for (const id of ["entry", "a", "b"]) {
         expect(byId.get(id)!.x).toBe(LAYOUT_MARGIN_X);
       }
+      expect(verticalGap(byId.get("entry")!, byId.get("a")!)).toBe(LAYOUT_RANK_SEP);
+      expect(verticalGap(byId.get("a")!, byId.get("b")!)).toBe(LAYOUT_RANK_SEP);
       assertNoOverlap(result.nodes);
     });
 
@@ -452,7 +461,18 @@ describe("computeLayout", () => {
       );
       const result = computeLayout(workflow, BASE_OPTS);
       const byId = new Map(result.nodes.map((node) => [node.id, node] as const));
+      const fork = byId.get("fork")!;
+      const left = byId.get("left")!;
+      const right = byId.get("right")!;
+      const join = byId.get("join")!;
       expect(byId.get("join")!.x).toBeCloseTo(byId.get("fork")!.x, 5);
+      // Fan-out and fan-in smooth-step paths bend halfway through each rank gap. The dedicated
+      // gap leaves enough room on both sides for rounded corners and an exposed arrowhead, rather
+      // than squeezing the route against (and visually under) its endpoint cards.
+      expect(verticalGap(fork, left)).toBeGreaterThanOrEqual(MIN_FAN_RANK_GAP);
+      expect(verticalGap(fork, right)).toBeGreaterThanOrEqual(MIN_FAN_RANK_GAP);
+      expect(verticalGap(left, join)).toBeGreaterThanOrEqual(MIN_FAN_RANK_GAP);
+      expect(verticalGap(right, join)).toBeGreaterThanOrEqual(MIN_FAN_RANK_GAP);
       assertNoOverlap(result.nodes);
     });
 

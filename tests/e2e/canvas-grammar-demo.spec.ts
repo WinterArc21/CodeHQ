@@ -31,6 +31,64 @@ async function capture(page: Page, workflow: string, slug: string, theme: "dark"
   await page.screenshot({ path: path.join(ARTIFACT_DIR, `${slug}-${theme}-1440x900.png`), animations: "disabled" });
 }
 
+/**
+ * Samples the browser's final SVG geometry in screen coordinates. Every unrelated card is an
+ * obstacle with a visible safety margin. Source and target cards are exempt only near the path's
+ * own endpoints, where touching the boundary is required; the rest of a long route is still
+ * checked against them, preventing a return path from disappearing behind one of its own cards
+ * later in the route.
+ */
+async function renderedEdgeNodeOcclusions(page: Page, clearancePx = 12): Promise<string[]> {
+  return page.locator("[data-workflow-edge]").evaluateAll((edgeGroups, clearance) => {
+    if (edgeGroups.length === 0) {
+      return ["missing-rendered-edges"];
+    }
+    const nodes = Array.from(document.querySelectorAll<HTMLElement>("[data-step-node]")).map((node) => ({
+      id: node.dataset.stepNode ?? "?",
+      rect: node.getBoundingClientRect(),
+    }));
+    const occlusions = new Set<string>();
+
+    for (const group of edgeGroups) {
+      const edge = group as SVGGElement;
+      const edgeId = edge.dataset.workflowEdge ?? "?";
+      const sourceId = edge.dataset.edgeSource;
+      const targetId = edge.dataset.edgeTarget;
+      const path = edge.querySelector<SVGPathElement>("path.react-flow__edge-path");
+      const matrix = path?.getScreenCTM();
+      if (path === null || matrix === null) {
+        occlusions.add(`${edgeId}/missing-path`);
+        continue;
+      }
+
+      const length = path.getTotalLength();
+      const samples = Math.max(2, Math.ceil(length));
+      for (let index = 0; index <= samples; index += 1) {
+        const distance = (length * index) / samples;
+        const point = path.getPointAtLength(distance);
+        const screenPoint = new DOMPoint(point.x, point.y).matrixTransform(matrix);
+        for (const node of nodes) {
+          const isEndpoint = node.id === sourceId || node.id === targetId;
+          const isNearOwnEndpoint = isEndpoint && (distance <= 90 || length - distance <= 90);
+          if (isNearOwnEndpoint) {
+            continue;
+          }
+          const nodeClearance = isEndpoint ? 1 : clearance;
+          if (
+            screenPoint.x > node.rect.left - nodeClearance &&
+            screenPoint.x < node.rect.right + nodeClearance &&
+            screenPoint.y > node.rect.top - nodeClearance &&
+            screenPoint.y < node.rect.bottom + nodeClearance
+          ) {
+            occlusions.add(`${edgeId}/${node.id}`);
+          }
+        }
+      }
+    }
+    return Array.from(occlusions).sort();
+  }, clearancePx);
+}
+
 test.beforeAll(async () => {
   root = await createTempFixtureCopy("canvas-grammar");
   await fsp.copyFile(DEMO_SOURCE, path.join(root, ".observatory", "workflows", "canvas-grammar-demo.json"));
@@ -74,6 +132,18 @@ test("renders the synthetic retry, return, async, fan-out/fan-in, and outcomes w
     }));
   });
   expect(overlaps).toEqual([]);
+  expect(await renderedEdgeNodeOcclusions(page)).toEqual([]);
+});
+
+test("keeps every example-workflow edge clear of card interiors", async ({ page }) => {
+  await page.goto(server.url);
+  await waitForBoot(page);
+
+  for (const workflow of ["Generate Video Prompt", "Upload Reference Asset", "Canvas Grammar Demo"]) {
+    await selectWorkflowByName(page, workflow);
+    await waitForBoot(page);
+    expect(await renderedEdgeNodeOcclusions(page), workflow).toEqual([]);
+  }
 });
 
 test("captures deterministic dark and light review screenshots", async ({ page }) => {
