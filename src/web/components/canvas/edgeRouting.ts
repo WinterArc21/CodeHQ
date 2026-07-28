@@ -28,7 +28,9 @@
  * same lane without needing extra bookkeeping to keep them apart.
  */
 import { connectionStyle } from "../../design/semantics";
+import { connectionLabelText } from "./edgeLabel";
 import type { LayoutEdge, LayoutNode } from "./layout";
+import { estimateLabelChipWidth } from "./nodeContent";
 
 export interface Point {
   x: number;
@@ -174,6 +176,12 @@ function directPathCollides(source: LayoutNode, target: LayoutNode, others: Layo
  * sidecar lane label, kept as its own constant so the two can be tuned independently even though
  * they start at the same value. */
 const HOP_LABEL_OFFSET_Y = 11;
+/** Keeps a direct outcome hop's vertical turn inside the guaranteed-empty gap immediately before
+ * the outcome column. Using the geometric midpoint can put that vertical segment through an
+ * unrelated branch card when the source is several columns away. Ninety units leaves the turn
+ * clear of the rightmost work card while giving the target-local segment enough room for the
+ * label chip. */
+const HOP_MIN_TARGET_APPROACH = 90;
 
 /**
  * A short, local route for a branch edge whose target is a sole-feed outcome pill (see the file
@@ -185,12 +193,21 @@ const HOP_LABEL_OFFSET_Y = 11;
  * lands at the midpoint of the hop, between the two nodes it connects (contract mandate: "anchor
  * each label on or immediately beside its own path").
  */
-function buildDirectHopRoute(source: LayoutNode, target: LayoutNode): Omit<RoutedEdge, "id"> {
+function buildDirectHopRoute(source: LayoutNode, target: LayoutNode, labelText?: string): Omit<RoutedEdge, "id"> {
   const exit: Point = { x: source.x + source.width, y: source.y + source.height / 2 };
   const enter: Point = { x: target.x, y: target.y + target.height / 2 };
-  const midX = exit.x + (enter.x - exit.x) / 2;
-  const points = dedupeConsecutive([exit, { x: midX, y: exit.y }, { x: midX, y: enter.y }, enter]);
-  const labelPoint: Point = { x: midX, y: (exit.y + enter.y) / 2 - HOP_LABEL_OFFSET_Y };
+  if (enter.x <= exit.x) {
+    throw new Error(`Outcome direct hop must run forward (${source.id} -> ${target.id})`);
+  }
+  const targetApproach = Math.max(
+    HOP_MIN_TARGET_APPROACH,
+    labelText === undefined ? 0 : estimateLabelChipWidth(labelText) + COLLISION_CLEARANCE * 2,
+  );
+  const approachX = Math.max(exit.x + 1, enter.x - targetApproach);
+  const points = dedupeConsecutive([exit, { x: approachX, y: exit.y }, { x: approachX, y: enter.y }, enter]);
+  // Anchor on the final target-local segment: outcomes stacked from one source then receive one
+  // label per row instead of every label competing for the shared departure point.
+  const labelPoint: Point = { x: approachX + (enter.x - approachX) / 2, y: enter.y - HOP_LABEL_OFFSET_Y };
   return { points, labelPoint };
 }
 
@@ -333,9 +350,57 @@ function movePointTowards(from: Point, to: Point, distance: number): Point {
  * into one lane. Returns a map keyed by edge id; `WorkflowEdge` falls back to its own smoothstep
  * rendering for any edge with no entry here.
  */
-export function computeEdgeRoutes(nodes: LayoutNode[], edges: LayoutEdge[]): Map<string, RoutedEdge> {
+export function computeEdgeRoutes(
+  nodes: LayoutNode[],
+  edges: LayoutEdge[],
+  backEdgeIds: ReadonlySet<string> = new Set(),
+): Map<string, RoutedEdge> {
   const byId = new Map(nodes.map((node) => [node.id, node] as const));
   const routes = new Map<string, RoutedEdge>();
+  const graphMaxX = Math.max(...nodes.map((node) => node.x + node.width));
+  const workMaxX = Math.max(...nodes.filter((node) => !node.isOutcome).map((node) => node.x + node.width));
+  const outcomeXs = nodes.filter((node) => node.isOutcome).map((node) => node.x);
+  const outcomeMinX = outcomeXs.length > 0 ? Math.min(...outcomeXs) : undefined;
+
+  // Self loops stay as compact renderer-side curls. Every other detected back edge gets an
+  // honest return route whose arrow terminates on its real target's right edge. Prefer the empty
+  // channel before the outcome column; falling back outside the full graph keeps multiple return
+  // lanes deterministic without forcing a single return edge to widen the fitted viewport.
+  const returnEdges = edges.filter((edge) => backEdgeIds.has(edge.id) && edge.source !== edge.target);
+  let gapLaneIndex = 0;
+  let externalReturnLaneCount = 0;
+  returnEdges.forEach((edge) => {
+    const source = byId.get(edge.source);
+    const target = byId.get(edge.target);
+    if (source === undefined || target === undefined) return;
+    const sourceRight = source.x + source.width;
+    const targetRight = target.x + target.width;
+    const gapLaneX = workMaxX + LANE_GAP + gapLaneIndex * LANE_PITCH;
+    const labelText = connectionLabelText(edge.connection);
+    const labelHalfWidth = labelText === undefined ? 0 : estimateLabelChipWidth(labelText) / 2;
+    const gapLaneFits = outcomeMinX !== undefined && gapLaneX + labelHalfWidth + COLLISION_CLEARANCE < outcomeMinX;
+    const laneX = gapLaneFits
+      ? gapLaneX
+      : graphMaxX + LANE_GAP + externalReturnLaneCount * LANE_PITCH;
+    if (gapLaneFits) {
+      gapLaneIndex += 1;
+    } else {
+      externalReturnLaneCount += 1;
+    }
+    const departY = clearDepartureY(source, sourceRight + TURN_INSET, laneX, nodes);
+    const arriveY = clearArrivalY(target, targetRight + TURN_INSET, laneX, nodes);
+    const points = dedupeConsecutive([
+      { x: sourceRight, y: source.y + source.height / 2 },
+      { x: sourceRight + TURN_INSET, y: source.y + source.height / 2 },
+      { x: sourceRight + TURN_INSET, y: departY },
+      { x: laneX, y: departY },
+      { x: laneX, y: arriveY },
+      { x: targetRight + TURN_INSET, y: arriveY },
+      { x: targetRight + TURN_INSET, y: target.y + target.height / 2 },
+      { x: targetRight, y: target.y + target.height / 2 },
+    ]);
+    routes.set(edge.id, { id: edge.id, points, labelPoint: { x: laneX, y: (departY + arriveY) / 2 } });
+  });
 
   // How many valid connections land on each node — the signal that tells a sole-feed outcome
   // (this edge is its only incoming connection, so `layout.ts` anchored the outcome's position to
@@ -353,6 +418,9 @@ export function computeEdgeRoutes(nodes: LayoutNode[], edges: LayoutEdge[]): Map
     if (source === undefined || target === undefined || source.id === target.id) {
       continue;
     }
+    if (backEdgeIds.has(edge.id)) {
+      continue;
+    }
     const others = nodes.filter((node) => node.id !== source.id && node.id !== target.id);
 
     // A sole-feed outcome gets the direct hop regardless of this edge's own weight: `layout.ts`
@@ -362,7 +430,7 @@ export function computeEdgeRoutes(nodes: LayoutNode[], edges: LayoutEdge[]): Map
     // bottom-to-top axis a same-column successor uses.
     const isSoleOutcomeFeed = target.isOutcome && incomingCountByTarget.get(target.id) === 1;
     if (isSoleOutcomeFeed) {
-      const hop = buildDirectHopRoute(source, target);
+      const hop = buildDirectHopRoute(source, target, connectionLabelText(edge.connection));
       const hopCollides = others.some((node) => polylineIntersectsRect(hop.points, nodeRect(node), DECISION_CLEARANCE));
       if (!hopCollides) {
         routes.set(edge.id, { id: edge.id, ...hop });
@@ -385,8 +453,6 @@ export function computeEdgeRoutes(nodes: LayoutNode[], edges: LayoutEdge[]): Map
   if (needsSidecar.length === 0) {
     return routes;
   }
-
-  const graphMaxX = Math.max(...nodes.map((node) => node.x + node.width));
 
   const groupsByTarget = new Map<string, LayoutEdge[]>();
   for (const edge of needsSidecar) {
@@ -436,7 +502,7 @@ export function computeEdgeRoutes(nodes: LayoutNode[], edges: LayoutEdge[]): Map
 
   for (const group of groups) {
     const laneIndex = laneIndexByTarget.get(group.targetId)!;
-    const laneX = graphMaxX + LANE_GAP + laneIndex * LANE_PITCH;
+    const laneX = graphMaxX + LANE_GAP + (externalReturnLaneCount + laneIndex) * LANE_PITCH;
     const target = byId.get(group.targetId)!;
     const targetX = target.x + target.width / 2;
     const targetTopY = target.y;

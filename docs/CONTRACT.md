@@ -332,6 +332,22 @@ font families (`--font-ui` system sans, `--font-mono` system mono), transitions
 Workflow JSON **never** controls colour, font, coordinates, shape, connector style, background,
 animation, or layout. The renderer is deterministic.
 
+### Canvas graph grammar
+
+- An **outcome pill** is a step with `category: "output"` and out-degree zero. Output steps
+  that continue to another step remain ordinary work cards.
+- A terminal outcome receives failure tone only when all of its incoming connections are
+  `failure`. Terminals reached by `conditional` or `async` connections are neutral, not errors;
+  exclusively success/default arrivals may use success tone.
+- An explicitly labelled self-loop (for example `retry ≤3`) may render as a compact retry
+  curl. A non-self back edge (for example `re-encode`) remains a real return connection to
+  its target; it must not be collapsed into a self-loop glyph.
+- Multiple success branches may be laid out side-by-side for readability. Fan-out placement
+  alone does **not** claim concurrency: only explicit schema semantics such as an `async`
+  connection communicate asynchronous behavior.
+
+Node dragging/pinning and edge inspectors are deferred. They are not part of this grammar.
+
 ### Structural language
 
 Thin 1px borders (`--border-subtle`), square-ish corners, generous whitespace, uppercase

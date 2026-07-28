@@ -6,6 +6,7 @@ import type { SourceStatus } from "../../api/types";
 import { usePrefersReducedMotion } from "../../lib/usePrefersReducedMotion";
 import { useObservatoryStore } from "../../store/useObservatoryStore";
 import { buildFlowEdges, buildFlowNodes, buildZoneLabelNodes } from "./buildFlowElements";
+import { CanvasLegend } from "./CanvasLegend";
 import { CanvasHeader } from "./CanvasHeader";
 import { CanvasOverflowIndicator } from "./CanvasOverflowIndicator";
 import { computeEdgeRoutes } from "./edgeRouting";
@@ -64,15 +65,17 @@ function WorkflowCanvasInner({ workflow, sourceChecks }: WorkflowCanvasProps) {
   // Sidecar routes for branch edges whose direct path would clip an intervening spine card
   // (edgeRouting.ts) — computed once here so both edge rendering and viewport fitting agree on
   // exactly the same routed geometry.
-  const edgeRoutes = useMemo(() => computeEdgeRoutes(layout.nodes, layout.edges), [layout]);
   const backEdgeIds = useMemo(() => computeBackEdgeIds(workflow), [workflow]);
+  const edgeRoutes = useMemo(() => computeEdgeRoutes(layout.nodes, layout.edges, backEdgeIds), [layout, backEdgeIds]);
 
   // Path tracing (contract §11): hover wins over keyboard focus, which wins over the persisted
   // selection, matching how each one takes over the user's attention — a hover is the most
   // momentary/explicit signal, selection the most passive/lingering one.
   const [hoveredStepId, setHoveredStepId] = useState<string | null>(null);
   const [focusedStepId, setFocusedStepId] = useState<string | null>(null);
-  const traceAnchorId = hoveredStepId ?? focusedStepId ?? selectedStepId;
+  const realStepIds = useMemo(() => new Set(workflow.steps.map((step) => step.id)), [workflow]);
+  const candidateTraceAnchorId = hoveredStepId ?? focusedStepId ?? selectedStepId;
+  const traceAnchorId = candidateTraceAnchorId !== null && realStepIds.has(candidateTraceAnchorId) ? candidateTraceAnchorId : null;
   const tracePath = useMemo(
     () => (traceAnchorId !== null ? computeTracePath(workflow, traceAnchorId) : null),
     [workflow, traceAnchorId],
@@ -145,6 +148,9 @@ function WorkflowCanvasInner({ workflow, sourceChecks }: WorkflowCanvasProps) {
   );
 
   const handleNodeClick: NodeMouseHandler<CanvasFlowNode> = (_event, node) => {
+    if (node.type === "zoneLabel") {
+      return;
+    }
     selectStep(node.id);
     setRovingId(node.id);
   };
@@ -187,6 +193,7 @@ function WorkflowCanvasInner({ workflow, sourceChecks }: WorkflowCanvasProps) {
         >
           {showMinimap ? <MiniMap pannable zoomable={false} ariaLabel={`${workflow.name} overview map`} /> : null}
         </ReactFlow>
+        <CanvasLegend workflow={workflow} />
         {overflowsBottom ? <CanvasOverflowIndicator /> : null}
       </div>
     </div>

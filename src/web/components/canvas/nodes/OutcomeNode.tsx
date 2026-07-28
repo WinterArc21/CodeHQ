@@ -1,4 +1,4 @@
-import { Check, X } from "@phosphor-icons/react";
+import { Check, Minus, X } from "@phosphor-icons/react";
 import { Handle, Position, type NodeProps } from "@xyflow/react";
 import type { OutcomeFlowNode } from "../types";
 import styles from "./OutcomeNode.module.css";
@@ -44,8 +44,14 @@ export function OutcomeNode({ data }: NodeProps<OutcomeFlowNode>) {
       <Handle type="target" position={Position.Top} className={styles.handle} />
       <Handle type="source" position={Position.Bottom} className={styles.handle} />
 
-      <span className={styles.glyph} aria-hidden="true">
-        {tone === "failure" ? <X size={13} weight="bold" /> : <Check size={13} weight="bold" />}
+      <span className={styles.glyph} data-outcome-glyph={tone} aria-hidden="true">
+        {tone === "failure" ? (
+          <X size={13} weight="bold" />
+        ) : tone === "success" ? (
+          <Check size={13} weight="bold" />
+        ) : (
+          <Minus size={13} weight="bold" />
+        )}
       </span>
       <span className={styles.text}>
         <span className={styles.name}>{step.name}</span>

@@ -4,8 +4,10 @@ import userEvent from "@testing-library/user-event";
 import { describe, expect, it, vi } from "vitest";
 import { ReactFlowProvider, type NodeProps } from "@xyflow/react";
 import type { WorkflowStep } from "@schema/workflow";
+import { CanvasLegend } from "@web/components/canvas/CanvasLegend";
+import { OutcomeNode } from "@web/components/canvas/nodes/OutcomeNode";
 import { StepNode } from "@web/components/canvas/nodes/StepNode";
-import type { StepFlowNode, StepNodeData } from "@web/components/canvas/types";
+import type { OutcomeFlowNode, OutcomeNodeData, StepFlowNode, StepNodeData } from "@web/components/canvas/types";
 
 /**
  * `StepNode` is tested in isolation from the full `WorkflowCanvas`/React Flow tree: React Flow
@@ -159,5 +161,53 @@ describe("StepNode", () => {
   it("does not surface the warning affordance when nothing is missing", () => {
     renderStepNode(makeProps(makeData()));
     expect(screen.queryByText("Missing sources")).not.toBeInTheDocument();
+  });
+});
+
+describe("canvas outcome and legend semantics", () => {
+  it("labels a neutral outcome honestly and does not render a success check", () => {
+    const data: OutcomeNodeData = {
+      step: makeStep({ id: "done", name: "Done", purpose: "Processing ended." }),
+      tone: "neutral",
+      dimmed: false,
+      tabIndex: -1,
+      onKeyDown: () => {},
+      onHoverStart: () => {},
+      onHoverEnd: () => {},
+      onFocusStep: () => {},
+      onBlurStep: () => {},
+    };
+    const props = { ...makeProps(makeData()), id: "done", type: "outcome", data } as NodeProps<OutcomeFlowNode>;
+    const { container } = render(
+      <ReactFlowProvider>
+        <OutcomeNode {...props} />
+      </ReactFlowProvider>,
+    );
+    expect(screen.getByRole("button", { name: /outcome: done/i })).toBeInTheDocument();
+    expect(container.querySelector('[data-outcome-glyph="neutral"]')).toBeInTheDocument();
+  });
+
+  it("lists only present connection types and adds Retry only for a self-loop", () => {
+    render(
+      <CanvasLegend
+        workflow={{
+          schemaVersion: "0.1",
+          id: "loop",
+          name: "Loop",
+          purpose: "Tests legend grammar.",
+          steps: [makeStep({ id: "a" }), makeStep({ id: "b" })],
+          connections: [
+            { from: "a", to: "b", type: "failure" },
+            { from: "a", to: "a", type: "conditional" },
+          ],
+        }}
+      />,
+    );
+    const legend = screen.getByRole("group", { name: /connection legend/i });
+    expect(legend).toHaveTextContent("Failure");
+    expect(legend).toHaveTextContent("Retry");
+    expect(legend).not.toHaveTextContent("Conditional");
+    expect(legend).not.toHaveTextContent("Normal");
+    expect(legend).not.toHaveTextContent("Async");
   });
 });

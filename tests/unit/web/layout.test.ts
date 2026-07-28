@@ -59,6 +59,34 @@ describe("computeLayout", () => {
     expect(result.nodes[0]?.height).toBeGreaterThan(0);
   });
 
+  it("keeps terminal non-output steps as work cards", () => {
+    const result = computeLayout(makeWorkflow([makeStep("a"), makeStep("terminal")], [{ from: "a", to: "terminal" }]), BASE_OPTS);
+    expect(result.nodes.find((node) => node.id === "terminal")?.isOutcome).toBe(false);
+  });
+
+  it("derives an outcome column strictly beyond every positioned work lane", () => {
+    const workflow = makeWorkflow(
+      [
+        makeStep("fork", { category: "entry" }),
+        makeStep("left"),
+        makeStep("right"),
+        makeStep("left-next"),
+        makeStep("right-next"),
+        makeStep("failed", { category: "output" }),
+      ],
+      [
+        { from: "fork", to: "left" },
+        { from: "fork", to: "right" },
+        { from: "left", to: "left-next" },
+        { from: "right", to: "right-next" },
+        { from: "fork", to: "failed", type: "failure", label: "failed" },
+      ],
+    );
+    const nodes = computeLayout(workflow, BASE_OPTS).nodes;
+    const maxWorkRight = Math.max(...nodes.filter((node) => !node.isOutcome).map((node) => node.x + node.width));
+    expect(nodes.find((node) => node.id === "failed")!.x).toBeGreaterThan(maxWorkRight);
+  });
+
   it("lays out a workflow with zero connections in a row (shared y, increasing x)", () => {
     const workflow = makeWorkflow([makeStep("a"), makeStep("b"), makeStep("c")]);
     const result = computeLayout(workflow, BASE_OPTS);
@@ -100,7 +128,12 @@ describe("computeLayout", () => {
     // per-rank side-by-side columns (which is what overflowed a 1440px canvas once one step had
     // three failure branches — see the "Also fix" case in upload-assets below).
     const workflow = makeWorkflow(
-      [makeStep("start"), makeStep("left"), makeStep("middle"), makeStep("right")],
+      [
+        makeStep("start"),
+        makeStep("left", { category: "output" }),
+        makeStep("middle", { category: "output" }),
+        makeStep("right", { category: "output" }),
+      ],
       [
         { from: "start", to: "left" },
         { from: "start", to: "middle" },
@@ -209,7 +242,7 @@ describe("computeLayout", () => {
           makeStep("understand"),
           makeStep("story"),
           makeStep("save"),
-          makeStep("done"),
+          makeStep("done", { category: "output" }),
         ],
         [
           { from: "entry", to: "validate" },
@@ -270,7 +303,12 @@ describe("computeLayout", () => {
       // below the other, not side-by-side in separate columns (the old per-rank branch-column
       // behaviour this test used to assert, before the outcome-column redesign).
       const workflow = makeWorkflow(
-        [makeStep("start", { category: "entry" }), makeStep("main"), makeStep("branchA"), makeStep("branchB")],
+        [
+          makeStep("start", { category: "entry" }),
+          makeStep("main"),
+          makeStep("branchA", { category: "output" }),
+          makeStep("branchB", { category: "output" }),
+        ],
         [
           { from: "start", to: "main" },
           { from: "start", to: "branchA", type: "failure", label: "a" },
@@ -292,10 +330,10 @@ describe("computeLayout", () => {
       const workflow = makeWorkflow(
         [
           makeStep("start", { category: "entry" }),
-          makeStep("short"),
+          makeStep("short", { category: "output" }),
           makeStep("longA"),
           makeStep("longB"),
-          makeStep("longC"),
+          makeStep("longC", { category: "output" }),
         ],
         [
           { from: "start", to: "short" },
@@ -483,7 +521,7 @@ describe("computeLayout", () => {
       expect(innerA.x).not.toBe(innerB.x);
       // The inner fan-out is centred on its own immediate parent ("outer-right"), not on "fork".
       expect((innerA.x + innerB.x) / 2).toBeCloseTo(outerRight.x, 5);
-      expect(innerA.x).not.toBe(byId.get("fork")!.x);
+      expect(outerRight.x).not.toBe(byId.get("fork")!.x);
       assertNoOverlap(result.nodes);
     });
   });

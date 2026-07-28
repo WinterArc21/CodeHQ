@@ -118,7 +118,9 @@ export function buildFlowEdges(
 
   return layout.edges.map((edge) => {
     const route = routes.get(edge.id);
-    const isRetryLoop = backEdgeIds.has(edge.id);
+    // Only a literal self-loop means retry. Other DFS back edges retain their declared
+    // connection semantics and use the sidecar route computed by edgeRouting.
+    const isRetryLoop = backEdgeIds.has(edge.id) && edge.source === edge.target;
     const sourceNode = nodeById.get(edge.source);
     const dimmed = traceEdgeIds !== null && !traceEdgeIds.has(edge.id);
 
@@ -164,7 +166,8 @@ export function buildZoneLabelNodes(layout: LayoutResult): ZoneLabelFlowNode[] {
   const topY = Math.min(...layout.nodes.map((node) => node.y)) - ZONE_LABEL_GAP_ABOVE;
 
   const specs: Array<{ id: string; text: string; x: number }> = [];
-  if (mainLineNodes.length > 0) {
+  const isTrueSingleColumn = mainLineNodes.length > 0 && mainLineNodes.every((node) => node.x === mainLineNodes[0]?.x);
+  if (isTrueSingleColumn) {
     specs.push({ id: "__zone-label-main-line", text: "Main line", x: Math.min(...mainLineNodes.map((node) => node.x)) });
   }
   if (outcomeNodes.length > 0) {

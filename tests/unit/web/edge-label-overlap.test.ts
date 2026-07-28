@@ -3,6 +3,7 @@ import type { Workflow, WorkflowStep } from "@schema/workflow";
 import { computeDirectLabelPoint, connectionLabelText, type Point } from "@web/components/canvas/edgeLabel";
 import { computeEdgeRoutes } from "@web/components/canvas/edgeRouting";
 import { computeLayout, type LayoutNode } from "@web/components/canvas/layout";
+import { computeBackEdgeIds } from "@web/components/canvas/graph";
 import { EDGE_LABEL_CHIP_HEIGHT, estimateLabelChipWidth } from "@web/components/canvas/nodeContent";
 
 function makeStep(id: string, overrides: Partial<WorkflowStep> = {}): WorkflowStep {
@@ -41,7 +42,7 @@ function nodeRect(node: LayoutNode): Rect {
  * that used to sit on top of `persist-asset`'s own border. */
 function assertNoLabelOverlapsAnyNode(workflow: Workflow): void {
   const layout = computeLayout(workflow, BASE_OPTS);
-  const routes = computeEdgeRoutes(layout.nodes, layout.edges);
+  const routes = computeEdgeRoutes(layout.nodes, layout.edges, computeBackEdgeIds(workflow));
   const nodeById = new Map(layout.nodes.map((node) => [node.id, node] as const));
 
   for (const edge of layout.edges) {
@@ -79,7 +80,7 @@ describe("edge label / node overlap", () => {
         makeStep("validate-file", { category: "decision" }),
         makeStep("scan-for-malware", { category: "external" }),
         makeStep("persist-asset", { category: "output" }),
-        makeStep("outcome-created"),
+        makeStep("outcome-created", { category: "output" }),
       ],
       [
         { from: "receive-upload", to: "validate-file" },
@@ -102,7 +103,7 @@ describe("edge label / node overlap", () => {
         makeStep("b"),
         makeStep("c"),
         makeStep("d"),
-        makeStep("outcome-fail"),
+        makeStep("outcome-fail", { category: "output" }),
       ],
       [
         { from: "entry", to: "a" },

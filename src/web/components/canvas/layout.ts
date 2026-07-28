@@ -70,8 +70,15 @@ import type { Workflow, WorkflowConnection } from "@schema/workflow";
 import type { Depth } from "../../store/useObservatoryStore";
 import { connectionStyle } from "../../design/semantics";
 import { connectionLabelText, MIN_LABELED_RANK_GAP } from "./edgeLabel";
-import { computeOutDegree, computeTopologicalOrder } from "./graph";
-import { computeNodeHeight, computeOutcomeNodeWidth, effectiveDepthForStep, NODE_WIDTH, OUTCOME_NODE_HEIGHT } from "./nodeContent";
+import { computeOutcomeStepIds, computeOutDegree, computeTopologicalOrder } from "./graph";
+import {
+  computeNodeHeight,
+  computeOutcomeNodeWidth,
+  effectiveDepthForStep,
+  estimateLabelChipWidth,
+  NODE_WIDTH,
+  OUTCOME_NODE_HEIGHT,
+} from "./nodeContent";
 
 /** Vertical gap between ranks — small relative to `LAYOUT_NODE_SEP` because the node itself is
  * now wide and short: most of the workflow's readable footprint should come from row height, not
@@ -87,13 +94,11 @@ export const LAYOUT_MARGIN_Y = 28;
 export const LAYOUT_BRANCH_OFFSET = NODE_WIDTH + LAYOUT_NODE_SEP;
 /** Horizontal gap between the spine and the dedicated outcome column — a direct hop's own label
  * chip sits in this gap (`edgeRouting.ts`'s `buildDirectHopRoute`), so it has to be wider than
- * the generic `LAYOUT_NODE_SEP`: confirmed by rendering the real `generate-video` workflow
- * (`dist/shots/capture.mjs`) that the longest realistic branch label ("unreachable", 11 chars)
- * renders ~78 flow units wide, which already overlaps both the step and the pill in a 72px gap. */
+ * the generic `LAYOUT_NODE_SEP`. The Playwright canvas-grammar screenshots and overlap tests keep
+ * that rendered clearance covered; longer labels widen the gap dynamically below. */
 export const OUTCOME_COLUMN_GAP = 110;
-/** Horizontal distance from the spine's x to the outcome column. */
-export const LAYOUT_OUTCOME_OFFSET = NODE_WIDTH + OUTCOME_COLUMN_GAP;
-
+/** Extra clear space around the widest outcome-edge label when it exceeds the default gap. */
+const OUTCOME_LABEL_CLEARANCE = 32;
 export interface LayoutNode {
   id: string;
   x: number;
@@ -436,12 +441,8 @@ function expandLabeledRankGaps(
 export function computeLayout(workflow: Workflow, opts: ComputeLayoutOptions): LayoutResult {
   const outDegree = computeOutDegree(workflow);
   const { connectedIds, isolatedIds } = partitionSteps(workflow);
-  // A step only reads as a terminal "outcome" when something actually connects into it —
-  // otherwise "isolatedIds" (a step with *no* connections at all, e.g. a lone step in a
-  // single-step workflow, or one an agent hasn't wired up yet) would count as terminal too and
-  // lose its normal work-step sizing/depth growth for no real reason: an outcome is specifically
-  // "where a path lands", which requires there to be a path.
-  const isOutcomeStep = (stepId: string): boolean => connectedIds.has(stepId) && (outDegree.get(stepId) ?? 0) === 0;
+  const outcomeStepIds = computeOutcomeStepIds(workflow);
+  const isOutcomeStep = (stepId: string): boolean => outcomeStepIds.has(stepId);
 
   const sizeById = new Map<string, { width: number; height: number }>(
     workflow.steps.map((step) => {
@@ -482,7 +483,6 @@ export function computeLayout(workflow: Workflow, opts: ComputeLayoutOptions): L
     const spine = computeSpine(workflow, connectedIds, outDegree);
     const spineX = LAYOUT_MARGIN_X;
     const branchColumnX = LAYOUT_MARGIN_X + LAYOUT_BRANCH_OFFSET;
-    const outcomeColumnX = LAYOUT_MARGIN_X + LAYOUT_OUTCOME_OFFSET;
 
     for (const id of connectedIds) {
       if (!spine.has(id)) {
@@ -514,6 +514,27 @@ export function computeLayout(workflow: Workflow, opts: ComputeLayoutOptions): L
       branchColumnCountByRank.set(rankKey, column + 1);
       positioned.set(step.id, { x: branchColumnX + column * LAYOUT_BRANCH_OFFSET, y: node.y - height / 2 });
     }
+
+    // Fan-out can move work lanes farther right than the ordinary branch columns. Resolve those
+    // lanes before deriving the outcome column so no parallel work card can wind up underneath
+    // an outcome pill.
+    applyFanOutLanes(workflow, connectedIds, isOutcomeStep, positioned);
+    const nonOutcomeRight = Math.max(
+      LAYOUT_MARGIN_X + NODE_WIDTH,
+      ...Array.from(positioned.entries())
+        .filter(([id]) => !isOutcomeStep(id))
+        .map(([id, point]) => point.x + (sizeById.get(id)?.width ?? NODE_WIDTH)),
+    );
+    const widestOutcomeLabel = Math.max(
+      0,
+      ...workflow.connections
+        .filter((connection) => isOutcomeStep(connection.to))
+        .map((connection) => connectionLabelText(connection))
+        .filter((label): label is string => label !== undefined)
+        .map(estimateLabelChipWidth),
+    );
+    const outcomeGap = Math.max(OUTCOME_COLUMN_GAP, widestOutcomeLabel + OUTCOME_LABEL_CLEARANCE);
+    const outcomeColumnX = nonOutcomeRight + outcomeGap;
 
     // Outcome steps (see "the outcome column" above): a sole-feed outcome anchors level with its
     // one source; several sole-feed outcomes sharing a source stack downward from that row in
@@ -567,7 +588,6 @@ export function computeLayout(workflow: Workflow, opts: ComputeLayoutOptions): L
       outcomeCursorY = y + anchor.height + LAYOUT_RANK_SEP;
     }
 
-    applyFanOutLanes(workflow, connectedIds, isOutcomeStep, positioned);
   }
 
   const connectedMaxY = Math.max(

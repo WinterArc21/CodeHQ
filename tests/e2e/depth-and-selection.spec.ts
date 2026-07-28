@@ -33,7 +33,7 @@ test("clicking a node opens the step drawer showing that step's name and purpose
   await expect(drawer).toContainText("Fetches the submitted page and extracts its title, description, body text, and images.");
 });
 
-test("keyboard navigation moves selection between steps", async ({ page }) => {
+test("keyboard navigation follows the narrative vertically", async ({ page }) => {
   const first = page.locator('[data-step-node="receive-request"]');
   await first.focus();
   await expect(first).toBeFocused();
@@ -42,12 +42,46 @@ test("keyboard navigation moves selection between steps", async ({ page }) => {
   const second = page.locator('[data-step-node="validate-request"]');
   await expect(second).toBeFocused();
 
-  await second.press("ArrowRight");
+  await second.press("ArrowDown");
   const third = page.locator('[data-step-node="check-quota"]');
   await expect(third).toBeFocused();
 
-  await third.press("ArrowLeft");
+  await third.press("ArrowUp");
   await expect(second).toBeFocused();
+});
+
+test("keyboard navigation reaches the invalid-request outcome and returns to its decision", async ({ page }) => {
+  const entry = page.locator('[data-step-node="receive-request"]');
+  await entry.focus();
+
+  // Down follows the primary path to validation; Right enters its side outcome.
+  await entry.press("ArrowDown");
+  const validation = page.locator('[data-step-node="validate-request"]');
+  await expect(validation).toBeFocused();
+  await validation.press("ArrowRight");
+
+  const invalid = page.locator('[data-step-node="outcome-invalid-request"]');
+  await expect(invalid).toBeFocused();
+  await invalid.press("ArrowLeft");
+  await expect(validation).toBeFocused();
+});
+
+test("hover traces related nodes without making zone labels interactive", async ({ page }) => {
+  const anchor = page.locator('[data-step-node="check-quota"]');
+  const traced = page.locator('[data-step-node="outcome-quota-exceeded"]');
+  const unrelated = page.locator('[data-step-node="outcome-invalid-request"]');
+
+  await anchor.hover();
+  await expect.poll(() => unrelated.evaluate((node) => getComputedStyle(node).opacity)).not.toBe("1");
+  await expect(traced).toHaveCSS("opacity", "1");
+
+  await page.mouse.move(0, 0);
+  const zone = page.locator(".react-flow__node-zoneLabel").first();
+  await zone.click({ force: true });
+  await expect(page.getByRole("dialog")).toHaveCount(0);
+  for (const node of await page.locator("[data-step-node]").all()) {
+    await expect(node).toHaveCSS("opacity", "1");
+  }
 });
 
 test("Escape closes the drawer and restores focus to the originating node", async ({ page }) => {

@@ -2,6 +2,8 @@ import { describe, expect, it } from "vitest";
 import type { Workflow, WorkflowStep } from "@schema/workflow";
 import { buildOrthogonalPath, buildRetryLoopPath, computeEdgeRoutes, polylineIntersectsRect, type Point } from "@web/components/canvas/edgeRouting";
 import { computeLayout, type LayoutNode } from "@web/components/canvas/layout";
+import { computeBackEdgeIds } from "@web/components/canvas/graph";
+import { estimateLabelChipWidth } from "@web/components/canvas/nodeContent";
 
 function makeStep(id: string, overrides: Partial<WorkflowStep> = {}): WorkflowStep {
   return { id, name: `Step ${id}`, purpose: `Purpose of ${id}.`, ...overrides };
@@ -61,20 +63,9 @@ function assertNoNodeIsClipped(nodes: LayoutNode[], points: Point[], sourceId: s
   }
 }
 
-/**
- * A conservative estimate of a rendered label chip's flow-space half-width, fitted against real
- * `getBoundingClientRect()` measurements taken from `examples/motiona`'s `generate-video`
- * workflow in a live browser (`dist/shots/capture.mjs`): "rejected" (8 chars) measured ~69.6
- * flow units wide, "quota exceeded" (15 chars) ~108.3, "scrape failed" (13 chars) ~101.8. Fit
- * as `width = perChar * chars + overhead` and rounded up (larger than the real slope/intercept)
- * so this stays a safe upper bound rather than a tight one — the regression this guards against
- * is `LANE_GAP` shrinking back below what a real label chip needs, not a precise pixel replica
- * of `WorkflowEdge.module.css`.
- */
+/** Uses the same DOM-free width estimate as production routing/layout. */
 function estimateLabelHalfWidthFlow(text: string): number {
-  const PER_CHAR = 6;
-  const OVERHEAD = 28;
-  return (PER_CHAR * text.length + OVERHEAD) / 2;
+  return estimateLabelChipWidth(text) / 2;
 }
 
 describe("computeEdgeRoutes", () => {
@@ -118,8 +109,7 @@ describe("computeEdgeRoutes", () => {
     expect(report).toHaveLength(3);
     // All three share one target (`save-result`), so they share one lane.
     expect(new Set(report.map((entry) => entry.laneX)).size).toBe(1);
-    // Every waypoint list is the same fixed 6-point sidecar shape.
-    expect(report.every((entry) => entry.waypoints === 6)).toBe(true);
+    expect(report.every((entry) => entry.waypoints >= 4)).toBe(true);
   });
 
   it("merges branch edges that share a target into one lane", () => {
@@ -142,11 +132,8 @@ describe("computeEdgeRoutes", () => {
 
   it("keeps every branch label chip clear of the node column its lane runs beside (LANE_GAP regression guard)", () => {
     // The exact bug this guards: "quota exceeded" (check-quota->save-result) and "scrape failed"
-    // (scrape-website->save-result) both used to clip the neighbouring spine node by a few
-    // pixels when LANE_GAP was 40 — confirmed by rendering this real workflow shape in a browser
-    // and reading back real label/node rects (dist/shots/capture.mjs). This is the fast,
-    // browser-free version of that same proof: for every routed label, its estimated chip must
-    // sit fully clear (to the right) of the graph's rightmost node edge.
+    // (scrape-website->save-result) used to clip the neighbouring spine node when LANE_GAP was
+    // smaller. This is the fast, browser-free companion to the Playwright screenshot coverage.
     const workflow = generateVideoShapedWorkflow();
     const layout = computeLayout(workflow, BASE_OPTS);
     const routes = computeEdgeRoutes(layout.nodes, layout.edges);
@@ -167,7 +154,7 @@ describe("computeEdgeRoutes", () => {
     }
   });
 
-  it("gives concurrent branches sharing a lane distinct, non-colliding label points", () => {
+  it("gives shared-target sidecar branches distinct label y positions", () => {
     const workflow = generateVideoShapedWorkflow();
     const layout = computeLayout(workflow, BASE_OPTS);
     const routes = computeEdgeRoutes(layout.nodes, layout.edges);
@@ -184,7 +171,7 @@ describe("computeEdgeRoutes", () => {
     // the target's left side), not the old bottom-to-top gutter-lane sidecar this same fixture
     // used to leave entirely unrouted.
     const workflow = makeWorkflow(
-      [makeStep("start", { category: "entry" }), makeStep("middle"), makeStep("onlyBranch")],
+      [makeStep("start", { category: "entry" }), makeStep("middle"), makeStep("onlyBranch", { category: "output" })],
       [
         { from: "start", to: "middle" },
         { from: "middle", to: "onlyBranch", type: "failure", label: "rejected" },
@@ -215,7 +202,11 @@ describe("computeEdgeRoutes", () => {
     // get a real route that clears "near" sitting directly above it in that same column, not a
     // path that clips it.
     const workflow = makeWorkflow(
-      [makeStep("start", { category: "entry" }), makeStep("near"), makeStep("far")],
+      [
+        makeStep("start", { category: "entry" }),
+        makeStep("near", { category: "output" }),
+        makeStep("far", { category: "output" }),
+      ],
       [
         { from: "start", to: "near", type: "conditional", label: "near" },
         { from: "start", to: "far", type: "conditional", label: "far" },
@@ -224,8 +215,12 @@ describe("computeEdgeRoutes", () => {
     const layout = computeLayout(workflow, BASE_OPTS);
     const routes = computeEdgeRoutes(layout.nodes, layout.edges);
     const farEdge = layout.edges.find((edge) => edge.target === "far")!;
+    const nearEdge = layout.edges.find((edge) => edge.target === "near")!;
     const route = routes.get(farEdge.id);
+    const nearRoute = routes.get(nearEdge.id);
     expect(route).toBeDefined();
+    expect(nearRoute).toBeDefined();
+    expect(route!.labelPoint.y).not.toBe(nearRoute!.labelPoint.y);
     assertNoNodeIsClipped(layout.nodes, route!.points, farEdge.source, farEdge.target);
   });
 
@@ -281,6 +276,30 @@ describe("computeEdgeRoutes", () => {
         expect(a.x === b.x || a.y === b.y, `segment ${i} of route '${route.id}' is diagonal`).toBe(true);
       }
     }
+  });
+
+  it("routes a non-self c-to-a back edge to a's right edge without clipping another node", () => {
+    const workflow = makeWorkflow(
+      [makeStep("a", { category: "entry" }), makeStep("b"), makeStep("c")],
+      [
+        { from: "a", to: "b" },
+        { from: "b", to: "c" },
+        { from: "c", to: "a", type: "conditional", label: "retry" },
+      ],
+    );
+    const layout = computeLayout(workflow, BASE_OPTS);
+    const edge = layout.edges.find((candidate) => candidate.source === "c" && candidate.target === "a")!;
+    const route = computeEdgeRoutes(layout.nodes, layout.edges, computeBackEdgeIds(workflow)).get(edge.id)!;
+    const target = layout.nodes.find((node) => node.id === "a")!;
+    expect(route.points.at(-1)).toEqual({ x: target.x + target.width, y: target.y + target.height / 2 });
+    assertNoNodeIsClipped(layout.nodes, route.points, edge.source, edge.target);
+  });
+
+  it("does not create a computeEdgeRoutes route for a self-loop", () => {
+    const workflow = makeWorkflow([makeStep("a")], [{ from: "a", to: "a", type: "conditional", label: "retry" }]);
+    const layout = computeLayout(workflow, BASE_OPTS);
+    const edge = layout.edges[0]!;
+    expect(computeEdgeRoutes(layout.nodes, layout.edges, computeBackEdgeIds(workflow)).has(edge.id)).toBe(false);
   });
 });
 

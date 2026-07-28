@@ -101,19 +101,21 @@ describe("RETRY_EDGE_VISUAL", () => {
 });
 
 describe("outcomeTone", () => {
-  it("reads as failure when every incoming connection is failure/conditional", () => {
+  it("reads as failure only when every incoming connection is exactly failure", () => {
     expect(outcomeTone(["failure"])).toBe("failure");
-    expect(outcomeTone(["conditional", "failure"])).toBe("failure");
+    expect(outcomeTone(["failure", "failure"])).toBe("failure");
   });
 
-  it("reads as success when every incoming connection is success/default/async", () => {
+  it("reads as success only when every incoming connection is success/default", () => {
     expect(outcomeTone(["success"])).toBe("success");
     expect(outcomeTone([undefined])).toBe("success");
-    expect(outcomeTone(["async", "success"])).toBe("success");
+    expect(outcomeTone(["success", undefined])).toBe("success");
   });
 
   it("falls back to neutral for a genuinely mixed set of incoming types", () => {
     expect(outcomeTone(["success", "failure"])).toBe("neutral");
+    expect(outcomeTone(["conditional", "failure"])).toBe("neutral");
+    expect(outcomeTone(["async", "success"])).toBe("neutral");
   });
 
   it("falls back to neutral when nothing points at the step at all", () => {

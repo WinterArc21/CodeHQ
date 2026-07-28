@@ -8,7 +8,7 @@
 import { useCallback, useState, type KeyboardEvent as ReactKeyboardEvent, type RefObject } from "react";
 import type { ReactFlowInstance } from "@xyflow/react";
 import type { Workflow } from "@schema/workflow";
-import { computeTopologicalOrder, predecessorIds, successorIds } from "./graph";
+import { computeArrowNavigation, computeTopologicalOrder } from "./graph";
 import type { LayoutNode } from "./layout";
 
 export interface UseCanvasKeyboardNavParams {
@@ -68,19 +68,12 @@ export function useCanvasKeyboardNav(params: UseCanvasKeyboardNavParams): UseCan
 
   const handleNodeKeyDown = useCallback(
     (event: ReactKeyboardEvent<HTMLElement>, stepId: string): void => {
-      if (event.key === "ArrowRight" || event.key === "ArrowDown") {
+      if (event.key === "ArrowUp" || event.key === "ArrowDown" || event.key === "ArrowLeft" || event.key === "ArrowRight") {
         event.preventDefault();
-        const next = successorIds(workflow, stepId)[0];
+        const direction = event.key.slice("Arrow".length).toLowerCase() as "up" | "down" | "left" | "right";
+        const next = computeArrowNavigation(workflow, stepId)[direction];
         if (next !== undefined) {
           focusAndCenter(next);
-        }
-        return;
-      }
-      if (event.key === "ArrowLeft" || event.key === "ArrowUp") {
-        event.preventDefault();
-        const previous = predecessorIds(workflow, stepId)[0];
-        if (previous !== undefined) {
-          focusAndCenter(previous);
         }
         return;
       }

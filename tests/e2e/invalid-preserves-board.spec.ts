@@ -46,7 +46,7 @@ test("a truncated write keeps the board on screen and surfaces diagnostics, then
   await expect(banner).toContainText("Failed to parse JSON");
   await expect(banner).toContainText("last valid version is still being displayed");
 
-  // The board itself is untouched: same 7 steps, same content, nothing blanked out.
+  // The board itself is untouched: same 7 work steps plus 4 outcomes, same content, nothing blanked out.
   await expect(page.locator("[data-step-node]")).toHaveCount(11);
   await expect(page.locator('[data-step-node="receive-request"]')).toContainText("Receive Request");
 

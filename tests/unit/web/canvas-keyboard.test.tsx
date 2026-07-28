@@ -15,12 +15,14 @@ const WORKFLOW: Workflow = {
     { id: "receive", name: "Receive Request", purpose: "Accepts the checkout payload." },
     { id: "validate", name: "Validate Cart", purpose: "Confirms the cart is still valid." },
     { id: "charge", name: "Charge Card", purpose: "Captures the payment." },
-    { id: "confirm", name: "Send Confirmation", purpose: "Emails the receipt." },
+    { id: "confirm", name: "Send Confirmation", purpose: "Emails the receipt.", category: "output" },
+    { id: "declined", name: "Payment Declined", purpose: "Ends checkout without charging.", category: "output" },
   ],
   connections: [
     { from: "receive", to: "validate" },
     { from: "validate", to: "charge" },
     { from: "charge", to: "confirm" },
+    { from: "charge", to: "declined", type: "failure" },
   ],
 };
 
@@ -56,21 +58,36 @@ describe("WorkflowCanvas keyboard navigation", () => {
     });
   });
 
-  it("moves focus to a successor on ArrowRight and a predecessor on ArrowLeft", async () => {
+  it("moves along the narrative with Down and Up", async () => {
     render(<WorkflowCanvas workflow={WORKFLOW} sourceChecks={{}} />);
     const user = userEvent.setup();
 
     await tabToFirstStepNode(user);
     await waitFor(() => expect(document.querySelector('[data-step-node="receive"]')).toHaveFocus());
 
-    await user.keyboard("{ArrowRight}");
+    await user.keyboard("{ArrowDown}");
     await waitFor(() => expect(document.querySelector('[data-step-node="validate"]')).toHaveFocus());
 
-    await user.keyboard("{ArrowRight}");
+    await user.keyboard("{ArrowDown}");
     await waitFor(() => expect(document.querySelector('[data-step-node="charge"]')).toHaveFocus());
 
-    await user.keyboard("{ArrowLeft}");
+    await user.keyboard("{ArrowUp}");
     await waitFor(() => expect(document.querySelector('[data-step-node="validate"]')).toHaveFocus());
+  });
+
+  it("reaches a lateral failure outcome and returns to its narrative source", async () => {
+    render(<WorkflowCanvas workflow={WORKFLOW} sourceChecks={{}} />);
+    const user = userEvent.setup();
+
+    await tabToFirstStepNode(user);
+    await user.keyboard("{ArrowDown}{ArrowDown}");
+    await waitFor(() => expect(document.querySelector('[data-step-node="charge"]')).toHaveFocus());
+
+    await user.keyboard("{ArrowRight}");
+    await waitFor(() => expect(document.querySelector('[data-step-node="declined"]')).toHaveFocus());
+
+    await user.keyboard("{ArrowLeft}");
+    await waitFor(() => expect(document.querySelector('[data-step-node="charge"]')).toHaveFocus());
   });
 
   it("moves to the last step in topological order on End, and back to first on Home", async () => {
@@ -81,7 +98,7 @@ describe("WorkflowCanvas keyboard navigation", () => {
     await waitFor(() => expect(document.querySelector('[data-step-node="receive"]')).toHaveFocus());
 
     await user.keyboard("{End}");
-    await waitFor(() => expect(document.querySelector('[data-step-node="confirm"]')).toHaveFocus());
+    await waitFor(() => expect(document.querySelector('[data-step-node="declined"]')).toHaveFocus());
 
     await user.keyboard("{Home}");
     await waitFor(() => expect(document.querySelector('[data-step-node="receive"]')).toHaveFocus());

@@ -124,23 +124,15 @@ export type OutcomeTone = "success" | "failure" | "neutral";
  * step's `category` and from the type of the connections arriving at it"). No schema change:
  * driven entirely by the `type` of whatever connections land on the step, which `canvas/graph.ts`'s
  * `computeIncomingTypes` already derives from the graph shape. A step reached only by
- * `failure`/`conditional` connections reads as a failure outcome; one reached only by
- * `success`/default/`async` connections reads as success; an outcome with a genuinely mixed set of
- * incoming types (or none at all — an isolated terminal step) falls back to neutral rather than
- * guessing which one "wins".
+ * `failure` connections reads as failure; one reached only by `success`/default connections reads
+ * as success. Conditional, async, mixed, or absent intent is neutral rather than guessed.
  */
 export function outcomeTone(incomingTypes: ReadonlyArray<WorkflowConnection["type"]>): OutcomeTone {
   if (incomingTypes.length === 0) {
     return "neutral";
   }
-  const hasFailure = incomingTypes.some((type) => type === "failure" || type === "conditional");
-  const hasSuccess = incomingTypes.some((type) => type === "success" || type === "async" || type === undefined);
-  if (hasFailure && !hasSuccess) {
-    return "failure";
-  }
-  if (hasSuccess && !hasFailure) {
-    return "success";
-  }
+  if (incomingTypes.every((type) => type === "failure")) return "failure";
+  if (incomingTypes.every((type) => type === "success" || type === undefined)) return "success";
   return "neutral";
 }
 

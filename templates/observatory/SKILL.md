@@ -126,6 +126,13 @@ Use forward slashes or backslashes, e.g. `"src/server/routes/checkout.ts"`.
 | `condition` | string | no | The condition under which this branch is taken. |
 | `type` | one of: `"success"`, `"failure"`, `"conditional"`, `"async"` | no | Defaults to a plain solid connection. `"failure"` for error branches, `"conditional"` for branches gated on a condition, `"async"` for fire-and-forget or queued work. |
 
+Describe graph semantics, not desired pictures: an output-category step is shown as an outcome
+only when it has no outgoing connections; use `failure` only for genuine failure paths, and use
+`async` only when the source proves an asynchronous handoff. A labelled self-loop can document a
+real retry (for example `"retry ≤3"`), while a loop back to a different step remains a normal
+return connection. Several success branches do not imply that they run concurrently. Never add
+fictional branches merely to demonstrate these canvas forms.
+
 ### `SourceReference`
 
 | Field | Type | Required | Notes |

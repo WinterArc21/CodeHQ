@@ -7,6 +7,7 @@
  * upstream/downstream trace look like. Never throws or hangs on a cycle.
  */
 import type { Workflow, WorkflowConnection } from "@schema/workflow";
+import { connectionStyle } from "../../design/semantics";
 
 /** Mirrors the edge-id derivation `layout.ts`'s `LayoutEdge` uses (`connection.id`, falling back
  * to `${from}->${to}#${index}` keyed by the connection's position in `workflow.connections`) so
@@ -109,6 +110,96 @@ export function computeOutDegree(workflow: Workflow): Map<string, number> {
     }
   }
   return outDegree;
+}
+
+/** Connected output steps with at least one valid incoming edge and no valid outgoing edge.
+ * Category, connectivity, and valid graph endpoints are all intentional: an isolated output is
+ * content awaiting wiring, not a truthful workflow outcome. */
+export function computeOutcomeStepIds(workflow: Workflow): Set<string> {
+  const stepIds = validStepIds(workflow);
+  const incoming = new Set<string>();
+  const outDegree = computeOutDegree(workflow);
+  for (const connection of workflow.connections) {
+    if (stepIds.has(connection.from) && stepIds.has(connection.to)) {
+      incoming.add(connection.to);
+    }
+  }
+  return new Set(
+    workflow.steps
+      .filter((step) => step.category === "output" && incoming.has(step.id) && outDegree.get(step.id) === 0)
+      .map((step) => step.id),
+  );
+}
+
+export interface ArrowNavigation {
+  up?: string;
+  down?: string;
+  left?: string;
+  right?: string;
+}
+
+/** Pure keyboard neighbours following the same primary/branch distinction as canvas layout.
+ * Horizontal movement describes sibling placement, not concurrency. Invalid endpoints are
+ * ignored and no graph walk is performed, so malformed cycles cannot hang navigation. */
+export function computeArrowNavigation(workflow: Workflow, stepId: string): ArrowNavigation {
+  const ids = validStepIds(workflow);
+  if (!ids.has(stepId)) return {};
+
+  const outcomes = computeOutcomeStepIds(workflow);
+  const successors = successorIds(workflow, stepId);
+  const predecessors = predecessorIds(workflow, stepId);
+  const connectionsBetween = (from: string, to: string) =>
+    workflow.connections.filter((connection) => connection.from === from && connection.to === to && ids.has(from) && ids.has(to));
+  const isPrimary = (from: string, to: string) =>
+    connectionsBetween(from, to).some((connection) => connectionStyle(connection.type).weight === "primary");
+  const isLateral = (from: string, to: string) => outcomes.has(to) || !isPrimary(from, to);
+
+  const result: ArrowNavigation = {};
+  const down = successors.find((id) => !outcomes.has(id) && isPrimary(stepId, id)) ?? successors[0];
+  const up = predecessors.find((id) => isPrimary(id, stepId)) ?? predecessors[0];
+  if (down !== undefined) result.down = down;
+  if (up !== undefined) result.up = up;
+
+  // Outcomes fed solely by one source are laid out as a declaration-ordered vertical stack.
+  if (outcomes.has(stepId) && predecessors.length === 1) {
+    const source = predecessors[0]!;
+    const stack = successorIds(workflow, source).filter(
+      (id) => outcomes.has(id) && predecessorIds(workflow, id).length === 1 && predecessorIds(workflow, id)[0] === source,
+    );
+    const index = stack.indexOf(stepId);
+    const previousOutcome = index > 0 ? stack[index - 1] : undefined;
+    const nextOutcome = index >= 0 && index < stack.length - 1 ? stack[index + 1] : undefined;
+    if (previousOutcome !== undefined) result.up = previousOutcome;
+    if (nextOutcome !== undefined) result.down = nextOutcome;
+  }
+
+  const ownLateral = successors
+    .filter((id) => isLateral(stepId, id))
+    // A normal terminal outcome and an exception outcome can share one source. Right should
+    // enter the exceptional branch; Down already reaches the normal/default successor.
+    .sort((a, b) => Number(isPrimary(stepId, a)) - Number(isPrimary(stepId, b)));
+  const firstOwnLateral = ownLateral[0];
+  if (firstOwnLateral !== undefined) result.right = firstOwnLateral;
+
+  // A child in a fan-out can move across the source's sibling lanes. Prefer this only when the
+  // child itself has no lateral destination, preserving Right-to-outcome from a work step.
+  for (const parent of predecessors) {
+    const siblings = successorIds(workflow, parent);
+    const index = siblings.indexOf(stepId);
+    const rightSibling = index >= 0 && index < siblings.length - 1 ? siblings[index + 1] : undefined;
+    if (result.right === undefined && rightSibling !== undefined) result.right = rightSibling;
+    if (isLateral(parent, stepId)) {
+      if (result.right === undefined) {
+        const lateralSibling = siblings.find((id) => id !== stepId && isLateral(parent, id));
+        if (lateralSibling !== undefined) result.right = lateralSibling;
+      }
+      result.left = parent;
+      break;
+    }
+    const leftSibling = index > 0 ? siblings[index - 1] : undefined;
+    if (result.left === undefined && leftSibling !== undefined) result.left = leftSibling;
+  }
+  return result;
 }
 
 /** The connection `type`s of every valid connection arriving at each step id — what

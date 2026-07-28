@@ -1,0 +1,52 @@
+import type { Workflow } from "@schema/workflow";
+import { connectionStyle, RETRY_EDGE_VISUAL, type ConnectionVisual } from "../../design/semantics";
+import styles from "./CanvasLegend.module.css";
+
+interface CanvasLegendProps {
+  workflow: Workflow;
+}
+
+const CONNECTION_TYPES = ["success", "failure", "conditional", "async"] as const;
+const LABELS: Record<(typeof CONNECTION_TYPES)[number], string> = {
+  success: "Normal",
+  failure: "Failure",
+  conditional: "Conditional",
+  async: "Async",
+};
+
+function swatchStyle(visual: ConnectionVisual) {
+  return {
+    borderTopColor: `var(${visual.varName})`,
+    borderTopStyle: visual.dash === "none" ? "solid" : visual.dash === "dotted" ? "dotted" : "dashed",
+    borderTopWidth: visual.weight === "primary" ? 2 : 1,
+  } as const;
+}
+
+/** A read-only key for only the edge grammar currently visible in this workflow. */
+export function CanvasLegend({ workflow }: CanvasLegendProps) {
+  // A self-loop renders with the retry grammar instead of its declared connection grammar, so
+  // exclude it from the ordinary rows and add the dedicated Retry row below.
+  const presentTypes = new Set(
+    workflow.connections.filter((connection) => connection.from !== connection.to).map((connection) => connection.type ?? "success"),
+  );
+  const rows: Array<{ key: string; label: string; visual: ConnectionVisual }> = CONNECTION_TYPES.filter((type) => presentTypes.has(type)).map((type) => ({
+    key: type,
+    label: LABELS[type],
+    visual: connectionStyle(type),
+  }));
+  if (workflow.connections.some((connection) => connection.from === connection.to)) {
+    rows.push({ key: "retry", label: "Retry", visual: RETRY_EDGE_VISUAL });
+  }
+  if (rows.length === 0) return null;
+
+  return (
+    <div className={styles.legend} role="group" aria-label="Connection legend">
+      {rows.map((row) => (
+        <div className={styles.row} key={row.key}>
+          <span className={styles.swatch} style={swatchStyle(row.visual)} aria-hidden="true" />
+          <span>{row.label}</span>
+        </div>
+      ))}
+    </div>
+  );
+}

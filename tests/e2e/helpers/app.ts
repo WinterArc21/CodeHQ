@@ -1,7 +1,6 @@
 /**
- * Small, page-level helpers reused across specs. Selectors here intentionally mirror the
- * ones already proven out in `dist/shots/capture.mjs` (`[data-step-node]`,
- * `button[data-workflow-item]`, the depth-control group, `.react-flow__edge`).
+ * Small, page-level helpers reused across specs. These stable selectors are exercised by the
+ * committed Playwright interaction and screenshot coverage.
  */
 import type { Locator, Page } from "@playwright/test";
 

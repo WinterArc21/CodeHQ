@@ -45,4 +45,5 @@ export const PORTS = {
   uninitialized: 4503,
   empty: 4504,
   cliOpen: 4505,
+  canvasGrammar: 4506,
 } as const;

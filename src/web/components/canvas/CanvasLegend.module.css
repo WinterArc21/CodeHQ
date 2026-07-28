@@ -1,0 +1,29 @@
+.legend {
+  position: absolute;
+  left: var(--space-2);
+  bottom: var(--space-2);
+  z-index: 4;
+  display: grid;
+  gap: var(--space-1);
+  padding: var(--space-2);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-sm);
+  background: color-mix(in srgb, var(--bg-surface) 92%, transparent);
+  color: var(--text-tertiary);
+  font-family: var(--font-ui);
+  font-size: var(--fs-micro);
+  pointer-events: none;
+}
+
+.row {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  white-space: nowrap;
+}
+
+.swatch {
+  width: 22px;
+  height: 0;
+  flex: none;
+}

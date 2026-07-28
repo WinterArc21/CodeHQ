@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import type { Workflow, WorkflowStep } from "@schema/workflow";
-import { computeBackEdgeIds, computeIncomingTypes, computeOutDegree, computeTracePath } from "@web/components/canvas/graph";
+import { computeArrowNavigation, computeBackEdgeIds, computeIncomingTypes, computeOutcomeStepIds, computeOutDegree, computeTracePath } from "@web/components/canvas/graph";
 
 function makeStep(id: string, overrides: Partial<WorkflowStep> = {}): WorkflowStep {
   return { id, name: `Step ${id}`, purpose: `Purpose of ${id}.`, ...overrides };
@@ -35,6 +35,53 @@ describe("computeOutDegree", () => {
   it("ignores a connection pointing at a step id that doesn't exist", () => {
     const workflow = makeWorkflow([makeStep("a")], [{ from: "a", to: "missing" }]);
     expect(computeOutDegree(workflow).get("a")).toBe(0);
+  });
+});
+
+describe("computeOutcomeStepIds", () => {
+  it("requires output category, a valid incoming connection, and terminal shape", () => {
+    const workflow = makeWorkflow(
+      [makeStep("entry"), makeStep("out", { category: "output" }), makeStep("terminal"), makeStep("isolated", { category: "output" }), makeStep("continuing", { category: "output" })],
+      [{ from: "entry", to: "out" }, { from: "entry", to: "terminal" }, { from: "entry", to: "continuing" }, { from: "continuing", to: "out" }, { from: "missing", to: "isolated" }],
+    );
+    expect(computeOutcomeStepIds(workflow)).toEqual(new Set(["out"]));
+  });
+});
+
+describe("computeArrowNavigation", () => {
+  const pipeline = makeWorkflow(
+    [makeStep("entry"), makeStep("guard"), makeStep("save"), makeStep("bad", { category: "output" }), makeStep("ok", { category: "output" })],
+    [{ from: "entry", to: "guard" }, { from: "guard", to: "save" }, { from: "guard", to: "bad", type: "failure" }, { from: "save", to: "ok" }],
+  );
+
+  it.each([
+    ["guard", "right", "bad"],
+    ["bad", "left", "guard"],
+    ["guard", "down", "save"],
+  ] as const)("maps %s Arrow%s to %s", (from, direction, to) => {
+    expect(computeArrowNavigation(pipeline, from)[direction]).toBe(to);
+  });
+
+  it("moves between fan-out sibling lanes", () => {
+    const workflow = makeWorkflow([makeStep("root"), makeStep("a"), makeStep("b")], [{ from: "root", to: "a" }, { from: "root", to: "b" }]);
+    expect(computeArrowNavigation(workflow, "a").right).toBe("b");
+    expect(computeArrowNavigation(workflow, "b").left).toBe("a");
+  });
+
+  it("moves vertically through outcomes sharing a sole source", () => {
+    const workflow = makeWorkflow([makeStep("source"), makeStep("one", { category: "output" }), makeStep("two", { category: "output" })], [{ from: "source", to: "one", type: "failure" }, { from: "source", to: "two", type: "failure" }]);
+    expect(computeArrowNavigation(workflow, "one").down).toBe("two");
+    expect(computeArrowNavigation(workflow, "two").up).toBe("one");
+  });
+
+  it("makes every node in a representative graph arrow-reachable from entry", () => {
+    const seen = new Set(["entry"]);
+    const queue = ["entry"];
+    while (queue.length) {
+      const navigation = computeArrowNavigation(pipeline, queue.shift()!);
+      for (const next of Object.values(navigation)) if (next && !seen.has(next)) { seen.add(next); queue.push(next); }
+    }
+    expect(seen).toEqual(new Set(pipeline.steps.map((step) => step.id)));
   });
 });
 
