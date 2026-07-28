@@ -5,7 +5,7 @@ import type { Workflow } from "@schema/workflow";
 import type { SourceStatus } from "../../api/types";
 import { usePrefersReducedMotion } from "../../lib/usePrefersReducedMotion";
 import { useObservatoryStore } from "../../store/useObservatoryStore";
-import { buildFlowEdges, buildFlowNodes } from "./buildFlowElements";
+import { buildFlowEdges, buildFlowNodes, buildZoneLabelNodes } from "./buildFlowElements";
 import { CanvasHeader } from "./CanvasHeader";
 import { CanvasOverflowIndicator } from "./CanvasOverflowIndicator";
 import { computeEdgeRoutes } from "./edgeRouting";
@@ -15,15 +15,22 @@ import { computeBackEdgeIds, computeTracePath } from "./graph";
 import { computeLayout } from "./layout";
 import { OutcomeNode } from "./nodes/OutcomeNode";
 import { StepNode } from "./nodes/StepNode";
+import { ZoneLabel } from "./nodes/ZoneLabel";
 import type { CanvasFlowNode, WorkflowFlowEdge } from "./types";
 import { useCanvasFit } from "./useCanvasFit";
 import { useCanvasKeyboardNav } from "./useCanvasKeyboardNav";
 import styles from "./WorkflowCanvas.module.css";
 
-/** A minimap only earns its screen space once a graph is big enough to get lost in. */
+/** A minimap only earns its screen space once a graph is big enough to get lost in. Counted over
+ * work-step nodes only, not outcome pills: an outcome is an endpoint a reader glances at, not
+ * another unit of work to navigate, so a workflow with a handful of steps and a stack of outcome
+ * pills beside them (post edge-grammar redesign, outcomes are now real nodes) should not suddenly
+ * earn a minimap it didn't need when outcomes were just coloured terminal markers. Both bundled
+ * example workflows (7 and 4 work steps) confirm this keeps the default 1440x900 view intrusion-
+ * free while still growing in for a genuinely large workflow. */
 const MINIMAP_NODE_THRESHOLD = 10;
 
-const NODE_TYPES = { step: StepNode, outcome: OutcomeNode };
+const NODE_TYPES = { step: StepNode, outcome: OutcomeNode, zoneLabel: ZoneLabel };
 const EDGE_TYPES = { workflow: WorkflowEdge };
 
 export interface WorkflowCanvasProps {
@@ -96,8 +103,8 @@ function WorkflowCanvasInner({ workflow, sourceChecks }: WorkflowCanvasProps) {
   });
 
   const nodes = useMemo(
-    () =>
-      buildFlowNodes({
+    () => [
+      ...buildFlowNodes({
         workflow,
         layout,
         depth,
@@ -113,6 +120,8 @@ function WorkflowCanvasInner({ workflow, sourceChecks }: WorkflowCanvasProps) {
         onFocusStep,
         onBlurStep,
       }),
+      ...buildZoneLabelNodes(layout),
+    ],
     [
       workflow,
       layout,
@@ -141,7 +150,8 @@ function WorkflowCanvasInner({ workflow, sourceChecks }: WorkflowCanvasProps) {
   };
 
   const hasExpandedSteps = Object.keys(expandedStepIds).length > 0;
-  const showMinimap = nodes.length > MINIMAP_NODE_THRESHOLD;
+  const stepNodeCount = nodes.filter((node) => node.type === "step").length;
+  const showMinimap = stepNodeCount > MINIMAP_NODE_THRESHOLD;
 
   return (
     <div className={styles.wrapper}>

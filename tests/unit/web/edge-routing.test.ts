@@ -177,10 +177,12 @@ describe("computeEdgeRoutes", () => {
     expect(uniqueYs.size).toBe(labelYs.length);
   });
 
-  it("leaves a lone branch with a clear direct path unrouted (no gratuitous detour)", () => {
-    // "onlyBranch" is the sole occupant of its rank — nothing shares its column, and the sole
-    // node above it in the corridor ("start") is a full rank further away with a real gap, not a
-    // touched boundary — so a direct smoothstep path genuinely can't clip anything here.
+  it("gives a lone sole-feed outcome a short direct hop, never the gutter-lane detour", () => {
+    // "onlyBranch" is a terminal outcome fed only by "middle", so `layout.ts` anchors it level
+    // with "middle" in the outcome column — exactly the shape `buildDirectHopRoute` exists for.
+    // The route it gets back must be the short local hop (out of the source's right side, into
+    // the target's left side), not the old bottom-to-top gutter-lane sidecar this same fixture
+    // used to leave entirely unrouted.
     const workflow = makeWorkflow(
       [makeStep("start", { category: "entry" }), makeStep("middle"), makeStep("onlyBranch")],
       [
@@ -190,15 +192,28 @@ describe("computeEdgeRoutes", () => {
     );
     const layout = computeLayout(workflow, BASE_OPTS);
     const routes = computeEdgeRoutes(layout.nodes, layout.edges);
-    expect(routes.size).toBe(0);
+    const edge = layout.edges.find((e) => e.source === "middle" && e.target === "onlyBranch")!;
+    const route = routes.get(edge.id);
+    const middle = layout.nodes.find((n) => n.id === "middle")!;
+    const onlyBranch = layout.nodes.find((n) => n.id === "onlyBranch")!;
+
+    expect(route).toBeDefined();
+    // A straight local hop: exits the source's own right edge and enters the target's own left
+    // edge, never a lane far out past the graph the way the sidecar gutter would.
+    expect(route!.points[0]!.x).toBe(middle.x + middle.width);
+    expect(route!.points[route!.points.length - 1]!.x).toBe(onlyBranch.x);
+    for (const point of route!.points) {
+      expect(point.x).toBeLessThanOrEqual(onlyBranch.x);
+    }
+    assertNoNodeIsClipped(layout.nodes, route!.points, edge.source, edge.target);
   });
 
-  it("still routes a branch edge whose target shares a rank with a nearer-column sibling, even though the direct path's endpoints only touch that sibling's boundary", () => {
-    // Two concurrent outcomes of one fan-out landing in different branch columns (the farther one
-    // reached over the nearer one's rank) — confirmed by rendering this exact shape in a real
-    // browser that React Flow's own rounded-corner `getSmoothStepPath` clips the nearer column's
-    // card here if left un-rerouted, even though the two nodes only share a rank boundary rather
-    // than genuinely overlapping in the naive sense.
+  it("still routes a branch edge whose target is a sole-feed outcome stacked below a sibling in the same outcome column", () => {
+    // "near" and "far" are both terminal outcomes fed only by "start", so both share one outcome
+    // column: "near" anchors level with "start", and "far" stacks below it (see the layout tests'
+    // "stacks a fan-out of sole-feed outcomes vertically" case). The edge into "far" must still
+    // get a real route that clears "near" sitting directly above it in that same column, not a
+    // path that clips it.
     const workflow = makeWorkflow(
       [makeStep("start", { category: "entry" }), makeStep("near"), makeStep("far")],
       [

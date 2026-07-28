@@ -14,6 +14,14 @@
  * branches — e.g. a decision's two immediate outcomes) are left alone: routing every branch edge
  * through the gutter regardless would read as gratuitous detours, not clarity.
  *
+ * A branch edge whose target is an outcome pill `layout.ts` anchored level with (or just below)
+ * this edge's own source — the common case, one dedicated outcome per failure — gets a third
+ * treatment: a short local "hop" straight out of the source's right side into the target's left
+ * side (`buildDirectHopRoute`), never the bottom-to-top axis every other edge on the canvas uses.
+ * That is only geometrically short and safe because `layout.ts` positioned the outcome to make it
+ * so; an outcome several distant branches share still falls through to the gutter-lane treatment
+ * above, which is the case that logic was actually built for.
+ *
  * Edges that share a target merge into one lane (task guidance: "if two branches share a target,
  * they may merge into a shared lane before entering it, if that reads more cleanly") — their
  * sources are necessarily at different ranks, so their labels land at different points along the
@@ -162,6 +170,30 @@ function directPathCollides(source: LayoutNode, target: LayoutNode, others: Layo
   return others.some((node) => polylineIntersectsRect(path, nodeRect(node), DECISION_CLEARANCE));
 }
 
+/** How far above a direct hop's own line its label sits — mirrors `LABEL_OFFSET_Y`'s role for a
+ * sidecar lane label, kept as its own constant so the two can be tuned independently even though
+ * they start at the same value. */
+const HOP_LABEL_OFFSET_Y = 11;
+
+/**
+ * A short, local route for a branch edge whose target is a sole-feed outcome pill (see the file
+ * header): out of the source's right side, straight across (or, when several outcomes stack
+ * below one busy source, down-and-across) into the target's left side. Unlike every other route
+ * this module produces, this one never touches the source's bottom or the target's top — those
+ * belong to the vertical spine language; a sideways hop reads as "a nearby alternative result",
+ * not "the next step", which is exactly the distinction an outcome pill needs to make. The label
+ * lands at the midpoint of the hop, between the two nodes it connects (contract mandate: "anchor
+ * each label on or immediately beside its own path").
+ */
+function buildDirectHopRoute(source: LayoutNode, target: LayoutNode): Omit<RoutedEdge, "id"> {
+  const exit: Point = { x: source.x + source.width, y: source.y + source.height / 2 };
+  const enter: Point = { x: target.x, y: target.y + target.height / 2 };
+  const midX = exit.x + (enter.x - exit.x) / 2;
+  const points = dedupeConsecutive([exit, { x: midX, y: exit.y }, { x: midX, y: enter.y }, enter]);
+  const labelPoint: Point = { x: midX, y: (exit.y + enter.y) / 2 - HOP_LABEL_OFFSET_Y };
+  return { points, labelPoint };
+}
+
 /**
  * The y at which it is safe to turn from a vertical departure onto a horizontal run toward
  * `laneX`, given every other node that shares the source's rank and whose x-range overlaps the
@@ -293,26 +325,58 @@ function movePointTowards(from: Point, to: Point, distance: number): Point {
 }
 
 /**
- * Computes a sidecar route for every branch edge whose direct path would clip another node,
- * merging edges that share a target into one lane. Returns a map keyed by edge id; an edge with a
- * clear direct path (including every `success`/primary edge — the spine never reroutes) simply
- * has no entry, and `WorkflowEdge` falls back to its existing smoothstep rendering for it.
+ * Computes an explicit route for every branch edge that needs one. A branch edge into a sole-feed
+ * outcome gets a short direct hop (`buildDirectHopRoute`) whenever that hop's own path is clear;
+ * everything else falls back to the collision check this module always used — a clear direct path
+ * (including every `success`/primary edge — the spine never reroutes) gets no entry at all, and a
+ * colliding one gets an explicit sidecar route around the graph, merging edges that share a target
+ * into one lane. Returns a map keyed by edge id; `WorkflowEdge` falls back to its own smoothstep
+ * rendering for any edge with no entry here.
  */
 export function computeEdgeRoutes(nodes: LayoutNode[], edges: LayoutEdge[]): Map<string, RoutedEdge> {
   const byId = new Map(nodes.map((node) => [node.id, node] as const));
   const routes = new Map<string, RoutedEdge>();
 
+  // How many valid connections land on each node — the signal that tells a sole-feed outcome
+  // (this edge is its only incoming connection, so `layout.ts` anchored the outcome's position to
+  // this edge's own source) apart from a shared outcome several distant branches converge on
+  // (still routed through the gutter lane below, the case that logic was actually built for).
+  const incomingCountByTarget = new Map<string, number>();
+  for (const edge of edges) {
+    incomingCountByTarget.set(edge.target, (incomingCountByTarget.get(edge.target) ?? 0) + 1);
+  }
+
   const needsSidecar: LayoutEdge[] = [];
   for (const edge of edges) {
-    if (!isBranchEdge(edge)) {
-      continue;
-    }
     const source = byId.get(edge.source);
     const target = byId.get(edge.target);
     if (source === undefined || target === undefined || source.id === target.id) {
       continue;
     }
     const others = nodes.filter((node) => node.id !== source.id && node.id !== target.id);
+
+    // A sole-feed outcome gets the direct hop regardless of this edge's own weight: `layout.ts`
+    // positions it beside its one source whether that connection is a `success` (e.g. "Save
+    // Result --success--> 201 Created", drawn as a short horizontal primary line) or a branch —
+    // either way, a level-with-source target calls for a sideways hop, not the vertical
+    // bottom-to-top axis a same-column successor uses.
+    const isSoleOutcomeFeed = target.isOutcome && incomingCountByTarget.get(target.id) === 1;
+    if (isSoleOutcomeFeed) {
+      const hop = buildDirectHopRoute(source, target);
+      const hopCollides = others.some((node) => polylineIntersectsRect(hop.points, nodeRect(node), DECISION_CLEARANCE));
+      if (!hopCollides) {
+        routes.set(edge.id, { id: edge.id, ...hop });
+        continue;
+      }
+      // The local hop would clip something (an unusually cramped outcome column). A branch edge
+      // can still fall through to the gutter-lane treatment below; a primary edge never reroutes
+      // (the spine's own invariant), so it simply renders unrouted rather than force a colliding
+      // shortcut.
+    }
+
+    if (!isBranchEdge(edge)) {
+      continue;
+    }
     if (directPathCollides(source, target, others)) {
       needsSidecar.push(edge);
     }

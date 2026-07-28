@@ -74,9 +74,16 @@ describe("computeLayout", () => {
   });
 
   it("orders a successor strictly below its predecessor (top-to-bottom layout)", () => {
+    // "b" must itself have an outgoing connection, or it is a terminal outcome — which the
+    // dedicated "outcome column" tests below cover on their own, deliberately positioned level
+    // with its source rather than below it. This test is specifically about the spine's vertical
+    // ordering, so its fixture keeps every step a genuine, non-terminal unit of work.
     const workflow = makeWorkflow(
-      [makeStep("a"), makeStep("b")],
-      [{ from: "a", to: "b" }],
+      [makeStep("a"), makeStep("b"), makeStep("c")],
+      [
+        { from: "a", to: "b" },
+        { from: "b", to: "c" },
+      ],
     );
     const result = computeLayout(workflow, BASE_OPTS);
     const a = result.nodes.find((n) => n.id === "a");
@@ -86,7 +93,12 @@ describe("computeLayout", () => {
     expect(b!.y).toBeGreaterThan(a!.y);
   });
 
-  it("handles branching (one step fanning out to three) without overlap", () => {
+  it("stacks a fan-out of sole-feed outcomes vertically in one outcome column, without overlap", () => {
+    // "left"/"middle"/"right" all have zero outgoing connections, so each is a terminal outcome
+    // fed only by "start" — the exact shape the outcome-column redesign targets: they share one
+    // column (level with "start") and stack downward in declaration order instead of the old
+    // per-rank side-by-side columns (which is what overflowed a 1440px canvas once one step had
+    // three failure branches — see the "Also fix" case in upload-assets below).
     const workflow = makeWorkflow(
       [makeStep("start"), makeStep("left"), makeStep("middle"), makeStep("right")],
       [
@@ -99,10 +111,19 @@ describe("computeLayout", () => {
     expect(result.nodes).toHaveLength(4);
     assertNoOverlap(result.nodes);
     const start = result.nodes.find((n) => n.id === "start")!;
-    for (const id of ["left", "middle", "right"]) {
-      const node = result.nodes.find((n) => n.id === id)!;
-      expect(node.y).toBeGreaterThan(start.y);
-    }
+    const left = result.nodes.find((n) => n.id === "left")!;
+    const middle = result.nodes.find((n) => n.id === "middle")!;
+    const right = result.nodes.find((n) => n.id === "right")!;
+    // One shared outcome column, distinct from the spine.
+    expect(left.x).toBe(middle.x);
+    expect(middle.x).toBe(right.x);
+    expect(left.x).not.toBe(start.x);
+    // The first outcome anchors on its shared source's vertical centre (within half a pixel of
+    // rounding when the two heights' parity differs); each later one stacks strictly below the
+    // previous, in declaration order.
+    expect(Math.abs(left.y - start.y)).toBeLessThanOrEqual(1);
+    expect(middle.y).toBeGreaterThan(left.y);
+    expect(right.y).toBeGreaterThan(middle.y);
   });
 
   it("does not hang or throw on a cycle (a retry loop back to an earlier step)", () => {
@@ -243,7 +264,11 @@ describe("computeLayout", () => {
       assertNoOverlap(result.nodes);
     });
 
-    it("stacks two branch steps that land in the same rank into separate columns instead of overlapping", () => {
+    it("stacks two sole-feed outcomes sharing a source vertically in one column, instead of overlapping", () => {
+      // "branchA"/"branchB" both terminate (no outgoing connections), so each is a terminal
+      // outcome fed only by "start" — they belong in the shared outcome column, stacked one
+      // below the other, not side-by-side in separate columns (the old per-rank branch-column
+      // behaviour this test used to assert, before the outcome-column redesign).
       const workflow = makeWorkflow(
         [makeStep("start", { category: "entry" }), makeStep("main"), makeStep("branchA"), makeStep("branchB")],
         [
@@ -254,8 +279,8 @@ describe("computeLayout", () => {
       );
       const result = computeLayout(workflow, BASE_OPTS);
       const byId = new Map(result.nodes.map((node) => [node.id, node] as const));
-      expect(byId.get("branchA")!.y).toBe(byId.get("branchB")!.y);
-      expect(byId.get("branchA")!.x).not.toBe(byId.get("branchB")!.x);
+      expect(byId.get("branchA")!.x).toBe(byId.get("branchB")!.x);
+      expect(byId.get("branchA")!.y).not.toBe(byId.get("branchB")!.y);
       assertNoOverlap(result.nodes);
     });
 

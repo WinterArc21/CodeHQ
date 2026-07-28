@@ -41,8 +41,29 @@
  * is a *result*, not the next unit of work, so it belongs in the outcome column beside the other
  * results (contract's own worked example puts a plain 200/201 success pill in the same right-hand
  * column as the failure pills, not back on the spine). `computeSpine` simply refuses to walk onto
- * any step with zero outgoing connections; it naturally falls through to the existing branch-
- * column placement below instead.
+ * any step with zero outgoing connections; it naturally falls through to the outcome-column
+ * placement below instead.
+ *
+ * ### The outcome column
+ *
+ * An outcome step whose *only* incoming connection comes from one already-positioned step (the
+ * overwhelmingly common shape — a decision step failing straight to its own dedicated "400 Bad
+ * Request" pill, never shared with anything else) is anchored level with that source: same y,
+ * one dedicated column to the spine's right. This is what lets `edgeRouting.ts` draw a short
+ * horizontal hop instead of a long detour — the geometry only reads as "a small step sideways"
+ * because the node is actually positioned beside its source, not one dagre rank below it.
+ *
+ * When several such outcomes share one busy source (e.g. `validate-file` failing three different
+ * ways), they cannot all occupy that same y in one column, so they stack downward from the
+ * source's row in declaration order — vertically, never spilling into new side-by-side columns
+ * the way the old per-rank branch-column logic did, which is what overflowed a 1440px canvas once
+ * a single step had three failure branches.
+ *
+ * An outcome reached by *more than one* incoming connection (several distant branches converging
+ * on one shared terminal, e.g. three decision steps that all fail through to the same "reject"
+ * step several ranks apart) has no single source rank to sit beside, so it keeps the old
+ * dagre-rank placement instead — which is exactly the shape `edgeRouting.ts`'s gutter-lane sidecar
+ * routing was built for.
  */
 import * as dagre from "dagre";
 import type { Workflow, WorkflowConnection } from "@schema/workflow";
@@ -63,6 +84,14 @@ export const LAYOUT_MARGIN_Y = 28;
 /** Horizontal distance from the spine's x to the first branch column (contract mandate: branch
  * steps depart visibly to the side, never crowd the spine itself). */
 export const LAYOUT_BRANCH_OFFSET = NODE_WIDTH + LAYOUT_NODE_SEP;
+/** Horizontal gap between the spine and the dedicated outcome column — a direct hop's own label
+ * chip sits in this gap (`edgeRouting.ts`'s `buildDirectHopRoute`), so it has to be wider than
+ * the generic `LAYOUT_NODE_SEP`: confirmed by rendering the real `generate-video` workflow
+ * (`dist/shots/capture.mjs`) that the longest realistic branch label ("unreachable", 11 chars)
+ * renders ~78 flow units wide, which already overlaps both the step and the pill in a 72px gap. */
+export const OUTCOME_COLUMN_GAP = 110;
+/** Horizontal distance from the spine's x to the outcome column. */
+export const LAYOUT_OUTCOME_OFFSET = NODE_WIDTH + OUTCOME_COLUMN_GAP;
 
 export interface LayoutNode {
   id: string;
@@ -254,6 +283,7 @@ export function computeLayout(workflow: Workflow, opts: ComputeLayoutOptions): L
     const spine = computeSpine(workflow, connectedIds, outDegree);
     const spineX = LAYOUT_MARGIN_X;
     const branchColumnX = LAYOUT_MARGIN_X + LAYOUT_BRANCH_OFFSET;
+    const outcomeColumnX = LAYOUT_MARGIN_X + LAYOUT_OUTCOME_OFFSET;
 
     for (const id of connectedIds) {
       if (!spine.has(id)) {
@@ -264,15 +294,18 @@ export function computeLayout(workflow: Workflow, opts: ComputeLayoutOptions): L
       positioned.set(id, { x: spineX, y: node.y - height / 2 });
     }
 
-    // Branch steps that land in the same dagre rank (identical centerline y) stack into
-    // successive columns instead of overlapping each other, closest column first. Walked in
+    // Off-spine steps that are genuine work (still have outgoing connections — a step reached
+    // only by a branch but not itself terminal) land in the same rank-column-stacking scheme as
+    // before. In practice neither example workflow has one of these (every off-spine step in
+    // both is a terminal outcome), but the shape is real and worth keeping: land in the same
+    // dagre rank, stack into successive columns instead of overlapping. Walked in
     // `workflow.steps` order (not `connectedIds`' insertion order, which follows connection
     // declaration order and would put branch columns in an arbitrary sequence) so the column a
     // branch step lands in is a stable function of its own position in the workflow, and keyed by
     // the rounded centerline so dagre's float arithmetic can't split one rank into two groups.
     const branchColumnCountByRank = new Map<number, number>();
     for (const step of workflow.steps) {
-      if (!connectedIds.has(step.id) || spine.has(step.id)) {
+      if (!connectedIds.has(step.id) || spine.has(step.id) || isOutcomeStep(step.id)) {
         continue;
       }
       const node = graph.node(step.id);
@@ -281,6 +314,58 @@ export function computeLayout(workflow: Workflow, opts: ComputeLayoutOptions): L
       const column = branchColumnCountByRank.get(rankKey) ?? 0;
       branchColumnCountByRank.set(rankKey, column + 1);
       positioned.set(step.id, { x: branchColumnX + column * LAYOUT_BRANCH_OFFSET, y: node.y - height / 2 });
+    }
+
+    // Outcome steps (see "the outcome column" above): a sole-feed outcome anchors level with its
+    // one source; several sole-feed outcomes sharing a source stack downward from that row in
+    // declaration order; a shared outcome (more than one incoming connection) falls back to its
+    // own dagre rank, unchanged from the original behaviour.
+    const incomingByOutcome = new Map<string, WorkflowConnection[]>();
+    for (const connection of workflow.connections) {
+      if (!isValidConnection(connectedIds, connection) || connection.from === connection.to || !isOutcomeStep(connection.to)) {
+        continue;
+      }
+      const list = incomingByOutcome.get(connection.to) ?? [];
+      list.push(connection);
+      incomingByOutcome.set(connection.to, list);
+    }
+
+    interface OutcomeAnchor {
+      id: string;
+      anchorY: number;
+      height: number;
+    }
+    const outcomeAnchors: OutcomeAnchor[] = [];
+    for (const step of workflow.steps) {
+      if (!connectedIds.has(step.id) || !isOutcomeStep(step.id)) {
+        continue;
+      }
+      const height = sizeById.get(step.id)?.height ?? 0;
+      const incoming = incomingByOutcome.get(step.id) ?? [];
+      const soleSourceId = incoming.length === 1 ? incoming[0]!.from : undefined;
+      const soleSource = soleSourceId !== undefined ? positioned.get(soleSourceId) : undefined;
+      const soleSourceHeight = soleSourceId !== undefined ? sizeById.get(soleSourceId)?.height : undefined;
+      const node = graph.node(step.id);
+      // Anchored on the *vertical centre* of its sole source, not its top edge: a taller source
+      // (e.g. one with an extra facts row) would otherwise leave the hop into a fixed-height
+      // outcome pill visibly bent, since the pill's own centre would land above the source's.
+      // Centring both keeps `edgeRouting.ts`'s direct hop a genuinely straight horizontal line in
+      // the common single-outcome case.
+      const anchorY =
+        soleSource !== undefined && soleSourceHeight !== undefined
+          ? soleSource.y + soleSourceHeight / 2 - height / 2
+          : node.y - height / 2;
+      outcomeAnchors.push({ id: step.id, anchorY, height });
+    }
+    // `Array#sort` is stable, so outcomes anchored to the same y (the same shared source) keep
+    // `workflow.steps` declaration order when they stack — top-to-bottom reading order, matching
+    // every other tie-break in this file.
+    outcomeAnchors.sort((a, b) => a.anchorY - b.anchorY);
+    let outcomeCursorY = -Infinity;
+    for (const anchor of outcomeAnchors) {
+      const y = Math.max(anchor.anchorY, outcomeCursorY);
+      positioned.set(anchor.id, { x: outcomeColumnX, y });
+      outcomeCursorY = y + anchor.height + LAYOUT_RANK_SEP;
     }
   }
 
