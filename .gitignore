@@ -6,3 +6,4 @@ playwright-report
 test-results
 *.local
 **/.observatory/.runtime/
+prototypes/edge-grammar/shots/
