@@ -1,7 +1,6 @@
 {
   "name": "code-observatory",
   "version": "0.1.0",
-  "private": true,
   "type": "module",
   "description": "Local-first workflow observatory that renders coding-agent-authored .observatory workflow files as an interactive canvas.",
   "license": "UNLICENSED",
