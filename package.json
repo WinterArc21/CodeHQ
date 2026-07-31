@@ -3,7 +3,26 @@
   "version": "0.1.0",
   "type": "module",
   "description": "Local-first workflow observatory that renders coding-agent-authored .observatory workflow files as an interactive canvas.",
-  "license": "UNLICENSED",
+  "license": "MIT",
+  "author": "WinterArc",
+  "homepage": "https://github.com/WinterArc21/HQ#readme",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/WinterArc21/HQ.git"
+  },
+  "bugs": {
+    "url": "https://github.com/WinterArc21/HQ/issues"
+  },
+  "keywords": [
+    "workflow",
+    "visualization",
+    "canvas",
+    "codebase",
+    "documentation",
+    "coding-agent",
+    "local-first",
+    "cli"
+  ],
   "engines": {
     "node": ">=20"
   },
@@ -20,6 +39,7 @@
     "dev:web": "vite",
     "dev:server": "tsx watch src/server/dev.ts",
     "build": "pnpm run build:node && pnpm run build:web",
+    "prepublishOnly": "pnpm run build",
     "build:node": "tsup",
     "build:web": "vite build",
     "typecheck": "tsc -p tsconfig.node.json --noEmit && tsc -p tsconfig.web.json --noEmit && tsc -p tsconfig.e2e.json --noEmit",
