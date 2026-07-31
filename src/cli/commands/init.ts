@@ -124,9 +124,9 @@ export async function runInit(options: InitOptions): Promise<InitResult> {
   // story it tells (`app/api/generate/route.ts` and friends), so scaffolding it into someone
   // else's repository made their very first `validate` print a wall of "does not exist"
   // warnings and every card on their board wear a "Missing sources" badge — a correct report
-  // about a fake workflow, read as a broken tool. The board's own empty state already offers a
-  // better introduction: it explains the next step, and its "Show example workflow" button
-  // renders the same demo in-app with source checking off, writing nothing into the repo.
+  // about a fake workflow, read as a broken tool. The board's own guided empty state is the
+  // real next step: it hands the user a ready-to-copy prompt for their coding agent to map a
+  // real workflow, rather than standing a fake one up for them.
   const includeExample = options.example ?? false;
 
   const warnings: string[] = [];

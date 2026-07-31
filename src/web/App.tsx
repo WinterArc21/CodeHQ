@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect } from "react";
 import { recheck } from "./api/client";
 import { useObservatorySnapshot } from "./api/events";
 import { AppShell, TopBar, type ObservatoryStatus } from "./components/shell";
@@ -8,7 +8,6 @@ import { DiagnosticsBanner, DiagnosticsPanel } from "./components/diagnostics";
 import { WorkflowCanvas } from "./components/canvas";
 import { StepDrawer } from "./components/drawer";
 import { CommandPalette } from "./components/search";
-import { EXAMPLE_WORKFLOW } from "./design/exampleWorkflow";
 import { useObservatoryStore } from "./store/useObservatoryStore";
 
 function computeConnectionStatus(
@@ -36,8 +35,6 @@ export function App() {
   const diagnosticsOpen = useObservatoryStore((state) => state.diagnosticsOpen);
   const toggleDiagnostics = useObservatoryStore((state) => state.toggleDiagnostics);
   const closeDiagnostics = useObservatoryStore((state) => state.closeDiagnostics);
-
-  const [showExample, setShowExample] = useState(false);
 
   useEffect(() => {
     if (snapshot === null) {
@@ -70,13 +67,8 @@ export function App() {
   const errorCount = snapshot.diagnostics.issues.filter((issue) => issue.severity === "error").length;
 
   const selectedRecord = snapshot.workflows.find((record) => record.id === selectedWorkflowId) ?? null;
-  const displayedWorkflow = showExample ? EXAMPLE_WORKFLOW : (selectedRecord?.workflow ?? null);
-  const displayedSourceChecks = showExample ? {} : (selectedRecord?.sourceChecks ?? {});
-
-  const handleSelect = (workflowId: string): void => {
-    setShowExample(false);
-    selectWorkflow(workflowId);
-  };
+  const displayedWorkflow = selectedRecord?.workflow ?? null;
+  const displayedSourceChecks = selectedRecord?.sourceChecks ?? {};
 
   const handleRecheck = async (): Promise<void> => {
     await recheck();
@@ -96,18 +88,14 @@ export function App() {
           />
         }
         aside={
-          <WorkflowNavigator
-            workflows={snapshot.workflows}
-            selectedWorkflowId={showExample ? null : selectedWorkflowId}
-            onSelect={handleSelect}
-          />
+          <WorkflowNavigator workflows={snapshot.workflows} selectedWorkflowId={selectedWorkflowId} onSelect={selectWorkflow} />
         }
       >
         <DiagnosticsBanner diagnostics={snapshot.diagnostics} onOpenDiagnostics={toggleDiagnostics} />
         {displayedWorkflow !== null ? (
           <WorkflowCanvas workflow={displayedWorkflow} sourceChecks={displayedSourceChecks} />
         ) : (
-          <EmptyState onShowExample={() => setShowExample(true)} onRecheck={handleRecheck} />
+          <EmptyState onRecheck={handleRecheck} />
         )}
       </AppShell>
       {displayedWorkflow !== null && selectedStepId !== null ? (

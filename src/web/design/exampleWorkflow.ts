@@ -2,13 +2,13 @@ import type { Workflow } from "@schema/workflow";
 
 /**
  * The bundled example workflow, matching `templates/observatory/workflows/example-generate-video.json`
- * exactly (kept as a typed TS literal so it can be imported directly by both the web app's
- * "Show example workflow" affordance and the development fixture, without reaching outside
- * `src/web` at build time).
+ * exactly (kept as a typed TS literal so the development fixture can import it directly, without
+ * reaching outside `src/web` at build time).
  *
- * Since `init` no longer scaffolds the example into a user's repository by default, this is the
- * primary way a first-time reader sees a populated board: rendered in-app with source checking
- * off, so its illustrative file paths never surface as "Missing sources".
+ * Not shown anywhere in the production UI: a first-time board with no workflows mapped shows
+ * only the guided empty state's copy-prompt action, not a stand-in workflow. This constant's
+ * only consumer is `api/fixture.ts` (`VITE_OBSERVATORY_FIXTURE=1`, dev/test builds only) and,
+ * indirectly, `init --example`, whose template is the JSON file this mirrors.
  */
 export const EXAMPLE_WORKFLOW: Workflow = {
   schemaVersion: "0.1",
