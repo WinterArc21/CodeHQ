@@ -4,7 +4,7 @@
  */
 import type { Locator, Page } from "@playwright/test";
 
-export type DepthLabel = "Workflow" | "Modules" | "Symbols";
+export type DepthLabel = "Story" | "Code map";
 
 /** Waits for the board to have rendered at least one step node. */
 export async function waitForBoot(page: Page): Promise<void> {
@@ -20,7 +20,7 @@ export async function selectWorkflowByName(page: Page, workflowName: string): Pr
 }
 
 export async function switchDepth(page: Page, depth: DepthLabel): Promise<void> {
-  await page.getByRole("group", { name: "Detail level" }).getByRole("button", { name: depth, exact: true }).click();
+  await page.getByRole("group", { name: "Canvas altitude" }).getByRole("button", { name: depth, exact: true }).click();
 }
 
 export function stepNode(page: Page, stepId: string): Locator {

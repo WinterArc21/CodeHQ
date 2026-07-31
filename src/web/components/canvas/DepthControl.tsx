@@ -1,4 +1,5 @@
 import type { Depth } from "../../store/useObservatoryStore";
+import { Tooltip } from "../primitives";
 import styles from "./DepthControl.module.css";
 
 export interface DepthControlProps {
@@ -6,27 +7,38 @@ export interface DepthControlProps {
   onChange: (depth: Depth) => void;
 }
 
-const DEPTH_OPTIONS: ReadonlyArray<{ value: Depth; label: string }> = [
-  { value: "workflow", label: "Workflow" },
-  { value: "modules", label: "Modules" },
-  { value: "symbols", label: "Symbols" },
+/** Global altitudes exposed in chrome. Internal `symbols` depth remains expand-only. */
+export type GlobalDepth = "workflow" | "modules";
+
+const ALTITUDE_HINT = "Story = what happens. Code map = where it lives.";
+
+const DEPTH_OPTIONS: ReadonlyArray<{ value: GlobalDepth; label: string }> = [
+  { value: "workflow", label: "Story" },
+  { value: "modules", label: "Code map" },
 ];
 
-/** Three segmented, keyboard-operable (native `<button>`s) depth options (contract §11). */
+/**
+ * Two segmented altitudes (contract §11): Story (human workflow) and Code map (files + I/O).
+ * Symbol-level detail is available by expanding a single step, not as a third global mode.
+ */
 export function DepthControl({ depth, onChange }: DepthControlProps) {
+  const active: GlobalDepth = depth === "modules" || depth === "symbols" ? "modules" : "workflow";
+
   return (
-    <div className={styles.group} role="group" aria-label="Detail level">
-      {DEPTH_OPTIONS.map((option) => (
-        <button
-          key={option.value}
-          type="button"
-          className={`${styles.option} ${depth === option.value ? styles.active : ""}`}
-          aria-pressed={depth === option.value}
-          onClick={() => onChange(option.value)}
-        >
-          {option.label}
-        </button>
-      ))}
-    </div>
+    <Tooltip content={ALTITUDE_HINT} placement="below">
+      <div className={styles.group} role="group" aria-label="Canvas altitude">
+        {DEPTH_OPTIONS.map((option) => (
+          <button
+            key={option.value}
+            type="button"
+            className={`${styles.option} ${active === option.value ? styles.active : ""}`}
+            aria-pressed={active === option.value}
+            onClick={() => onChange(option.value)}
+          >
+            {option.label}
+          </button>
+        ))}
+      </div>
+    </Tooltip>
   );
 }

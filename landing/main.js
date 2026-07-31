@@ -120,7 +120,7 @@ function nodeMarkup(s) {
       <span class="node-name">${s.name}</span>
       <span class="node-meta">${s.sources.length} src</span>
     </span>
-    <span class="node-sub">${s.io}</span>
+    <span class="node-sub">${s.purpose ?? s.io}</span>
     ${s.conf === "inferred" ? '<span class="node-conf">inferred</span>' : ""}`;
 }
 
@@ -340,11 +340,13 @@ function initDemo() {
     e.preventDefault();
   });
 
-  /* ---- depth control ---- */
+  /* ---- altitude control (Story / Code map) ---- */
   const subOf = (s, depth) => {
-    if (depth === "modules") return `${s.sources.length} src · ${s.edgeCases.length} edge · ${s.tests.length} tests`;
-    if (depth === "symbols") return s.sources.map((r) => r.symbol).join(" · ") || "none";
-    return s.io;
+    if (depth === "modules") {
+      const files = s.sources.map((r) => String(r.file).split("/").pop()).filter(Boolean);
+      return files.length > 0 ? files.join(" · ") : s.io;
+    }
+    return s.purpose ?? s.io;
   };
   document.querySelectorAll(".seg-btn").forEach((btn) => {
     btn.addEventListener("click", () => {

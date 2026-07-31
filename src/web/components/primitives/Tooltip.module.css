@@ -22,7 +22,12 @@
   transition:
     opacity var(--dur-fast) var(--ease-standard),
     visibility var(--dur-fast) var(--ease-standard);
-  z-index: 10;
+  z-index: 40;
+}
+
+.below {
+  bottom: auto;
+  top: calc(100% + var(--space-2));
 }
 
 .wrapper:hover .bubble,

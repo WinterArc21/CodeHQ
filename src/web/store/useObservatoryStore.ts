@@ -9,6 +9,9 @@ import { createJSONStorage, persist, type StateStorage } from "zustand/middlewar
 export type Depth = "workflow" | "modules" | "symbols";
 export type Theme = "dark" | "light";
 
+/** Persist schema version — bump when migrating stored UI preferences. */
+const PERSIST_VERSION = 1;
+
 interface ObservatoryUiState {
   selectedWorkflowId: string | null;
   selectedStepId: string | null;
@@ -130,8 +133,23 @@ export const useObservatoryStore = create<ObservatoryStore>()(
     }),
     {
       name: STORAGE_KEY,
+      version: PERSIST_VERSION,
       storage: createJSONStorage(() => safeStorage),
       partialize: (state) => ({ theme: state.theme, depth: state.depth }),
+      /**
+       * v0 stored a three-way chrome depth including `symbols`. Symbols is now expand-only;
+       * map any lingering preference onto Code map so rehydrate never leaves a dead control state.
+       */
+      migrate: (persisted) => {
+        if (persisted === undefined || persisted === null || typeof persisted !== "object") {
+          return persisted as ObservatoryUiState;
+        }
+        const state = persisted as Partial<ObservatoryUiState>;
+        if (state.depth === "symbols") {
+          return { ...state, depth: "modules" };
+        }
+        return state as ObservatoryUiState;
+      },
     },
   ),
 );

@@ -11,7 +11,7 @@ every file you write, watches this directory, and updates the canvas live. If yo
 mistake, it will tell you exactly what is wrong in `.observatory/diagnostics.json` — read that
 file after every change and fix anything you broke.
 
-## The 17 rules
+## The 18 rules
 
 1. Start from a real user action, route, handler, server action, event consumer, cron task, or system entry point.
 2. Trace the relevant code path through the repository.
@@ -30,6 +30,7 @@ file after every change and fix anything you broke.
 15. Never add layout coordinates, colors, styling, or visual instructions.
 16. Run `code-observatory validate` after making changes.
 17. Read `.observatory/diagnostics.json` and repair any errors you introduced.
+18. Write step `name` and `purpose` in product language a non-author can understand (e.g. "Collect website data", not `pollFirecrawlBatch`). Keep type and symbol names in `inputs`/`outputs`/`sources` — the canvas shows Story by default and Code map on demand.
 
 The goal is not to document every function in the codebase. It is to give the next person (or
 agent) who opens this project a fast, trustworthy map of how a handful of real, important
@@ -98,13 +99,13 @@ Use forward slashes or backslashes, e.g. `"src/server/routes/checkout.ts"`.
 | Field | Type | Required | Notes |
 |---|---|---|---|
 | `id` | string | yes | Unique within the workflow. |
-| `name` | string | yes | Short human-readable step name. |
-| `purpose` | string | yes | What this step does and why it exists. |
+| `name` | string | yes | Short product-language step name (Story altitude), e.g. `"Collect website data"` — not a function identifier. |
+| `purpose` | string | yes | One plain sentence: what this step does and why. No file paths or type names. |
 | `category` | one of: `"entry"`, `"logic"`, `"decision"`, `"data"`, `"external"`, `"output"` | no | Drives the step's marker color. Use `"entry"` for the step(s) that begin the workflow — this is also how reachability is computed. |
 | `confidence` | one of: `"verified"`, `"inferred"`, `"human-confirmed"` | no | `"verified"`: directly supported by the code you read. `"inferred"`: a reasonable interpretation you could not fully confirm. `"human-confirmed"`: a human explicitly confirmed this — never downgrade it. |
-| `sources` | `SourceReference[]` | no | Real files/symbols that implement this step. |
-| `inputs` | `DataReference[]` | no | What this step consumes. |
-| `outputs` | `DataReference[]` | no | What this step produces. |
+| `sources` | `SourceReference[]` | no | Real files/symbols that implement this step (shown on Code map / expand). |
+| `inputs` | `DataReference[]` | no | What this step consumes (type names belong here, not in `name`). |
+| `outputs` | `DataReference[]` | no | What this step produces (type names belong here, not in `name`). |
 | `edgeCases` | `EdgeCase[]` | no | Meaningful failure branches or special cases. |
 | `tests` | `TestReference[]` | no | Tests that prove this step's behavior, if any exist. |
 | `externalServices` | `ExternalServiceReference[]` | no | Third-party or internal services this step calls. |
@@ -125,6 +126,13 @@ Use forward slashes or backslashes, e.g. `"src/server/routes/checkout.ts"`.
 | `label` | string | no | Short label shown on the connection. |
 | `condition` | string | no | The condition under which this branch is taken. |
 | `type` | one of: `"success"`, `"failure"`, `"conditional"`, `"async"` | no | Defaults to a plain solid connection. `"failure"` for error branches, `"conditional"` for branches gated on a condition, `"async"` for fire-and-forget or queued work. |
+
+Describe graph semantics, not desired pictures: an output-category step is shown as an outcome
+only when it has no outgoing connections; use `failure` only for genuine failure paths, and use
+`async` only when the source proves an asynchronous handoff. A labelled self-loop can document a
+real retry (for example `"retry ≤3"`), while a loop back to a different step remains a normal
+return connection. Several success branches do not imply that they run concurrently. Never add
+fictional branches merely to demonstrate these canvas forms.
 
 ### `SourceReference`
 

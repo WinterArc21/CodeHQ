@@ -48,7 +48,7 @@ const MORE_ROW_HEIGHT = 14;
 
 /** Fixed height for every outcome pill — always collapsed to a name + one purpose line, never
  * growing with depth (contract: outcome nodes are "clearly not units of work", so they don't
- * participate in the workflow/modules/symbols depth ladder at all). */
+ * participate in the Story / Code map / expand altitude ladder at all). */
 export const OUTCOME_NODE_HEIGHT = 64;
 const OUTCOME_NODE_MIN_WIDTH = 200;
 const OUTCOME_NODE_MAX_WIDTH = 300;
@@ -117,6 +117,15 @@ export function stepIoSummary(step: WorkflowStep): StepIoSummary {
 export function stepHasFacts(step: WorkflowStep): boolean {
   const io = stepIoSummary(step);
   return io.inputs.length > 0 || io.outputs.length > 0;
+}
+
+/**
+ * Story altitude (`workflow`) keeps type-level I/O off the card so the board reads as a product
+ * narrative. Code map (`modules`) and per-step expand (`symbols`) surface IN/OUT — that's where
+ * type names earn their keep. Layout and render must agree on this gate (contract §11).
+ */
+export function showsIoOnCard(effectiveDepth: Depth): boolean {
+  return effectiveDepth === "modules" || effectiveDepth === "symbols";
 }
 
 /** Whether a step's purpose should reserve one or two lines on its card (see
@@ -192,9 +201,9 @@ function isStepIdExpanded(expandedStepIds: ReadonlySet<string> | Record<string, 
 }
 
 /**
- * A step's per-node expand toggle overrides the global depth for that one step only: expanding
- * always shows the deepest (`symbols`) view regardless of the global setting; collapsing falls
- * back to whatever the global depth currently is.
+ * A step's per-node expand toggle overrides the global altitude for that one step only:
+ * expanding always shows the deepest (`symbols`) view regardless of Story vs Code map;
+ * collapsing falls back to the global altitude.
  */
 export function effectiveDepthForStep(
   step: WorkflowStep,
@@ -245,7 +254,7 @@ export function computeNodeHeight(step: WorkflowStep, effectiveDepth: Depth): nu
     PURPOSE_LINE_HEIGHT * purposeLineCount(step.purpose) +
     META_ROW_HEIGHT;
 
-  if (stepHasFacts(step)) {
+  if (showsIoOnCard(effectiveDepth) && stepHasFacts(step)) {
     height += FACTS_ROW_HEIGHT;
   }
 

@@ -10,10 +10,11 @@ export interface StepNodeDetailProps {
 }
 
 /**
- * The part of a `StepNode` that only appears at depth `modules`/`symbols` (contract §11
- * "progressive depth" — same node, it grows). `symbols` supersedes `modules`: a file → symbol
- * row already names its file, so showing the plain file list underneath it would just repeat
- * information the deeper view already gives.
+ * The part of a `StepNode` that only appears at Code map (`modules`) or per-step expand
+ * (`symbols`) — Story altitude stays narrative-only (contract §11 progressive depth: same
+ * node, it grows). `symbols` supersedes `modules`: a file → symbol row already names its
+ * file, so showing the plain file list underneath it would just repeat information the
+ * deeper view already gives.
  */
 export function StepNodeDetail({ step, depth }: StepNodeDetailProps) {
   if (depth === "modules") {

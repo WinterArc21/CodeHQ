@@ -112,8 +112,24 @@ describe("StepNode", () => {
     expect(screen.queryByText("out")).not.toBeInTheDocument();
   });
 
-  it("surfaces inputs and outputs compactly on the collapsed card", () => {
+  it("keeps inputs and outputs off the Story card", () => {
     const data = makeData({
+      effectiveDepth: "workflow",
+      step: makeStep({
+        inputs: [{ name: "ScrapedWebsite" }],
+        outputs: [{ name: "ProductContext" }],
+      }),
+    });
+    renderStepNode(makeProps(data));
+    expect(screen.queryByText("ScrapedWebsite")).not.toBeInTheDocument();
+    expect(screen.queryByText("ProductContext")).not.toBeInTheDocument();
+    expect(screen.queryByText("in")).not.toBeInTheDocument();
+    expect(screen.queryByText("out")).not.toBeInTheDocument();
+  });
+
+  it("surfaces inputs and outputs on the Code map card", () => {
+    const data = makeData({
+      effectiveDepth: "modules",
       step: makeStep({
         inputs: [{ name: "ScrapedWebsite" }],
         outputs: [{ name: "ProductContext" }],
@@ -126,7 +142,7 @@ describe("StepNode", () => {
     expect(screen.getByText("out")).toBeInTheDocument();
   });
 
-  it("lists distinct source files at depth 'modules'", () => {
+  it("lists distinct source files at Code map altitude", () => {
     const data = makeData({
       effectiveDepth: "modules",
       step: makeStep({

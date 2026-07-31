@@ -9,13 +9,13 @@ test.beforeEach(async ({ page }) => {
   await page.locator("[data-step-node]").first().waitFor({ state: "visible", timeout: 15_000 });
 });
 
-test("switching depth changes a node's rendered content", async ({ page }) => {
-  // At "workflow" depth, StepNode never renders a Files/Symbols section.
+test("switching altitude changes a node's rendered content", async ({ page }) => {
+  // At Story altitude, StepNode never renders a Files section.
   await expect(page.getByText("Files", { exact: true })).toHaveCount(0);
 
-  await switchDepth(page, "Modules");
+  await switchDepth(page, "Code map");
 
-  // "modules" depth adds a Files section naming the step's source file.
+  // Code map adds a Files section naming the step's source file.
   const node = page.locator('[data-step-node="receive-request"]');
   await expect(node.getByText("Files", { exact: true })).toBeVisible();
   await expect(node).toContainText("route.ts");

@@ -2,17 +2,17 @@ import { CaretDown, CaretUp, Check } from "@phosphor-icons/react";
 import { Handle, Position, type NodeProps } from "@xyflow/react";
 import { categoryToken, confidenceStyle } from "../../../design/semantics";
 import { Badge, IconButton } from "../../primitives";
-import { formatDataReferenceNames, purposeLineCount, stepIoSummary } from "../nodeContent";
+import { formatDataReferenceNames, purposeLineCount, showsIoOnCard, stepIoSummary } from "../nodeContent";
 import type { StepFlowNode } from "../types";
 import { StepNodeDetail } from "./StepNodeDetail";
 import styles from "./StepNode.module.css";
 
 /**
- * The single, most important visual component in the product (contract §10). A collapsed node
- * shows index/name/purpose/category/inputs-outputs; `StepNodeDetail` adds the files/symbols
- * sections as depth increases. The card itself is the roving-tabindex target (`data-step-node`,
- * `tabIndex`, `onKeyDown` all come from `useCanvasKeyboardNav` via node data) — never measured,
- * its box is exactly the size `layout.ts` computed for it.
+ * The single, most important visual component in the product (contract §10). Story altitude
+ * shows index/name/purpose/category; Code map adds IN/OUT and files; per-step expand adds
+ * symbols. The card itself is the roving-tabindex target (`data-step-node`, `tabIndex`,
+ * `onKeyDown` all come from `useCanvasKeyboardNav` via node data) — never measured, its box is
+ * exactly the size `layout.ts` computed for it.
  *
  * Deliberately *not* on the card: the confidence badge and the source/edge-case/test counts. A
  * badge reading "Verified" on almost every step spends a row to say nothing, and a count is a
@@ -43,7 +43,7 @@ export function StepNode({ data }: NodeProps<StepFlowNode>) {
   const io = stepIoSummary(step);
   const inSummary = formatDataReferenceNames(io.inputs);
   const outSummary = formatDataReferenceNames(io.outputs);
-  const hasFacts = inSummary.length > 0 || outSummary.length > 0;
+  const showIo = showsIoOnCard(effectiveDepth) && (inSummary.length > 0 || outSummary.length > 0);
 
   const cardClassName = [styles.card, selected ? styles.selected : "", dimmed ? styles.dimmed : ""]
     .filter(Boolean)
@@ -96,7 +96,7 @@ export function StepNode({ data }: NodeProps<StepFlowNode>) {
               keyboard and assistive tech regardless of what the mouse is doing. */}
           <span className={`${styles.expandToggle} ${expanded ? styles.expandTogglePinned : ""}`}>
             <IconButton
-              label={expanded ? `Collapse ${step.name}` : `Expand ${step.name} to show file and symbol details`}
+              label={expanded ? `Collapse ${step.name}` : `Expand ${step.name} to show code details`}
               icon={expanded ? <CaretUp size={12} /> : <CaretDown size={12} />}
               size="sm"
               tabIndex={-1}
@@ -116,7 +116,7 @@ export function StepNode({ data }: NodeProps<StepFlowNode>) {
           </span>
         </div>
 
-        {hasFacts ? (
+        {showIo ? (
           <div className={styles.facts}>
             <span className={styles.factsIo}>
               {inSummary.length > 0 ? (

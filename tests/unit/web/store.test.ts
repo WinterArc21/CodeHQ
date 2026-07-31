@@ -39,7 +39,7 @@ describe("useObservatoryStore", () => {
 
   it("persists only theme and depth, under one namespaced localStorage key", () => {
     useObservatoryStore.getState().setTheme("light");
-    useObservatoryStore.getState().setDepth("symbols");
+    useObservatoryStore.getState().setDepth("modules");
     useObservatoryStore.getState().selectWorkflow("some-workflow");
 
     const raw = window.localStorage.getItem(STORAGE_KEY);
@@ -47,7 +47,7 @@ describe("useObservatoryStore", () => {
     const parsed: { state: Record<string, unknown> } = JSON.parse(raw as string);
 
     expect(parsed.state.theme).toBe("light");
-    expect(parsed.state.depth).toBe("symbols");
+    expect(parsed.state.depth).toBe("modules");
     expect(Object.keys(parsed.state).sort()).toEqual(["depth", "theme"]);
   });
 
