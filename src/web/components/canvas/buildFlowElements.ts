@@ -1,7 +1,7 @@
 /** Converts a `LayoutResult` plus current UI state into the plain node/edge arrays React Flow
  * renders. Kept out of `WorkflowCanvas.tsx` so that component stays focused on wiring. */
 import type { FocusEvent as ReactFocusEvent, KeyboardEvent as ReactKeyboardEvent } from "react";
-import { Position } from "@xyflow/react";
+import { Position, type NodeHandle } from "@xyflow/react";
 import type { Workflow } from "@schema/workflow";
 import type { SourceStatus } from "../../api/types";
 import type { Depth } from "../../store/useObservatoryStore";
@@ -14,6 +14,47 @@ import type { OutcomeFlowNode, StepFlowNode, WorkflowFlowEdge, ZoneLabelFlowNode
 
 function isStepExpanded(expandedStepIds: Record<string, true>, stepId: string): boolean {
   return expandedStepIds[stepId] === true;
+}
+
+/** Rendered size of a `.react-flow__handle` (React Flow's own default handle CSS — the node
+ * stylesheets here only make them invisible, never resize them). Handles are pure geometric
+ * anchors: `nodesConnectable` is false, so nothing ever sees or interacts with them. */
+const HANDLE_SIZE = 6;
+
+/**
+ * The connection anchors, stated up front instead of left to be measured.
+ *
+ * React Flow refuses to draw an edge until `isNodeInitialized` passes for both endpoints, and
+ * that needs `internals.handleBounds`. Those bounds come from one of two places: this array,
+ * parsed synchronously inside `adoptUserNodes`, or a ResizeObserver callback that measures the
+ * rendered handle elements. Supplying only width/height left the DOM path as the sole source —
+ * and `adoptUserNodes` throws `handleBounds` away whenever a node object's identity changes,
+ * which is every server snapshot, since a fresh `workflow` rebuilds every node below. A single
+ * missed measurement then wedged the board at zero edges permanently: ResizeObserver does not
+ * re-fire for an unchanged size, and nothing here re-syncs nodes to trigger another pass. That
+ * is what made the failure load-dependent rather than reproducible.
+ *
+ * Declaring the bounds removes the measurement dependency altogether, which is also what the
+ * rest of this canvas already does — see `nodeContent.ts` and the node stylesheets: layout is
+ * computed from content, never read back from the DOM. Edge geometry was the one place that
+ * broke that rule. The values below reproduce exactly what the DOM path produced (verified
+ * against live measured bounds), so anchors do not shift by a pixel; the invisible `<Handle>`
+ * elements stay in the node components, and React Flow may still overwrite these from the DOM
+ * whenever a measurement does land, with both sources agreeing.
+ */
+function nodeHandles(width: number, height: number): NodeHandle[] {
+  const centeredX = width / 2 - HANDLE_SIZE / 2;
+  return [
+    { type: "target", position: Position.Top, x: centeredX, y: -HANDLE_SIZE / 2, width: HANDLE_SIZE, height: HANDLE_SIZE },
+    {
+      type: "source",
+      position: Position.Bottom,
+      x: centeredX,
+      y: height - HANDLE_SIZE / 2,
+      width: HANDLE_SIZE,
+      height: HANDLE_SIZE,
+    },
+  ];
 }
 
 /** Shared hover/focus wiring every node (step or outcome) needs for path tracing (contract §11:
@@ -68,6 +109,7 @@ export function buildFlowNodes(params: BuildFlowNodesParams): Array<StepFlowNode
         position: { x: layoutNode.x, y: layoutNode.y },
         width: layoutNode.width,
         height: layoutNode.height,
+        handles: nodeHandles(layoutNode.width, layoutNode.height),
         sourcePosition: Position.Bottom,
         targetPosition: Position.Top,
         data: {
@@ -87,6 +129,7 @@ export function buildFlowNodes(params: BuildFlowNodesParams): Array<StepFlowNode
       position: { x: layoutNode.x, y: layoutNode.y },
       width: layoutNode.width,
       height: layoutNode.height,
+      handles: nodeHandles(layoutNode.width, layoutNode.height),
       // Matches the top-to-bottom layout: connections flow in on the top, out on the bottom,
       // so edges route cleanly downward instead of doubling back on themselves.
       sourcePosition: Position.Bottom,
