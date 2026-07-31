@@ -8,6 +8,14 @@ Code Observatory validates those files, watches them, and renders them in your b
 work. **It contains no LLM of its own and never uploads your code anywhere** — everything runs
 on `localhost`.
 
+## Privacy & security
+
+- Runs entirely on your machine (`localhost`)
+- Never uploads repository source to a remote service
+- Contains no built-in LLM — your existing coding agent authors the `.observatory` files
+
+See [SECURITY.md](./SECURITY.md) to report vulnerabilities privately.
+
 ## The core loop
 
 ```
@@ -149,3 +157,12 @@ pnpm test           # vitest
 ```
 
 Other useful scripts: `pnpm typecheck`, `pnpm lint`, `pnpm test:e2e` (Playwright).
+
+## Contributing
+
+PRs are welcome — please target `dev`. See [CONTRIBUTING.md](./CONTRIBUTING.md). Direct
+pushes to `main` and `dev` are blocked; changes land through pull requests.
+
+## License
+
+[MIT](./LICENSE)

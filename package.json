@@ -1,9 +1,27 @@
 {
   "name": "code-observatory",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "type": "module",
   "description": "Local-first workflow observatory that renders coding-agent-authored .observatory workflow files as an interactive canvas.",
-  "license": "UNLICENSED",
+  "license": "MIT",
+  "author": "WinterArc21",
+  "homepage": "https://github.com/WinterArc21/HQ#readme",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/WinterArc21/HQ.git"
+  },
+  "bugs": {
+    "url": "https://github.com/WinterArc21/HQ/issues"
+  },
+  "keywords": [
+    "observatory",
+    "workflow",
+    "architecture",
+    "devtools",
+    "local-first",
+    "coding-agents",
+    "canvas"
+  ],
   "engines": {
     "node": ">=20"
   },
@@ -13,7 +31,9 @@
   },
   "files": [
     "dist",
-    "templates"
+    "templates",
+    "LICENSE",
+    "README.md"
   ],
   "scripts": {
     "dev": "npm-run-all2 --parallel dev:web dev:server",
@@ -27,7 +47,8 @@
     "lint:fix": "eslint . --fix",
     "test": "vitest run",
     "test:watch": "vitest",
-    "test:e2e": "playwright test"
+    "test:e2e": "playwright test",
+    "prepublishOnly": "pnpm run build"
   },
   "dependencies": {
     "@fastify/static": "^10.1.2",

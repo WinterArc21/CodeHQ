@@ -8,3 +8,5 @@ test-results
 .vercel
 **/.observatory/.runtime/
 prototypes/edge-grammar/shots/
+tmp/
+*.tgz
