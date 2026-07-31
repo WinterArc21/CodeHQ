@@ -1,8 +1,6 @@
 import { useId, useRef } from "react";
 import type { Workflow } from "@schema/workflow";
 import type { SourceStatus } from "../../api/types";
-import { Badge } from "../primitives";
-import { confidenceCopy } from "./confidenceCopy";
 import { DataReferenceRow } from "./DataReferenceRow";
 import { DrawerSection } from "./DrawerSection";
 import { EdgeCaseItem } from "./EdgeCaseItem";
@@ -38,7 +36,6 @@ export function StepDrawer({ workflow, stepId, sourceChecks, onClose, onSelectSt
     return null;
   }
 
-  const confidence = step.confidence !== undefined ? confidenceCopy(step.confidence) : null;
   const inputs = step.inputs ?? [];
   const outputs = step.outputs ?? [];
   const sources = step.sources ?? [];
@@ -67,15 +64,8 @@ export function StepDrawer({ workflow, stepId, sourceChecks, onClose, onSelectSt
           onClose={onClose}
         />
         <div className={styles.body}>
-          {confidence !== null ? (
-            <DrawerSection title="Confidence">
-              <Badge>{confidence.label}</Badge>
-              <p className={styles.note}>{confidence.explanation}</p>
-            </DrawerSection>
-          ) : null}
-
           {inputs.length > 0 ? (
-            <DrawerSection title="Inputs">
+            <DrawerSection title="Inputs" count={inputs.length}>
               <ul className={styles.list}>
                 {inputs.map((item, index) => (
                   <DataReferenceRow key={`${item.name}-${index}`} item={item} />
@@ -85,7 +75,7 @@ export function StepDrawer({ workflow, stepId, sourceChecks, onClose, onSelectSt
           ) : null}
 
           {outputs.length > 0 ? (
-            <DrawerSection title="Outputs">
+            <DrawerSection title="Outputs" count={outputs.length}>
               <ul className={styles.list}>
                 {outputs.map((item, index) => (
                   <DataReferenceRow key={`${item.name}-${index}`} item={item} />
@@ -95,7 +85,7 @@ export function StepDrawer({ workflow, stepId, sourceChecks, onClose, onSelectSt
           ) : null}
 
           {sources.length > 0 ? (
-            <DrawerSection title="Source references">
+            <DrawerSection title="Source references" count={sources.length}>
               <ul className={styles.list}>
                 {sources.map((source, index) => (
                   <SourceReferenceRow key={`${source.file}-${index}`} source={source} sourceChecks={sourceChecks} />
@@ -105,7 +95,7 @@ export function StepDrawer({ workflow, stepId, sourceChecks, onClose, onSelectSt
           ) : null}
 
           {edgeCases.length > 0 ? (
-            <DrawerSection title="Edge cases">
+            <DrawerSection title="Edge cases" count={edgeCases.length}>
               <ul className={styles.list}>
                 {edgeCases.map((edgeCase, index) => (
                   <EdgeCaseItem key={`${edgeCase.name}-${index}`} edgeCase={edgeCase} sourceChecks={sourceChecks} />
@@ -115,7 +105,7 @@ export function StepDrawer({ workflow, stepId, sourceChecks, onClose, onSelectSt
           ) : null}
 
           {tests.length > 0 ? (
-            <DrawerSection title="Tests">
+            <DrawerSection title="Tests" count={tests.length}>
               <ul className={styles.list}>
                 {tests.map((test, index) => (
                   <TestItem key={`${test.file}-${index}`} test={test} />
@@ -125,7 +115,7 @@ export function StepDrawer({ workflow, stepId, sourceChecks, onClose, onSelectSt
           ) : null}
 
           {externalServices.length > 0 ? (
-            <DrawerSection title="External services">
+            <DrawerSection title="External services" count={externalServices.length}>
               <ul className={styles.list}>
                 {externalServices.map((service, index) => (
                   <ExternalServiceItem key={`${service.name}-${index}`} service={service} />

@@ -98,36 +98,6 @@ export function estimateLabelChipWidth(text: string): number {
   return EDGE_LABEL_CHROME_WIDTH + text.length * EDGE_LABEL_CHAR_WIDTH;
 }
 
-export interface StepCounts {
-  sources: number;
-  edgeCases: number;
-  tests: number;
-}
-
-/** Compact counts shown on a collapsed node — each rendered only when greater than zero. */
-export function stepCounts(step: WorkflowStep): StepCounts {
-  return {
-    sources: step.sources?.length ?? 0,
-    edgeCases: step.edgeCases?.length ?? 0,
-    tests: step.tests?.length ?? 0,
-  };
-}
-
-/** A single-line "2 sources · 1 edge case · 1 test" summary, omitting any count that is zero. */
-export function formatCountsSummary(counts: StepCounts): string {
-  const parts: string[] = [];
-  if (counts.sources > 0) {
-    parts.push(`${counts.sources} ${counts.sources === 1 ? "source" : "sources"}`);
-  }
-  if (counts.edgeCases > 0) {
-    parts.push(`${counts.edgeCases} ${counts.edgeCases === 1 ? "edge case" : "edge cases"}`);
-  }
-  if (counts.tests > 0) {
-    parts.push(`${counts.tests} ${counts.tests === 1 ? "test" : "tests"}`);
-  }
-  return parts.join(" · ");
-}
-
 export interface StepIoSummary {
   inputs: DataReference[];
   outputs: DataReference[];
@@ -140,11 +110,13 @@ export function stepIoSummary(step: WorkflowStep): StepIoSummary {
   return { inputs: step.inputs ?? [], outputs: step.outputs ?? [] };
 }
 
-/** Whether the card's single "facts" row (counts + io) has anything at all to show. */
+/** Whether the card's single "facts" row has anything at all to show. Inputs/outputs only: the
+ * source/edge-case/test counts that used to share this row moved to the drawer's section
+ * headings (see `StepNode`'s own comment), so a step with sources but no declared I/O now
+ * correctly reserves no row instead of an empty one. */
 export function stepHasFacts(step: WorkflowStep): boolean {
-  const counts = stepCounts(step);
   const io = stepIoSummary(step);
-  return counts.sources > 0 || counts.edgeCases > 0 || counts.tests > 0 || io.inputs.length > 0 || io.outputs.length > 0;
+  return io.inputs.length > 0 || io.outputs.length > 0;
 }
 
 /** Whether a step's purpose should reserve one or two lines on its card (see

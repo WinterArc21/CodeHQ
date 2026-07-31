@@ -7,6 +7,20 @@
   border-bottom: none;
 }
 
+.head {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+/* Mono so it reads as a quantity rather than as part of the heading's own words, and tertiary
+   so the heading still wins the row — this is an at-a-glance "how much is below", not a stat. */
+.count {
+  font-family: var(--font-mono);
+  font-size: var(--fs-micro);
+  color: var(--text-tertiary);
+}
+
 .body {
   margin-top: var(--space-2);
   display: flex;

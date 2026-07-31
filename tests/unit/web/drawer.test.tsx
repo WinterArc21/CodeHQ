@@ -92,7 +92,6 @@ describe("StepDrawer", () => {
     render(<StepDrawer workflow={WORKFLOW} stepId="main" sourceChecks={SOURCE_CHECKS} onClose={() => {}} onSelectStep={() => {}} />);
 
     for (const heading of [
-      "Confidence",
       "Inputs",
       "Outputs",
       "Source references",
@@ -109,11 +108,31 @@ describe("StepDrawer", () => {
     expect(screen.getByText(/Step 1 of 2/)).toBeInTheDocument();
   });
 
+  it("does not badge the step's own confidence anywhere in the drawer", () => {
+    render(<StepDrawer workflow={WORKFLOW} stepId="main" sourceChecks={SOURCE_CHECKS} onClose={() => {}} onSelectStep={() => {}} />);
+    expect(screen.queryByText("Confidence")).not.toBeInTheDocument();
+    expect(screen.queryByRole("region", { name: "Confidence" })).not.toBeInTheDocument();
+  });
+
+  it("counts each list section on its heading — the card no longer carries those counts", () => {
+    render(<StepDrawer workflow={WORKFLOW} stepId="main" sourceChecks={SOURCE_CHECKS} onClose={() => {}} onSelectStep={() => {}} />);
+
+    for (const [heading, count] of [
+      ["Source references", "2"],
+      ["Edge cases", "1"],
+      ["Tests", "1"],
+      ["Inputs", "1"],
+      ["Outputs", "1"],
+      ["External services", "1"],
+    ] as const) {
+      expect(within(screen.getByRole("region", { name: heading })).getByText(count)).toBeInTheDocument();
+    }
+  });
+
   it("omits every section that has no data, for a sparse step", () => {
     render(<StepDrawer workflow={WORKFLOW} stepId="sparse" sourceChecks={{}} onClose={() => {}} onSelectStep={() => {}} />);
 
     for (const heading of [
-      "Confidence",
       "Inputs",
       "Outputs",
       "Source references",

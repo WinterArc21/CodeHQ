@@ -73,29 +73,43 @@ function makeProps(data: StepNodeData): NodeProps<StepFlowNode> {
 }
 
 describe("StepNode", () => {
-  it("renders the name, one-line purpose, category, and confidence when collapsed", () => {
+  it("renders the name, one-line purpose, category, and index when collapsed", () => {
     renderStepNode(makeProps(makeData()));
     expect(screen.getByText("Scrape Website")).toBeInTheDocument();
     expect(screen.getByText("Fetches the submitted pages and extracts useful text.")).toBeInTheDocument();
     expect(screen.getByText("Logic")).toBeInTheDocument();
-    expect(screen.getByText("Verified")).toBeInTheDocument();
     expect(screen.getByText("03")).toBeInTheDocument();
   });
 
-  it("shows a compact count only when it is greater than zero", () => {
+  it("never badges confidence on the card, at any confidence level", () => {
+    for (const confidence of ["verified", "inferred", "human-confirmed"] as const) {
+      const { unmount } = renderStepNode(makeProps(makeData({ step: makeStep({ confidence }) })));
+      expect(screen.queryByText(/^(Verified|Inferred|Human-confirmed)$/)).not.toBeInTheDocument();
+      unmount();
+    }
+  });
+
+  it("keeps confidence in the card's accessible name even though no badge shows it", () => {
+    renderStepNode(makeProps(makeData({ step: makeStep({ confidence: "inferred" }) })));
+    expect(screen.getByRole("button", { name: /inferred confidence/i })).toBeInTheDocument();
+  });
+
+  it("does not put source, edge-case, or test counts on the card", () => {
     const data = makeData({
       step: makeStep({
         sources: [{ file: "lib/scraper.ts", symbol: "scrapeWebsite" }],
         edgeCases: [{ name: "Website blocks automated requests" }],
+        tests: [{ file: "tests/unit/lib/scraper.test.ts" }],
       }),
     });
     renderStepNode(makeProps(data));
-    expect(screen.getByText("1 source · 1 edge case")).toBeInTheDocument();
+    expect(screen.queryByText(/\d+ (source|edge case|test)/)).not.toBeInTheDocument();
   });
 
-  it("renders no facts row at all when there are no counts and no inputs/outputs", () => {
+  it("renders no facts row at all when there are no inputs/outputs", () => {
     renderStepNode(makeProps(makeData()));
-    expect(screen.queryByText(/source|edge case|test/)).not.toBeInTheDocument();
+    expect(screen.queryByText("in")).not.toBeInTheDocument();
+    expect(screen.queryByText("out")).not.toBeInTheDocument();
   });
 
   it("surfaces inputs and outputs compactly on the collapsed card", () => {

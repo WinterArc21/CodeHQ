@@ -2,17 +2,24 @@ import { CaretDown, CaretUp, Check } from "@phosphor-icons/react";
 import { Handle, Position, type NodeProps } from "@xyflow/react";
 import { categoryToken, confidenceStyle } from "../../../design/semantics";
 import { Badge, IconButton } from "../../primitives";
-import { formatCountsSummary, formatDataReferenceNames, purposeLineCount, stepCounts, stepIoSummary } from "../nodeContent";
+import { formatDataReferenceNames, purposeLineCount, stepIoSummary } from "../nodeContent";
 import type { StepFlowNode } from "../types";
 import { StepNodeDetail } from "./StepNodeDetail";
 import styles from "./StepNode.module.css";
 
 /**
  * The single, most important visual component in the product (contract §10). A collapsed node
- * shows index/name/purpose/category/confidence/counts/inputs-outputs; `StepNodeDetail` adds the
- * files/symbols sections as depth increases. The card itself is the roving-tabindex target
- * (`data-step-node`, `tabIndex`, `onKeyDown` all come from `useCanvasKeyboardNav` via node data)
- * — never measured, its box is exactly the size `layout.ts` computed for it.
+ * shows index/name/purpose/category/inputs-outputs; `StepNodeDetail` adds the files/symbols
+ * sections as depth increases. The card itself is the roving-tabindex target (`data-step-node`,
+ * `tabIndex`, `onKeyDown` all come from `useCanvasKeyboardNav` via node data) — never measured,
+ * its box is exactly the size `layout.ts` computed for it.
+ *
+ * Deliberately *not* on the card: the confidence badge and the source/edge-case/test counts. A
+ * badge reading "Verified" on almost every step spends a row to say nothing, and a count is a
+ * number nobody acts on — the counts now live on the drawer's own section headings, where the
+ * full lists they summarise already are. Confidence survives as a shape on the left marker
+ * (solid vs striped) and in the card's accessible name, so nothing is lost for a screen reader
+ * or for the "which of these did the agent guess at?" question; it just stops shouting.
  */
 export function StepNode({ data }: NodeProps<StepFlowNode>) {
   const {
@@ -33,12 +40,10 @@ export function StepNode({ data }: NodeProps<StepFlowNode>) {
   } = data;
   const category = categoryToken(step.category);
   const confidence = confidenceStyle(step.confidence);
-  const counts = stepCounts(step);
   const io = stepIoSummary(step);
-  const countsSummary = formatCountsSummary(counts);
   const inSummary = formatDataReferenceNames(io.inputs);
   const outSummary = formatDataReferenceNames(io.outputs);
-  const hasFacts = countsSummary.length > 0 || inSummary.length > 0 || outSummary.length > 0;
+  const hasFacts = inSummary.length > 0 || outSummary.length > 0;
 
   const cardClassName = [styles.card, selected ? styles.selected : "", dimmed ? styles.dimmed : ""]
     .filter(Boolean)
@@ -84,16 +89,23 @@ export function StepNode({ data }: NodeProps<StepFlowNode>) {
           <span className={styles.name}>{step.name}</span>
           {selected ? <Check size={14} weight="bold" className={styles.selectedIcon} aria-hidden="true" /> : null}
           {hasMissingSource ? <Badge tone="red">Missing sources</Badge> : null}
-          <IconButton
-            label={expanded ? `Collapse ${step.name}` : `Expand ${step.name} to show file and symbol details`}
-            icon={expanded ? <CaretUp size={12} /> : <CaretDown size={12} />}
-            size="sm"
-            tabIndex={-1}
-            onClick={(event) => {
-              event.stopPropagation();
-              onToggleExpand();
-            }}
-          />
+          {/* Quiet until wanted: the toggle only paints once the card is hovered or holds focus
+              (or is already expanded, so the control that undoes that never vanishes out from
+              under the pointer). It keeps its box at all times — `opacity`, never `display` — so
+              revealing it can't reflow the header, and it stays reachable and hit-testable for
+              keyboard and assistive tech regardless of what the mouse is doing. */}
+          <span className={`${styles.expandToggle} ${expanded ? styles.expandTogglePinned : ""}`}>
+            <IconButton
+              label={expanded ? `Collapse ${step.name}` : `Expand ${step.name} to show file and symbol details`}
+              icon={expanded ? <CaretUp size={12} /> : <CaretDown size={12} />}
+              size="sm"
+              tabIndex={-1}
+              onClick={(event) => {
+                event.stopPropagation();
+                onToggleExpand();
+              }}
+            />
+          </span>
         </div>
 
         <p className={purposeClassName}>{step.purpose}</p>
@@ -102,18 +114,10 @@ export function StepNode({ data }: NodeProps<StepFlowNode>) {
           <span className={styles.categoryLabel} style={{ color: `var(${category.varName})` }}>
             {category.label}
           </span>
-          <Badge tone="neutral" dashed={confidence.marker === "dashed"} dot={confidence.marker === "solid-dot"}>
-            {confidence.label}
-          </Badge>
         </div>
 
         {hasFacts ? (
           <div className={styles.facts}>
-            {countsSummary.length > 0 ? (
-              <span className={styles.factsCounts} title={countsSummary}>
-                {countsSummary}
-              </span>
-            ) : null}
             <span className={styles.factsIo}>
               {inSummary.length > 0 ? (
                 <span className={styles.ioTag} title={`Input: ${inSummary}`}>
