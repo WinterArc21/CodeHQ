@@ -52,15 +52,22 @@ Then paste this into your coding agent:
 
 ## Commands
 
-### `code-observatory init [--force] [--no-example]`
+### `code-observatory init [--force] [--example]`
 
-Scaffolds `.observatory/` in the current repository: `project.json`, `SKILL.md`,
+Scaffolds `.observatory/` in the current repository: `project.json`, `SKILL.md`, an empty
 `workflows/`, and an initial `diagnostics.json`. Also appends `.observatory/.runtime/` to your
 `.gitignore` (creating it if needed, never duplicating the line).
 
+`workflows/` starts empty on purpose, so your first `validate` is clean and the board opens on
+its guided empty state — which includes a **Show example workflow** button if you want to see a
+populated board before mapping your own.
+
 - `--force` — overwrite existing `.observatory` files. Without it, an existing file (for
   example a `SKILL.md` you have already edited) is left untouched and reported as unchanged.
-- `--no-example` — skip copying the bundled example workflow into `workflows/`.
+- `--example` — also copy the bundled example workflow into `workflows/`. It describes an
+  imaginary project, so `validate` will warn that the files it cites are not in your repository;
+  that is the example being an example, not a problem with your setup.
+- `--no-example` — accepted for backwards compatibility. This is now the default.
 
 ### `code-observatory open [--port <n>] [--no-open] [--root <path>]`
 

@@ -5,152 +5,358 @@ import type { Workflow } from "@schema/workflow";
  * exactly (kept as a typed TS literal so it can be imported directly by both the web app's
  * "Show example workflow" affordance and the development fixture, without reaching outside
  * `src/web` at build time).
+ *
+ * Since `init` no longer scaffolds the example into a user's repository by default, this is the
+ * primary way a first-time reader sees a populated board: rendered in-app with source checking
+ * off, so its illustrative file paths never surface as "Missing sources".
  */
 export const EXAMPLE_WORKFLOW: Workflow = {
   schemaVersion: "0.1",
   id: "generate-video",
   name: "Generate Video Prompt",
-  purpose: "Turns a submitted website into a structured video-generation prompt.",
+  purpose: "Turns a submitted website URL into a structured, cinematic video-generation prompt.",
   status: "verified",
-  entryPoint: { file: "app/api/generate/route.ts", symbol: "POST" },
+  entryPoint: {
+    file: "app/api/generate/route.ts",
+    symbol: "POST",
+    line: 14,
+    endLine: 39
+  },
   steps: [
     {
       id: "receive-request",
       name: "Receive Request",
-      purpose: "Accepts the website URL, optional references, and generation settings.",
+      purpose: "Accepts the website URL, optional reference images, and tone setting.",
       category: "entry",
       confidence: "verified",
-      sources: [{ file: "app/api/generate/route.ts", symbol: "POST", line: 12, endLine: 34 }],
-      outputs: [{ name: "GenerateRequest" }],
-      tests: [
+      sources: [
         {
-          file: "tests/integration/api/generate.test.ts",
-          symbol: "accepts a valid generation request",
-          status: "passing",
-        },
+          file: "app/api/generate/route.ts",
+          symbol: "POST"
+        }
       ],
+      outputs: [
+        {
+          name: "GenerateRequestBody",
+          type: "GenerateRequestBody"
+        }
+      ]
     },
     {
       id: "validate-request",
       name: "Validate Request",
-      purpose: "Checks URLs, uploaded assets, access limits, and required fields.",
+      purpose: "Checks the URL and reference images, and normalizes the tone.",
       category: "decision",
       confidence: "verified",
-      sources: [{ file: "lib/validation.ts", symbol: "validateGenerateRequest", line: 8, endLine: 41 }],
-      inputs: [{ name: "GenerateRequest" }],
-      outputs: [{ name: "ValidatedRequest" }],
+      sources: [
+        {
+          file: "lib/validation.ts",
+          symbol: "validateGenerateRequest"
+        }
+      ],
+      inputs: [
+        {
+          name: "GenerateRequestBody"
+        }
+      ],
+      outputs: [
+        {
+          name: "ValidatedGenerateRequest"
+        }
+      ],
       edgeCases: [
         {
-          name: "Invalid website URL",
-          description: "The submitted URL is malformed or unreachable.",
-          handling: "Reject the request with a validation error.",
+          name: "Malformed or unreachable URL",
+          description: "The submitted URL is not a valid http(s) URL.",
+          handling: "Returns a 400 with an explanatory error message.",
           confidence: "verified",
-          sources: [{ file: "lib/validation.ts", symbol: "validateGenerateRequest", line: 15, endLine: 22 }],
+          sources: [
+            {
+              file: "lib/validation.ts",
+              symbol: "validateGenerateRequest"
+            }
+          ]
         },
         {
-          name: "Uploaded asset exceeds size limit",
-          description: "A reference image or document is larger than the configured maximum.",
-          handling: "Reject the affected asset before scraping begins.",
-          confidence: "verified",
-        },
-        {
-          name: "Account has exceeded monthly generation quota",
-          description: "Free-tier accounts are limited to a fixed number of generations per month.",
-          handling: "Returns a 429 with the quota reset date.",
-          confidence: "inferred",
-        },
+          name: "Too many reference images",
+          description: "More than six reference images are submitted.",
+          handling: "Returns a 400 rejecting the request.",
+          confidence: "verified"
+        }
       ],
-      tests: [{ file: "tests/unit/lib/validation.test.ts", status: "passing" }],
+      tests: [
+        {
+          file: "tests/unit/lib/validation.test.ts",
+          symbol: "accepts a valid generation request",
+          status: "passing"
+        },
+        {
+          file: "tests/unit/lib/validation.test.ts",
+          symbol: "rejects a malformed URL",
+          status: "passing"
+        }
+      ]
+    },
+    {
+      id: "check-quota",
+      name: "Check Quota",
+      purpose: "Confirms the account has not exceeded its monthly generation quota.",
+      category: "decision",
+      confidence: "verified",
+      sources: [
+        {
+          file: "lib/validation.ts",
+          symbol: "hasRemainingQuota"
+        }
+      ],
+      edgeCases: [
+        {
+          name: "Monthly quota exceeded",
+          description: "The account has already generated the maximum number of videos this month.",
+          handling: "Returns a 429.",
+          confidence: "verified"
+        }
+      ]
     },
     {
       id: "scrape-website",
       name: "Scrape Website",
-      purpose: "Fetches the submitted pages and extracts useful text, metadata, and images.",
+      purpose: "Fetches the submitted page and extracts its title, description, body text, and images.",
       category: "logic",
       confidence: "verified",
-      sources: [{ file: "lib/scraper.ts", symbol: "scrapeWebsite", line: 10, endLine: 58 }],
-      inputs: [{ name: "ValidatedRequest" }],
-      outputs: [{ name: "ScrapedWebsite" }],
-      externalServices: [
+      sources: [
         {
-          name: "Headless Browser Service",
-          purpose: "Renders JavaScript-heavy pages before extraction.",
-          operation: "POST /render",
-        },
+          file: "lib/scraper.ts",
+          symbol: "scrapeWebsite"
+        }
+      ],
+      inputs: [
+        {
+          name: "ValidatedGenerateRequest"
+        }
+      ],
+      outputs: [
+        {
+          name: "ScrapedWebsite"
+        }
       ],
       edgeCases: [
         {
-          name: "Website blocks automated requests",
-          handling: "Job is marked failed and the user is notified.",
-          confidence: "inferred",
-        },
+          name: "Website unreachable or returns an error status",
+          description: "The fetch fails or the response is not ok.",
+          handling: "Returns a 502 without persisting a generation.",
+          confidence: "verified",
+          sources: [
+            {
+              file: "lib/scraper.ts",
+              symbol: "scrapeWebsite"
+            }
+          ]
+        }
       ],
+      tests: [
+        {
+          file: "tests/unit/lib/scraper.test.ts",
+          symbol: "extracts the title and description",
+          status: "passing"
+        }
+      ]
     },
     {
       id: "understand-product",
       name: "Understand Product",
-      purpose: "Converts scraped website material into a structured product model.",
+      purpose: "Converts the scraped page into a structured product model: name, tagline, summary, hero image, and keywords.",
       category: "logic",
-      confidence: "inferred",
-      sources: [{ file: "lib/productModel.ts", symbol: "buildProductContext", line: 6, endLine: 45 }],
-      inputs: [{ name: "ScrapedWebsite" }],
-      outputs: [{ name: "ProductContext" }],
+      confidence: "verified",
+      sources: [
+        {
+          file: "lib/product-model.ts",
+          symbol: "buildProductContext"
+        }
+      ],
+      inputs: [
+        {
+          name: "ScrapedWebsite"
+        }
+      ],
+      outputs: [
+        {
+          name: "ProductContext"
+        }
+      ],
       details: {
-        implementation:
-          "Summarizes scraped text and images into a structured product description using heuristics over the extracted metadata.",
-        importantDecisions: ["Product name is taken from the page title when no explicit product name is found."],
-        assumptions: ["The first scraped page is representative of the overall product."],
-      },
+        implementation: "Ranks the most frequent non-trivial words in the scraped body text as keywords, and assumes the first scraped image is representative of the product.",
+        assumptions: [
+          "The first image found on the page is a reasonable hero image for the product."
+        ]
+      }
     },
     {
       id: "generate-story",
       name: "Generate Story",
-      purpose: "Creates the narrative structure and visual direction for the video.",
+      purpose: "Builds a short, tone-appropriate beat sequence (hook, problem, payoff) from the product context.",
       category: "logic",
-      sources: [{ file: "lib/storyPlanner.ts", symbol: "generateStoryPlan", line: 14, endLine: 70 }],
-      inputs: [{ name: "ProductContext" }],
-      outputs: [{ name: "StoryPlan" }],
+      confidence: "verified",
+      sources: [
+        {
+          file: "lib/story.ts",
+          symbol: "generateStoryPlan"
+        }
+      ],
+      inputs: [
+        {
+          name: "ProductContext"
+        }
+      ],
+      outputs: [
+        {
+          name: "StoryPlan"
+        }
+      ]
     },
     {
       id: "save-result",
       name: "Save Result",
-      purpose: "Stores the generated plan and returns it to the user.",
+      purpose: "Persists the generation and returns it to the caller.",
       category: "output",
       confidence: "verified",
-      sources: [{ file: "app/api/generate/route.ts", symbol: "POST", line: 36, endLine: 48 }],
-      inputs: [{ name: "StoryPlan" }],
+      sources: [
+        {
+          file: "lib/persistence.ts",
+          symbol: "saveGeneration"
+        },
+        {
+          file: "app/api/generate/route.ts",
+          symbol: "POST"
+        }
+      ],
+      inputs: [
+        {
+          name: "StoryPlan"
+        }
+      ],
+      outputs: [
+        {
+          name: "Generation"
+        }
+      ],
       tests: [
         {
           file: "tests/integration/api/generate.test.ts",
           symbol: "returns the generated story plan",
-          status: "passing",
-        },
-      ],
+          status: "passing"
+        }
+      ]
     },
+    {
+      id: "outcome-invalid-request",
+      name: "400 Bad Request",
+      purpose: "Malformed URL, unreachable URL, or too many reference images.",
+      category: "output",
+      confidence: "verified",
+      sources: [
+        {
+          file: "lib/validation.ts",
+          symbol: "validateGenerateRequest"
+        }
+      ]
+    },
+    {
+      id: "outcome-quota-exceeded",
+      name: "429 Too Many",
+      purpose: "Monthly generation quota already reached.",
+      category: "output",
+      confidence: "verified",
+      sources: [
+        {
+          file: "lib/validation.ts",
+          symbol: "hasRemainingQuota"
+        }
+      ]
+    },
+    {
+      id: "outcome-scrape-failed",
+      name: "502 Upstream",
+      purpose: "The submitted website could not be fetched.",
+      category: "output",
+      confidence: "verified",
+      sources: [
+        {
+          file: "lib/scraper.ts",
+          symbol: "scrapeWebsite"
+        }
+      ]
+    },
+    {
+      id: "outcome-generation-created",
+      name: "201 Created",
+      purpose: "Generation saved and returned to the caller.",
+      category: "output",
+      confidence: "verified",
+      sources: [
+        {
+          file: "app/api/generate/route.ts",
+          symbol: "POST"
+        }
+      ]
+    }
   ],
   connections: [
-    { from: "receive-request", to: "validate-request" },
-    { from: "validate-request", to: "scrape-website", type: "success" },
+    {
+      from: "receive-request",
+      to: "validate-request"
+    },
     {
       from: "validate-request",
-      to: "save-result",
-      type: "failure",
-      label: "rejected",
-      condition: "URL, asset, or quota validation fails.",
+      to: "check-quota",
+      type: "success"
     },
-    { from: "scrape-website", to: "understand-product", type: "success" },
+    {
+      from: "validate-request",
+      to: "outcome-invalid-request",
+      type: "failure",
+      label: "invalid",
+      condition: "URL or reference image validation fails."
+    },
+    {
+      from: "check-quota",
+      to: "scrape-website",
+      type: "success"
+    },
+    {
+      from: "check-quota",
+      to: "outcome-quota-exceeded",
+      type: "failure",
+      label: "over limit",
+      condition: "The account has reached its monthly generation quota."
+    },
     {
       from: "scrape-website",
-      to: "save-result",
-      type: "conditional",
-      label: "scrape failed",
-      condition: "The website could not be scraped after retries.",
+      to: "understand-product",
+      type: "success"
     },
-    { from: "understand-product", to: "generate-story" },
-    { from: "generate-story", to: "save-result" },
+    {
+      from: "scrape-website",
+      to: "outcome-scrape-failed",
+      type: "failure",
+      label: "unreachable",
+      condition: "The website could not be fetched."
+    },
+    {
+      from: "understand-product",
+      to: "generate-story"
+    },
+    {
+      from: "generate-story",
+      to: "save-result"
+    },
+    {
+      from: "save-result",
+      to: "outcome-generation-created",
+      type: "success"
+    }
   ],
   notes: [
-    "This is an example workflow shipped with Code Observatory to demonstrate the schema; it is not a real workflow for any project.",
-    "Reproduced and extended from the Code Observatory product brief.",
-  ],
+    "Reference implementation shipped as Code Observatory's example project; see examples/motiona."
+  ]
 };

@@ -47,7 +47,12 @@ function buildProgram(): Command {
     .command("init")
     .description("Scaffold .observatory/ in the current repository")
     .option("--force", "Overwrite existing .observatory files")
-    .option("--no-example", "Skip copying the example workflow")
+    .option("--example", "Also copy the bundled example workflow into workflows/")
+    // Declared after `--example` so Commander leaves the default alone (a lone `--no-x` would
+    // make `x` default to true, which is the behaviour this pair replaces). Kept only so
+    // existing `init --no-example` invocations and scripts still run — it is now the default,
+    // so the flag is accepted and does nothing.
+    .option("--no-example", "Deprecated: the example is no longer copied unless --example is passed")
     .action(async (options: { force?: boolean; example?: boolean }) => {
       const result = await runInit({
         ...(options.force !== undefined ? { force: options.force } : {}),

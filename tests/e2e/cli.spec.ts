@@ -53,7 +53,10 @@ test("init creates the documented tree and prints the documented banner", async 
     expect(await fileExists(path.join(dir, ".observatory", "project.json"))).toBe(true);
     expect(await fileExists(path.join(dir, ".observatory", "SKILL.md"))).toBe(true);
     expect(await fileExists(path.join(dir, ".observatory", "diagnostics.json"))).toBe(true);
-    expect(await fileExists(path.join(dir, ".observatory", "workflows", "generate-video.json"))).toBe(true);
+    // The example workflow is opt-in (`init --example`): a plain init leaves workflows/ empty so
+    // the user's first validate is warning-free and their board shows the guided empty state,
+    // rather than diagnostics about a sample workflow they never wrote.
+    expect(await fileExists(path.join(dir, ".observatory", "workflows", "generate-video.json"))).toBe(false);
 
     const gitignore = await fsp.readFile(path.join(dir, ".gitignore"), "utf-8");
     expect(gitignore).toContain(".observatory/.runtime/");
@@ -65,7 +68,9 @@ test("init creates the documented tree and prints the documented banner", async 
 test("validate exits 0 on a fresh project, then exits 1 naming the step a broken connection points at", async () => {
   const dir = await createEmptyTempDir("cli-validate");
   try {
-    const initResult = await runCli(["init"], { cwd: dir });
+    // `--example` is what gives this test a workflow to break — a plain init now leaves
+    // workflows/ empty.
+    const initResult = await runCli(["init", "--example"], { cwd: dir });
     expect(initResult.exitCode).toBe(0);
 
     const freshValidate = await runCli(["validate", "--root", dir]);
@@ -111,7 +116,9 @@ test("validate exits 0 on a fresh project, then exits 1 naming the step a broken
 test("open starts the real server and serving stops (and the port is released) when the process is terminated", async () => {
   const dir = await createEmptyTempDir("cli-open");
   try {
-    const initResult = await runCli(["init"], { cwd: dir });
+    // `--example` so the served project reaches status "ready" (asserted below) rather than the
+    // "empty" state a workflow-less init now produces.
+    const initResult = await runCli(["init", "--example"], { cwd: dir });
     expect(initResult.exitCode).toBe(0);
 
     const server = await startObservatoryServer(dir, PORTS.cliOpen);

@@ -120,7 +120,14 @@ async function ensureGitignoreEntry(root: string): Promise<void> {
 export async function runInit(options: InitOptions): Promise<InitResult> {
   const root = resolveCliRoot(options.root);
   const force = options.force ?? false;
-  const includeExample = options.example ?? true;
+  // Opt-in, not opt-out. The bundled example necessarily cites files that exist only in the
+  // story it tells (`app/api/generate/route.ts` and friends), so scaffolding it into someone
+  // else's repository made their very first `validate` print a wall of "does not exist"
+  // warnings and every card on their board wear a "Missing sources" badge — a correct report
+  // about a fake workflow, read as a broken tool. The board's own empty state already offers a
+  // better introduction: it explains the next step, and its "Show example workflow" button
+  // renders the same demo in-app with source checking off, writing nothing into the repo.
+  const includeExample = options.example ?? false;
 
   const warnings: string[] = [];
   if (!looksLikeProjectRoot(root)) {
