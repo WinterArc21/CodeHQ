@@ -1,11 +1,11 @@
 /**
- * Pure, framework-free ranking over an `HQSnapshot` (no React, no DOM — unit-tested
+ * Pure, framework-free ranking over an `CodeHQSnapshot` (no React, no DOM — unit-tested
  * directly in `tests/unit/web/search-index.test.ts`). Scores are tiered rather than blended so
  * the two ranking rules from the brief hold unconditionally: exact beats prefix beats substring,
  * and a match on a "name-like" field always outranks a match on a "body" field, regardless of
  * match tier.
  */
-import type { HQSnapshot } from "../../api/types";
+import type { CodeHQSnapshot } from "../../api/types";
 
 export type SearchResultKind = "workflow" | "step" | "source" | "edge-case" | "test";
 
@@ -75,7 +75,7 @@ export const KIND_LABELS: Record<SearchResultKind, string> = {
 const GROUP_ORDER: SearchResultKind[] = ["workflow", "step", "source", "edge-case", "test"];
 
 /** The empty-query default: every workflow, in snapshot order, unscored. */
-export function defaultResults(snapshot: HQSnapshot): SearchResult[] {
+export function defaultResults(snapshot: CodeHQSnapshot): SearchResult[] {
   return snapshot.workflows.map((record) => ({
     kind: "workflow",
     id: `workflow:${record.workflow.id}`,
@@ -90,7 +90,7 @@ export function defaultResults(snapshot: HQSnapshot): SearchResult[] {
  * Ranked search across workflow names/purposes, step names/purposes, source file paths and
  * symbols, edge case names/descriptions/handling, and test files/symbols/descriptions.
  */
-export function search(snapshot: HQSnapshot, query: string): SearchResult[] {
+export function search(snapshot: CodeHQSnapshot, query: string): SearchResult[] {
   const trimmed = query.trim();
   if (trimmed.length === 0) {
     return defaultResults(snapshot);

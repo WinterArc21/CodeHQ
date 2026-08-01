@@ -21,7 +21,7 @@ test("loads the example project, auto-selects the default workflow, and renders 
   await page.goto("/");
   await page.locator("[data-step-node]").first().waitFor({ state: "visible", timeout: 15_000 });
 
-  // Repository name (from .hq/project.json's project.name) appears in the top bar.
+  // Repository name (from .codehq/project.json's project.name) appears in the top bar.
   await expect(page.getByText("MotionA", { exact: true })).toBeVisible();
 
   // The default workflow (settings.defaultWorkflowId === "generate-video") is auto-selected.

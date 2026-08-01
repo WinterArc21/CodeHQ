@@ -1,6 +1,6 @@
 import { Moon, Sun } from "@phosphor-icons/react";
 import { IconButton } from "../components/primitives";
-import type { Theme } from "../store/useHQStore";
+import type { Theme } from "../store/useCodeHQStore";
 import styles from "./ExportBanner.module.css";
 
 export interface ExportBannerProps {
@@ -28,7 +28,7 @@ function formatTimestamp(iso: string): string {
 }
 
 /**
- * The thin top bar of an exported snapshot: identifies the file as a HQ export,
+ * The thin top bar of an exported snapshot: identifies the file as a CodeHQ export,
  * shows the workflow name and generation timestamp, displays the privacy choice, and provides
  * the theme switcher as the snapshot's only extra control beyond the canvas.
  */
@@ -45,7 +45,7 @@ export function ExportBanner({
     <div className={styles.banner}>
       <div className={styles.identity}>
         <div className={styles.titleRow}>
-          <span className={styles.badge}>HQ Export</span>
+          <span className={styles.badge}>CodeHQ Export</span>
           <span className={styles.name}>{workflowName}</span>
         </div>
         <span className={styles.timestamp}>{repositoryName} · {formatTimestamp(exportedAt)}</span>

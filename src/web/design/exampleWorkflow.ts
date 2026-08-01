@@ -1,13 +1,13 @@
 import type { Workflow } from "@schema/workflow";
 
 /**
- * The bundled example workflow, matching `templates/hq/workflows/example-generate-video.json`
+ * The bundled example workflow, matching `templates/codehq/workflows/example-generate-video.json`
  * exactly (kept as a typed TS literal so the development fixture can import it directly, without
  * reaching outside `src/web` at build time).
  *
  * Not shown anywhere in the production UI: a first-time board with no workflows mapped shows
  * only the guided empty state's copy-prompt action, not a stand-in workflow. This constant's
- * only consumer is `api/fixture.ts` (`VITE_HQ_FIXTURE=1`, dev/test builds only) and,
+ * only consumer is `api/fixture.ts` (`VITE_CODEHQ_FIXTURE=1`, dev/test builds only) and,
  * indirectly, `init --example`, whose template is the JSON file this mirrors.
  */
 export const EXAMPLE_WORKFLOW: Workflow = {
@@ -357,6 +357,6 @@ export const EXAMPLE_WORKFLOW: Workflow = {
     }
   ],
   notes: [
-    "Reference implementation shipped as HQ's example project; see examples/motiona."
+    "Reference implementation shipped as CodeHQ's example project; see examples/motiona."
   ]
 };

@@ -2,7 +2,7 @@ import { mkdirSync, mkdtempSync, rmSync, unlinkSync, writeFileSync } from "node:
 import { tmpdir } from "node:os";
 import path from "node:path";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
-import { createHQStore } from "@core/store";
+import { createCodeHQStore } from "@core/store";
 
 let root: string;
 let workflowsDir: string;
@@ -19,12 +19,12 @@ function validWorkflowJson(name: string): string {
 }
 
 beforeEach(() => {
-  root = mkdtempSync(path.join(tmpdir(), "hq-store-"));
-  mkdirSync(path.join(root, ".hq"), { recursive: true });
-  workflowsDir = path.join(root, ".hq", "workflows");
+  root = mkdtempSync(path.join(tmpdir(), "codehq-store-"));
+  mkdirSync(path.join(root, ".codehq"), { recursive: true });
+  workflowsDir = path.join(root, ".codehq", "workflows");
   mkdirSync(workflowsDir, { recursive: true });
   writeFileSync(
-    path.join(root, ".hq", "project.json"),
+    path.join(root, ".codehq", "project.json"),
     JSON.stringify({ schemaVersion: "0.1", project: { id: "test", name: "Test Project" } }),
   );
 });
@@ -33,10 +33,10 @@ afterEach(() => {
   rmSync(root, { recursive: true, force: true });
 });
 
-describe("HQStore — last-valid-state preservation", () => {
+describe("CodeHQStore — last-valid-state preservation", () => {
   it("reports a freshly written valid workflow as valid, with no stale marker", async () => {
     writeFileSync(path.join(workflowsDir, "wf.json"), validWorkflowJson("Original Name"));
-    const store = createHQStore(root);
+    const store = createCodeHQStore(root);
 
     const snapshot = await store.reload();
 
@@ -49,7 +49,7 @@ describe("HQStore — last-valid-state preservation", () => {
 
   it("keeps the last valid workflow, marked stale, when the file becomes invalid", async () => {
     writeFileSync(path.join(workflowsDir, "wf.json"), validWorkflowJson("Original Name"));
-    const store = createHQStore(root);
+    const store = createCodeHQStore(root);
     await store.reload();
 
     writeFileSync(path.join(workflowsDir, "wf.json"), "{ not valid json");
@@ -66,7 +66,7 @@ describe("HQStore — last-valid-state preservation", () => {
 
   it("does not reset staleSince across a second consecutive failing reload", async () => {
     writeFileSync(path.join(workflowsDir, "wf.json"), validWorkflowJson("Original Name"));
-    const store = createHQStore(root);
+    const store = createCodeHQStore(root);
     await store.reload();
 
     writeFileSync(path.join(workflowsDir, "wf.json"), "{ still not valid");
@@ -84,7 +84,7 @@ describe("HQStore — last-valid-state preservation", () => {
 
   it("clears stale and returns to valid once the file is repaired", async () => {
     writeFileSync(path.join(workflowsDir, "wf.json"), validWorkflowJson("Original Name"));
-    const store = createHQStore(root);
+    const store = createCodeHQStore(root);
     await store.reload();
 
     writeFileSync(path.join(workflowsDir, "wf.json"), "{ not valid json");
@@ -101,7 +101,7 @@ describe("HQStore — last-valid-state preservation", () => {
 
   it("never includes a workflow file that was never valid, but still reports it in diagnostics", async () => {
     writeFileSync(path.join(workflowsDir, "never-valid.json"), "{ this was never valid json");
-    const store = createHQStore(root);
+    const store = createCodeHQStore(root);
 
     const snapshot = await store.reload();
 
@@ -112,7 +112,7 @@ describe("HQStore — last-valid-state preservation", () => {
 
   it("removes a workflow from the snapshot once its file is deleted", async () => {
     writeFileSync(path.join(workflowsDir, "wf.json"), validWorkflowJson("Original Name"));
-    const store = createHQStore(root);
+    const store = createCodeHQStore(root);
     await store.reload();
 
     unlinkSync(path.join(workflowsDir, "wf.json"));
@@ -123,7 +123,7 @@ describe("HQStore — last-valid-state preservation", () => {
 
   it("sorts the default workflow first, then alphabetically by name", async () => {
     writeFileSync(
-      path.join(root, ".hq", "project.json"),
+      path.join(root, ".codehq", "project.json"),
       JSON.stringify({
         schemaVersion: "0.1",
         project: { id: "test", name: "Test Project" },
@@ -153,18 +153,18 @@ describe("HQStore — last-valid-state preservation", () => {
       }),
     );
 
-    const store = createHQStore(root);
+    const store = createCodeHQStore(root);
     const snapshot = await store.reload();
 
     expect(snapshot.workflows.map((w) => w.id)).toEqual(["zeta", "alpha"]);
   });
 });
 
-describe("HQStore — status", () => {
-  it("is uninitialized when .hq does not exist", async () => {
-    const bareRoot = mkdtempSync(path.join(tmpdir(), "hq-store-bare-"));
+describe("CodeHQStore — status", () => {
+  it("is uninitialized when .codehq does not exist", async () => {
+    const bareRoot = mkdtempSync(path.join(tmpdir(), "codehq-store-bare-"));
     try {
-      const store = createHQStore(bareRoot);
+      const store = createCodeHQStore(bareRoot);
       const snapshot = await store.reload();
       expect(snapshot.status).toBe("uninitialized");
     } finally {
@@ -172,8 +172,8 @@ describe("HQStore — status", () => {
     }
   });
 
-  it("is empty when .hq exists but has no workflow files", async () => {
-    const store = createHQStore(root);
+  it("is empty when .codehq exists but has no workflow files", async () => {
+    const store = createCodeHQStore(root);
     const snapshot = await store.reload();
     expect(snapshot.status).toBe("empty");
   });

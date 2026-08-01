@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { parseProject } from "@schema/validate";
 
-const FILE = ".hq/project.json";
+const FILE = ".codehq/project.json";
 
 describe("parseProject", () => {
   it("parses a valid project", () => {

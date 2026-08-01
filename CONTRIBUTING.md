@@ -1,4 +1,4 @@
-# Contributing to HQ
+# Contributing to CodeHQ
 
 Thanks for wanting to help. This project stays small and local-first on purpose.
 
@@ -33,7 +33,7 @@ Release did not, a rerun skips the completed work and finishes the missing steps
 
 ## Project conventions
 
-- **No LLM inside the product.** HQ renders agent-authored `.hq` files; it never uploads repository code.
+- **No LLM inside the product.** CodeHQ renders agent-authored `.codehq` files; it never uploads repository code.
 - **Workflow JSON never carries visuals.** No coordinates, colors, fonts, or layout hints in schema files — the renderer owns that.
 - **Prefer altitude over encyclopedias.** Maps should stay at Story height by default; proof (files, types, symbols) belongs in Code map / expand / drawer.
 - Match existing TypeScript, CSS Modules, and test patterns. Avoid drive-by refactors.

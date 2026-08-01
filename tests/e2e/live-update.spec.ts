@@ -11,7 +11,7 @@ import path from "node:path";
 import { expect, test } from "@playwright/test";
 import { createTempFixtureCopy, removeTempDir } from "./helpers/fixture";
 import { PORTS } from "./helpers/paths";
-import { startHQServer, type ManagedServer } from "./helpers/server";
+import { startCodeHQServer, type ManagedServer } from "./helpers/server";
 
 interface MinimalWorkflowFile {
   steps: Array<{ id: string; name: string; [key: string]: unknown }>;
@@ -29,7 +29,7 @@ test.describe.configure({ mode: "serial" });
 
 test.beforeEach(async () => {
   root = await createTempFixtureCopy("live-update");
-  server = await startHQServer(root, PORTS.liveUpdate);
+  server = await startCodeHQServer(root, PORTS.liveUpdate);
 });
 
 test.afterEach(async () => {
@@ -42,7 +42,7 @@ test("renaming a step, then adding a step and connection, both appear live witho
   await page.locator("[data-step-node]").first().waitFor({ state: "visible", timeout: 15_000 });
   await expect(page.locator("[data-step-node]")).toHaveCount(11);
 
-  const workflowFile = path.join(root, ".hq", "workflows", "generate-video.json");
+  const workflowFile = path.join(root, ".codehq", "workflows", "generate-video.json");
   const original = JSON.parse(await fsp.readFile(workflowFile, "utf-8")) as MinimalWorkflowFile;
 
   // --- Step 1: rename a step ---------------------------------------------------------------
@@ -88,7 +88,7 @@ test("new graph elements animate in without detaching existing connectors", asyn
 
   // Add a new step to trigger a live update, then verify the new node's wrapper has an enter
   // animation (animation-name is not "none") while existing nodes retain their transform transition.
-  const workflowFile = path.join(root, ".hq", "workflows", "generate-video.json");
+  const workflowFile = path.join(root, ".codehq", "workflows", "generate-video.json");
   const current = JSON.parse(await fsp.readFile(workflowFile, "utf-8")) as MinimalWorkflowFile;
   const withExtraStep = structuredClone(current);
   withExtraStep.steps.push({

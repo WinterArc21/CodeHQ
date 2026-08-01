@@ -18,21 +18,21 @@ const UNHEALTHY_REPORT: DiagnosticsReport = {
   issues: [
     {
       severity: "warning",
-      file: ".hq/workflows/checkout.json",
+      file: ".codehq/workflows/checkout.json",
       path: "steps[2]",
       message: "Step 'confirm' is unreachable from any entry step.",
       hint: "Add a connection into this step, or remove it.",
     },
     {
       severity: "error",
-      file: ".hq/workflows/checkout.json",
+      file: ".codehq/workflows/checkout.json",
       path: "connections[3].to",
       message: "Connection references unknown step id 'ship-order'.",
       hint: "Fix the 'to' field to reference an existing step id.",
     },
     {
       severity: "error",
-      file: ".hq/workflows/generate-video.json",
+      file: ".codehq/workflows/generate-video.json",
       message: "Failed to parse JSON: Unexpected end of input.",
       hint: "The file was likely truncated mid-write. Rewrite it in full.",
     },
@@ -66,8 +66,8 @@ describe("DiagnosticsPanel", () => {
   it("groups issues by file and renders the path, message, and hint of every issue", () => {
     render(<DiagnosticsPanel diagnostics={UNHEALTHY_REPORT} onClose={() => {}} onRecheck={() => Promise.resolve()} />);
 
-    expect(screen.getByText(".hq/workflows/checkout.json")).toBeInTheDocument();
-    expect(screen.getByText(".hq/workflows/generate-video.json")).toBeInTheDocument();
+    expect(screen.getByText(".codehq/workflows/checkout.json")).toBeInTheDocument();
+    expect(screen.getByText(".codehq/workflows/generate-video.json")).toBeInTheDocument();
 
     expect(screen.getByText("steps[2]")).toBeInTheDocument();
     expect(screen.getByText("Step 'confirm' is unreachable from any entry step.")).toBeInTheDocument();
@@ -89,8 +89,8 @@ describe("DiagnosticsPanel", () => {
     // generate-video.json group (error only) follows, since it has no warnings to reorder.
     expect(severityLabels).toEqual(["Error", "Warning", "Error"]);
 
-    const fileHeadings = screen.getAllByText(/\.hq\/workflows\//).map((node) => node.textContent);
-    expect(fileHeadings).toEqual([".hq/workflows/checkout.json", ".hq/workflows/generate-video.json"]);
+    const fileHeadings = screen.getAllByText(/\.codehq\/workflows\//).map((node) => node.textContent);
+    expect(fileHeadings).toEqual([".codehq/workflows/checkout.json", ".codehq/workflows/generate-video.json"]);
   });
 
   it("orders file groups with errors before file groups that only have warnings", () => {
@@ -100,21 +100,21 @@ describe("DiagnosticsPanel", () => {
       issues: [
         {
           severity: "warning",
-          file: ".hq/workflows/aaa-warning-only.json",
+          file: ".codehq/workflows/aaa-warning-only.json",
           message: "This workflow has more than 14 steps; prefer 5-9 top-level steps.",
         },
         {
           severity: "error",
-          file: ".hq/workflows/zzz-has-error.json",
+          file: ".codehq/workflows/zzz-has-error.json",
           message: "Step id 'checkout' is not unique within this workflow.",
         },
       ],
     };
     render(<DiagnosticsPanel diagnostics={report} onClose={() => {}} onRecheck={() => Promise.resolve()} />);
 
-    const fileHeadings = screen.getAllByText(/\.hq\/workflows\//).map((node) => node.textContent);
+    const fileHeadings = screen.getAllByText(/\.codehq\/workflows\//).map((node) => node.textContent);
     // "zzz" comes alphabetically after "aaa", but it has an error, so it must render first.
-    expect(fileHeadings).toEqual([".hq/workflows/zzz-has-error.json", ".hq/workflows/aaa-warning-only.json"]);
+    expect(fileHeadings).toEqual([".codehq/workflows/zzz-has-error.json", ".codehq/workflows/aaa-warning-only.json"]);
   });
 
   it("shows the total error and warning counts in the header", () => {

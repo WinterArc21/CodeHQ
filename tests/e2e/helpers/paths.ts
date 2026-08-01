@@ -1,7 +1,7 @@
 /**
  * Constants shared between `playwright.config.ts` and every spec/helper in `tests/e2e/**` —
  * one source of truth for repo-relative paths, the shared read-only fixture server, and the
- * per-spec ports used by tests that mutate `.hq/*` and therefore need their own
+ * per-spec ports used by tests that mutate `.codehq/*` and therefore need their own
  * private server + temp directory (see the "port/temp-dir isolation" note in each mutating
  * spec's `test.beforeAll`).
  */
@@ -16,7 +16,7 @@ export const REPO_ROOT = path.resolve(HERE, "..", "..", "..");
 
 /** The committed, read-only fixture repo. No spec, helper, or server invocation may ever
  * point a `--root` at this path directly — always go through a temp copy (see
- * `helpers/fixture.ts`) so `.hq/diagnostics.json` never gets rewritten here and
+ * `helpers/fixture.ts`) so `.codehq/diagnostics.json` never gets rewritten here and
  * `git status` stays clean. */
 export const SOURCE_FIXTURE_DIR = path.join(REPO_ROOT, "examples", "motiona");
 
@@ -27,9 +27,9 @@ export const WEB_DIST_INDEX = path.join(REPO_ROOT, "dist", "web", "index.html");
  * The shared, read-only server: a fresh copy of `examples/motiona`, recreated at
  * `playwright.config.ts` module-load time (before Playwright's `webServer` plugin starts the
  * process — see `helpers/bootstrap.ts`), reused across every spec that only ever reads
- * `.hq` (boots, depth-and-selection, search, a11y-basics).
+ * `.codehq` (boots, depth-and-selection, search, a11y-basics).
  */
-export const SHARED_FIXTURE_DIR = path.join(os.tmpdir(), "hq-e2e-shared-fixture");
+export const SHARED_FIXTURE_DIR = path.join(os.tmpdir(), "codehq-e2e-shared-fixture");
 export const SHARED_PORT = 4399;
 export const SHARED_BASE_URL = `http://127.0.0.1:${SHARED_PORT}`;
 

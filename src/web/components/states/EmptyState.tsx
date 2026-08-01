@@ -18,7 +18,7 @@ export function EmptyState({ onRecheck }: EmptyStateProps) {
   return (
     <StateLayout title="No workflows mapped yet">
       <p>
-        Ask your coding agent to read <code>.hq/SKILL.md</code> and map any product workflow
+        Ask your coding agent to read <code>.codehq/SKILL.md</code> and map any product workflow
         as a workflow.
       </p>
       <div className={styles.actionRow}>

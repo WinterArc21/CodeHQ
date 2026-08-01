@@ -1,12 +1,12 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { ApiError, getState } from "./client";
-import { buildHQFixtureSnapshot, isHQFixtureEnabled } from "./fixture";
-import type { HQSnapshot } from "./types";
+import { buildCodeHQFixtureSnapshot, isCodeHQFixtureEnabled } from "./fixture";
+import type { CodeHQSnapshot } from "./types";
 
 export type SnapshotStatus = "loading" | "ready" | "error" | "disconnected";
 
-export interface UseHQSnapshotResult {
-  snapshot: HQSnapshot | null;
+export interface UseCodeHQSnapshotResult {
+  snapshot: CodeHQSnapshot | null;
   status: SnapshotStatus;
   error: string | null;
   /** Re-fetches `/api/state` and re-opens the SSE subscription from scratch. */
@@ -15,7 +15,7 @@ export interface UseHQSnapshotResult {
 
 interface SnapshotFrame {
   type: "snapshot";
-  payload: HQSnapshot;
+  payload: CodeHQSnapshot;
 }
 
 interface PingFrame {
@@ -38,12 +38,12 @@ const MAX_RECONNECT_DELAY_MS = 15_000;
  * `ping` frames are ignored, `snapshot` frames replace the current state, and a dropped
  * connection reconnects with a capped exponential backoff rather than hammering the server.
  */
-export function useHQSnapshot(): UseHQSnapshotResult {
+export function useCodeHQSnapshot(): UseCodeHQSnapshotResult {
   // Read once per hook instance: a lazy initializer (not an effect) sets the fixture data, so
   // the fixture path never needs to call setState from inside the effect body below.
-  const [fixtureMode] = useState(isHQFixtureEnabled);
-  const [snapshot, setSnapshot] = useState<HQSnapshot | null>(() =>
-    fixtureMode ? buildHQFixtureSnapshot() : null,
+  const [fixtureMode] = useState(isCodeHQFixtureEnabled);
+  const [snapshot, setSnapshot] = useState<CodeHQSnapshot | null>(() =>
+    fixtureMode ? buildCodeHQFixtureSnapshot() : null,
   );
   const [status, setStatus] = useState<SnapshotStatus>(() => (fixtureMode ? "ready" : "loading"));
   const [error, setError] = useState<string | null>(null);
@@ -126,7 +126,7 @@ export function useHQSnapshot(): UseHQSnapshotResult {
           return;
         }
         setStatus("error");
-        setError(caught instanceof ApiError ? caught.message : "Unable to reach the HQ server.");
+        setError(caught instanceof ApiError ? caught.message : "Unable to reach the CodeHQ server.");
       });
 
     return () => {

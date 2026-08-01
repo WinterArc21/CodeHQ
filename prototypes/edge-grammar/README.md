@@ -1,6 +1,6 @@
 # Edge Grammar prototype
 
-Static design mockup exploring an **edge-led visual grammar** for the HQ
+Static design mockup exploring an **edge-led visual grammar** for the CodeHQ
 workflow canvas: meaning carried by stroke pattern, colour, and arrowhead on the
 *connections* between steps, rather than by which direction a node is placed.
 

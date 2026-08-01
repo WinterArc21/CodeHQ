@@ -6,11 +6,11 @@ playwright-report
 test-results
 *.local
 .vercel
-**/.hq/.runtime/
+**/.codehq/.runtime/
 prototypes/edge-grammar/shots/
 tmp/
 *.tgz
 # Screenshots re-rendered by tests/e2e/canvas-grammar-demo.spec.ts on every run (it recreates
 # the directory itself), so tracking them only produced binary churn in every diff.
 .amp/
-.hq/.runtime/
+.codehq/.runtime/

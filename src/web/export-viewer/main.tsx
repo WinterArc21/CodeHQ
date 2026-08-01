@@ -6,7 +6,7 @@ import "../styles/tokens.css";
 import "../styles/reset.css";
 import "../styles/base.css";
 
-const payloadElement = document.getElementById("hq-export-payload");
+const payloadElement = document.getElementById("codehq-export-payload");
 if (payloadElement === null || payloadElement.textContent === null) {
   throw new Error("Export payload not found.");
 }

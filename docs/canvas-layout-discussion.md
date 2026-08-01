@@ -574,7 +574,7 @@ plan owed to anyone.
 
 No real users have hit this with real repos yet. Every layout idea proposed was a guess about
 problems not yet encountered. The suggested honest move: ship the small outcome-column fix,
-then point HQ at an actual codebase not written by the team and see what genuinely
+then point CodeHQ at an actual codebase not written by the team and see what genuinely
 breaks — more informative in ten minutes than another hour of sketching.
 
 **No code was changed as a result of this conversation.** The repository remains in the clean

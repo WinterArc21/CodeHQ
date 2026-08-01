@@ -9,7 +9,7 @@ import { expect, test, type Page } from "@playwright/test";
 import { selectWorkflowByName, waitForBoot } from "./helpers/app";
 import { createTempFixtureCopy, removeTempDir } from "./helpers/fixture";
 import { PORTS, REPO_ROOT } from "./helpers/paths";
-import { startHQServer, type ManagedServer } from "./helpers/server";
+import { startCodeHQServer, type ManagedServer } from "./helpers/server";
 
 const ARTIFACT_DIR = path.join(REPO_ROOT, ".amp", "in", "artifacts");
 const DEMO_SOURCE = path.join(REPO_ROOT, "tests", "e2e", "fixtures", "canvas-grammar-demo.json");
@@ -91,9 +91,9 @@ async function renderedEdgeNodeOcclusions(page: Page, clearancePx = 12): Promise
 
 test.beforeAll(async () => {
   root = await createTempFixtureCopy("canvas-grammar");
-  await fsp.copyFile(DEMO_SOURCE, path.join(root, ".hq", "workflows", "canvas-grammar-demo.json"));
+  await fsp.copyFile(DEMO_SOURCE, path.join(root, ".codehq", "workflows", "canvas-grammar-demo.json"));
   await fsp.mkdir(ARTIFACT_DIR, { recursive: true });
-  server = await startHQServer(root, PORTS.canvasGrammar);
+  server = await startCodeHQServer(root, PORTS.canvasGrammar);
 });
 
 test.afterAll(async () => {

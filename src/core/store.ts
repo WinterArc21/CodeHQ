@@ -8,11 +8,11 @@ import type { Issue } from "@schema/diagnostics";
 import type { Workflow } from "@schema/workflow";
 import { buildDiagnostics, writeDiagnostics } from "./diagnostics";
 import { loadHQ, type WorkflowFileOutcome } from "./load";
-import { hqPaths, repositoryName, type HQPaths } from "./repository";
+import { codeHQPaths, repositoryName, type CodeHQPaths } from "./repository";
 import { toRepoRelativePosix } from "./fs-utils";
-import type { HQSnapshot, WorkflowRecord } from "./types";
+import type { CodeHQSnapshot, WorkflowRecord } from "./types";
 import type { SourceStatus } from "./source-check";
-import { watchHQ, type HQWatcher } from "./watcher";
+import { watchHQ, type CodeHQWatcher } from "./watcher";
 
 interface CachedWorkflow {
   id: string;
@@ -23,19 +23,19 @@ interface CachedWorkflow {
   staleSince?: string;
 }
 
-export interface HQStore {
-  getSnapshot(): HQSnapshot;
-  reload(): Promise<HQSnapshot>;
-  subscribe(listener: (snapshot: HQSnapshot) => void): () => void;
+export interface CodeHQStore {
+  getSnapshot(): CodeHQSnapshot;
+  reload(): Promise<CodeHQSnapshot>;
+  subscribe(listener: (snapshot: CodeHQSnapshot) => void): () => void;
   start(): void;
   stop(): Promise<void>;
 }
 
-function buildEmptySnapshot(root: string, paths: HQPaths): HQSnapshot {
+function buildEmptySnapshot(root: string, paths: CodeHQPaths): CodeHQSnapshot {
   return {
     generatedAt: new Date().toISOString(),
     status: "uninitialized",
-    repository: { name: repositoryName(root), root, hqDir: paths.dir },
+    repository: { name: repositoryName(root), root, codeHQDir: paths.dir },
     project: null,
     workflows: [],
     diagnostics: { generatedAt: new Date().toISOString(), valid: true, issues: [] },
@@ -78,15 +78,15 @@ function toValidRecord(loaded: Extract<WorkflowFileOutcome, { status: "valid" }>
 }
 
 /** Creates a store for the repository at `root`. Call `start()` to begin watching. */
-export function createHQStore(root: string): HQStore {
-  const paths = hqPaths(root);
+export function createCodeHQStore(root: string): CodeHQStore {
+  const paths = codeHQPaths(root);
   const cacheByFile = new Map<string, CachedWorkflow>();
-  const listeners = new Set<(snapshot: HQSnapshot) => void>();
+  const listeners = new Set<(snapshot: CodeHQSnapshot) => void>();
 
-  let snapshot: HQSnapshot = buildEmptySnapshot(root, paths);
-  let watcher: HQWatcher | null = null;
+  let snapshot: CodeHQSnapshot = buildEmptySnapshot(root, paths);
+  let watcher: CodeHQWatcher | null = null;
   let watcherIssue: Issue | null = null;
-  let reloadInFlight: Promise<HQSnapshot> | null = null;
+  let reloadInFlight: Promise<CodeHQSnapshot> | null = null;
   let reloadQueued = false;
 
   function notify(): void {
@@ -116,7 +116,7 @@ export function createHQStore(root: string): HQStore {
     return toStaleRecord(cached, staleSince);
   }
 
-  async function performReload(): Promise<HQSnapshot> {
+  async function performReload(): Promise<CodeHQSnapshot> {
     const result = await loadHQ(root);
 
     const presentFiles = new Set(result.files.map((outcome) => outcome.file));
@@ -144,7 +144,7 @@ export function createHQStore(root: string): HQStore {
     snapshot = {
       generatedAt: new Date().toISOString(),
       status: result.status,
-      repository: { name: repositoryName(root), root, hqDir: paths.dir },
+      repository: { name: repositoryName(root), root, codeHQDir: paths.dir },
       project: result.project,
       workflows: records,
       diagnostics,
@@ -154,7 +154,7 @@ export function createHQStore(root: string): HQStore {
     return snapshot;
   }
 
-  function runGuardedReload(): Promise<HQSnapshot> {
+  function runGuardedReload(): Promise<CodeHQSnapshot> {
     if (reloadInFlight === null) {
       reloadInFlight = performReload().finally(() => {
         reloadInFlight = null;
@@ -170,12 +170,12 @@ export function createHQStore(root: string): HQStore {
   }
 
   function handleWatcherError(error: Error): void {
-    process.stderr.write(`[hq] file watcher error: ${error.message}\n`);
+    process.stderr.write(`[codehq] file watcher error: ${error.message}\n`);
     watcherIssue = {
       severity: "warning",
       file: toRepoRelativePosix(root, paths.dir),
       message: `The file watcher reported an error: ${error.message}`,
-      hint: "Changes to .hq may not be picked up automatically until HQ is restarted.",
+      hint: "Changes to .codehq may not be picked up automatically until CodeHQ is restarted.",
     };
     void runGuardedReload();
   }

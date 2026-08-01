@@ -1,5 +1,5 @@
 /**
- * Watches `.hq/` for changes and debounces them into a single reload signal.
+ * Watches `.codehq/` for changes and debounces them into a single reload signal.
  *
  * NOTE ON VERSION: the contract specifies Chokidar 4, but the package actually installed
  * (and pinned in package.json) is Chokidar 5.0.0. This module targets the real, installed
@@ -14,7 +14,7 @@ const STABILITY_THRESHOLD_MS = 120;
 const POLL_INTERVAL_MS = 20;
 const DEBOUNCE_MS = 80;
 
-export interface HQWatcher {
+export interface CodeHQWatcher {
   close(): Promise<void>;
 }
 
@@ -33,13 +33,13 @@ function isIgnoredPath(filePath: string): boolean {
 }
 
 /**
- * Watches `hqDir` (non-recursive concerns are chokidar's problem, not ours) and
+ * Watches `codeHQDir` (non-recursive concerns are chokidar's problem, not ours) and
  * calls `onChange` at most once per ~80ms burst, after chokidar's own `awaitWriteFinish`
  * has let a partial agent write settle for ~120ms. Watcher errors are surfaced via
  * `onError`, never swallowed.
  */
-export function watchHQ(hqDir: string, callbacks: WatcherCallbacks): HQWatcher {
-  const watcher: FSWatcher = watch(hqDir, {
+export function watchHQ(codeHQDir: string, callbacks: WatcherCallbacks): CodeHQWatcher {
+  const watcher: FSWatcher = watch(codeHQDir, {
     ignoreInitial: true,
     ignored: (filePath: string) => isIgnoredPath(filePath),
     awaitWriteFinish: { stabilityThreshold: STABILITY_THRESHOLD_MS, pollInterval: POLL_INTERVAL_MS },

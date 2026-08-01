@@ -8,7 +8,7 @@ import type { WorkflowRecord } from "@web/api/types";
 function makeRecord(id: string, name: string): WorkflowRecord {
   return {
     id,
-    file: `.hq/workflows/${id}.json`,
+    file: `.codehq/workflows/${id}.json`,
     workflow: {
       schemaVersion: "0.1",
       id,

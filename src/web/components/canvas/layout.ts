@@ -67,7 +67,7 @@
  */
 import * as dagre from "@dagrejs/dagre";
 import type { Workflow, WorkflowConnection } from "@schema/workflow";
-import type { Depth } from "../../store/useHQStore";
+import type { Depth } from "../../store/useCodeHQStore";
 import { connectionStyle } from "../../design/semantics";
 import { connectionLabelText, MIN_LABELED_RANK_GAP } from "./edgeLabel";
 import { computeOutcomeStepIds, computeOutDegree, computeTopologicalOrder } from "./graph";

@@ -1,10 +1,10 @@
-# HQ
+# CodeHQ
 
-HQ is a local-first web app that renders your coding agent's understanding of
+CodeHQ is a local-first web app that renders your coding agent's understanding of
 your codebase as an interactive workflow canvas. You run it inside your own repository; your
-existing agent (Cursor, Claude Code, Codex, or similar) reads `.hq/SKILL.md`,
-inspects your real source code, and writes structured workflow JSON into `.hq/`.
-HQ validates those files, watches them, and renders them in your browser as you
+existing agent (Cursor, Claude Code, Codex, or similar) reads `.codehq/SKILL.md`,
+inspects your real source code, and writes structured workflow JSON into `.codehq/`.
+CodeHQ validates those files, watches them, and renders them in your browser as you
 work. **It contains no LLM of its own and never uploads your code anywhere** — everything runs
 on `localhost`.
 
@@ -12,14 +12,14 @@ on `localhost`.
 
 - Runs entirely on your machine (`localhost`)
 - Never uploads repository source to a remote service
-- Contains no built-in LLM — your existing coding agent authors the `.hq` files
+- Contains no built-in LLM — your existing coding agent authors the `.codehq` files
 
 See [SECURITY.md](./SECURITY.md) to report vulnerabilities privately.
 
 ## The core loop
 
 ```
-you run `hq open`
+you run `codehq open`
         |
         v
   browser opens at http://localhost:4310
@@ -28,55 +28,55 @@ you run `hq open`
   you ask your agent: "map the checkout workflow"
         |
         v
-  agent reads the repo + .hq/SKILL.md
+  agent reads the repo + .codehq/SKILL.md
         |
         v
-  agent writes .hq/workflows/checkout.json
+  agent writes .codehq/workflows/checkout.json
         |
         v
-  HQ validates it, writes diagnostics.json
+  CodeHQ validates it, writes diagnostics.json
         |
         v
   the board updates live, in your browser, no refresh
 ```
 
-If the agent writes something invalid, `.hq/diagnostics.json` explains exactly what
+If the agent writes something invalid, `.codehq/diagnostics.json` explains exactly what
 is wrong and how to fix it, and the board keeps showing the last valid version of the workflow
 in the meantime — it never blanks out.
 
 ## Quickstart
 
 ```sh
-npx hq init
-npx hq open
+npx codehq init
+npx codehq open
 ```
 
 Then paste this into your coding agent:
 
-> Read `.hq/SKILL.md`, then document the checkout workflow. It starts at the
+> Read `.codehq/SKILL.md`, then document the checkout workflow. It starts at the
 > `POST /api/checkout` route. Trace it through order creation, payment, and confirmation
-> email, and write the result to `.hq/workflows/checkout.json`. Then run
-> `hq validate` and fix anything it flags.
+> email, and write the result to `.codehq/workflows/checkout.json`. Then run
+> `codehq validate` and fix anything it flags.
 
 ## Commands
 
-### `hq init [--force] [--example]`
+### `codehq init [--force] [--example]`
 
-Scaffolds `.hq/` in the current repository: `project.json`, `SKILL.md`, an empty
-`workflows/`, and an initial `diagnostics.json`. Also appends `.hq/.runtime/` to your
+Scaffolds `.codehq/` in the current repository: `project.json`, `SKILL.md`, an empty
+`workflows/`, and an initial `diagnostics.json`. Also appends `.codehq/.runtime/` to your
 `.gitignore` (creating it if needed, never duplicating the line).
 
 `workflows/` starts empty on purpose, so your first `validate` is clean and the board opens on
 its guided empty state — which includes a **Show example workflow** button if you want to see a
 populated board before mapping your own.
 
-- `--force` — overwrite existing `.hq` files. Without it, an existing file (for
+- `--force` — overwrite existing `.codehq` files. Without it, an existing file (for
   example a `SKILL.md` you have already edited) is left untouched and reported as unchanged.
 - `--example` — also copy the bundled example workflow into `workflows/`. It describes an
   imaginary project, so `validate` will warn that the files it cites are not in your repository;
   that is the example being an example, not a problem with your setup.
 
-### `hq open [--port <n>] [--no-open] [--root <path>]`
+### `codehq open [--port <n>] [--no-open] [--root <path>]`
 
 Starts the local server and opens the workflow canvas in your browser.
 
@@ -84,36 +84,36 @@ Starts the local server and opens the workflow canvas in your browser.
   tried automatically and the fallback is reported.
 - `--no-open` — start the server without opening a browser.
 - `--root <path>` — repository root to serve. Defaults to walking up from the current
-  directory looking for `.hq/`, then `.git/`, then `package.json`.
+  directory looking for `.codehq/`, then `.git/`, then `package.json`.
 
 Stop it with `Ctrl+C`.
 
-### `hq validate [--root <path>] [--json]`
+### `codehq validate [--root <path>] [--json]`
 
-Validates everything under `.hq/`, writes the result to
-`.hq/diagnostics.json`, and prints it. Exits non-zero if there are any errors.
+Validates everything under `.codehq/`, writes the result to
+`.codehq/diagnostics.json`, and prints it. Exits non-zero if there are any errors.
 
 - `--root <path>` — repository root, same resolution rules as `open`.
 - `--json` — print only the `DiagnosticsReport` as JSON, so an agent (or a script) can parse
   the result without scraping human-readable text.
 
-Also available: `--help`, `--version`, `--debug` (or `HQ_DEBUG=1`) for full stack
+Also available: `--help`, `--version`, `--debug` (or `CODEHQ_DEBUG=1`) for full stack
 traces on error.
 
-## The `.hq` format
+## The `.codehq` format
 
 ```
-.hq/
+.codehq/
 ├── project.json          # project id/name and a few display settings
 ├── SKILL.md               # instructions for the agent authoring workflows
-├── diagnostics.json        # written by HQ, read by agents
+├── diagnostics.json        # written by CodeHQ, read by agents
 ├── workflows/
 │   └── <id>.json           # one workflow per file
 └── .runtime/                # gitignored scratch space, ignored by validation
 ```
 
 A workflow is a directed graph of steps an agent has verified against the real code — no
-coordinates, colors, or styling, ever; HQ owns all of that. A short annotated
+coordinates, colors, or styling, ever; CodeHQ owns all of that. A short annotated
 example:
 
 ```json
@@ -150,7 +150,7 @@ example:
 
 Every object is validated strictly — an unrecognized key (especially a visual one like `x`,
 `color`, or `style`) is a hard error, not a warning. Every `file` path must be
-repository-relative. The full field-by-field reference lives in `.hq/SKILL.md` after
+repository-relative. The full field-by-field reference lives in `.codehq/SKILL.md` after
 you run `init`.
 
 ## Local development

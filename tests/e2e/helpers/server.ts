@@ -1,7 +1,7 @@
 /**
  * Spawns the REAL built CLI (`node dist/node/cli.js open`) against a given repository root
  * and port, and waits until `/api/state` answers — the same server a user would get from
- * `hq open`, never an in-process fake.
+ * `codehq open`, never an in-process fake.
  *
  * Shutdown note (see `tests/e2e/cli.spec.ts` for the full write-up): Windows has no POSIX
  * signals, so `stop()` can only force-terminate the child process here. That is sufficient
@@ -41,7 +41,7 @@ async function waitForReady(
 
   while (Date.now() < deadline) {
     if (child.exitCode !== null) {
-      throw new Error(`hq open exited early (code ${child.exitCode}) before it became ready.\n${describeFailure()}`);
+      throw new Error(`codehq open exited early (code ${child.exitCode}) before it became ready.\n${describeFailure()}`);
     }
     try {
       const response = await fetch(`http://127.0.0.1:${port}/api/state`);
@@ -59,8 +59,8 @@ async function waitForReady(
   );
 }
 
-/** Starts `hq open --no-open --port <port> --root <root>` and waits for it to serve `/api/state`. */
-export async function startHQServer(root: string, port: number): Promise<ManagedServer> {
+/** Starts `codehq open --no-open --port <port> --root <root>` and waits for it to serve `/api/state`. */
+export async function startCodeHQServer(root: string, port: number): Promise<ManagedServer> {
   const child = spawn(process.execPath, [CLI_ENTRY, "open", "--no-open", "--port", String(port), "--root", root], {
     cwd: REPO_ROOT,
     stdio: ["ignore", "pipe", "pipe"],

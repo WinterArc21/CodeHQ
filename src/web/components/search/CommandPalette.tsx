@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useId, useRef, useState, type KeyboardEvent as ReactKeyboardEvent } from "react";
 import { MagnifyingGlass } from "@phosphor-icons/react";
-import type { HQSnapshot } from "../../api/types";
-import { useHQStore } from "../../store/useHQStore";
+import type { CodeHQSnapshot } from "../../api/types";
+import { useCodeHQStore } from "../../store/useCodeHQStore";
 import { useFocusTrap } from "../../lib/useFocusTrap";
 import { useBackdropDismiss } from "../../lib/useBackdropDismiss";
 import { Kbd } from "../primitives";
@@ -11,7 +11,7 @@ import type { SearchResult } from "./searchIndex";
 import styles from "./CommandPalette.module.css";
 
 export interface CommandPaletteProps {
-  snapshot: HQSnapshot | null;
+  snapshot: CodeHQSnapshot | null;
   onRecheck: () => Promise<void>;
 }
 
@@ -20,13 +20,13 @@ export interface CommandPaletteProps {
  * works regardless of whether the dialog is currently open; renders nothing until it is.
  */
 export function CommandPalette({ snapshot, onRecheck }: CommandPaletteProps) {
-  const searchOpen = useHQStore((state) => state.searchOpen);
-  const openSearch = useHQStore((state) => state.openSearch);
-  const closeSearch = useHQStore((state) => state.closeSearch);
-  const searchQuery = useHQStore((state) => state.searchQuery);
-  const setSearchQuery = useHQStore((state) => state.setSearchQuery);
-  const selectWorkflow = useHQStore((state) => state.selectWorkflow);
-  const selectStep = useHQStore((state) => state.selectStep);
+  const searchOpen = useCodeHQStore((state) => state.searchOpen);
+  const openSearch = useCodeHQStore((state) => state.openSearch);
+  const closeSearch = useCodeHQStore((state) => state.closeSearch);
+  const searchQuery = useCodeHQStore((state) => state.searchQuery);
+  const setSearchQuery = useCodeHQStore((state) => state.setSearchQuery);
+  const selectWorkflow = useCodeHQStore((state) => state.selectWorkflow);
+  const selectStep = useCodeHQStore((state) => state.selectStep);
 
   const containerRef = useRef<HTMLDivElement>(null);
   const [activeIndex, setActiveIndex] = useState(0);
@@ -42,7 +42,7 @@ export function CommandPalette({ snapshot, onRecheck }: CommandPaletteProps) {
         return;
       }
       event.preventDefault();
-      if (useHQStore.getState().searchOpen) {
+      if (useCodeHQStore.getState().searchOpen) {
         closeSearch();
       } else {
         openSearch();
@@ -107,7 +107,7 @@ export function CommandPalette({ snapshot, onRecheck }: CommandPaletteProps) {
 
   return (
     <div className={styles.backdrop} {...backdropDismiss}>
-      <div ref={containerRef} className={styles.palette} role="dialog" aria-modal="true" aria-label="Search HQ">
+      <div ref={containerRef} className={styles.palette} role="dialog" aria-modal="true" aria-label="Search CodeHQ">
         <div className={styles.inputRow}>
           <MagnifyingGlass size={16} aria-hidden="true" />
           <input

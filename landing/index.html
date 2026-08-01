@@ -3,12 +3,12 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Agents ship the code. HQ shows you the system.</title>
-  <meta name="description" content="Agents ship faster than you can reread the repo. HQ maps what they built, entry point to failure path, as a living graph rendered entirely on your machine." />
-  <meta property="og:title" content="Agents ship the code. HQ shows you the system." />
-  <meta property="og:description" content="Agents ship faster than you can reread the repo. HQ maps what they built, entry point to failure path." />
+  <title>Agents ship the code. CodeHQ shows you the system.</title>
+  <meta name="description" content="Agents ship faster than you can reread the repo. CodeHQ maps what they built, entry point to failure path, as a living graph rendered entirely on your machine." />
+  <meta property="og:title" content="Agents ship the code. CodeHQ shows you the system." />
+  <meta property="og:description" content="Agents ship faster than you can reread the repo. CodeHQ maps what they built, entry point to failure path." />
   <meta property="og:type" content="website" />
-  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='3' fill='%23111111'/%3E%3Ctext x='16' y='21' font-family='ui-monospace,monospace' font-size='13' font-weight='700' fill='%23FFFFFF' text-anchor='middle'%3EH%3C/text%3E%3C/svg%3E" />
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='3' fill='%23111111'/%3E%3Ctext x='16' y='21' font-family='ui-monospace,monospace' font-size='13' font-weight='700' fill='%23FFFFFF' text-anchor='middle'%3EC%3C/text%3E%3C/svg%3E" />
   <link rel="stylesheet" href="styles.css" />
 </head>
 <body>
@@ -19,9 +19,9 @@
   <header class="site-head" id="siteHead">
     <div class="head-inner">
       <a class="brand" href="#top">
-        <span class="brand-mark" aria-hidden="true">H</span>
+        <span class="brand-mark" aria-hidden="true">C</span>
         <span class="brand-word">
-          <strong>HQ</strong>
+          <strong>CodeHQ</strong>
           <span class="brand-sub">workflow maps</span>
         </span>
       </a>
@@ -50,16 +50,16 @@
       <div class="hero-inner">
         <h1 class="hero-title">
           <span class="t-dim reveal">Agents ship the code.</span>
-          <span class="reveal">HQ shows you the system.</span>
+          <span class="reveal">CodeHQ shows you the system.</span>
         </h1>
 
         <div class="hero-lede">
-          <p class="hero-sub reveal">Agents ship faster than you can reread the repo. HQ maps what they built, entry point to failure path.</p>
+          <p class="hero-sub reveal">Agents ship faster than you can reread the repo. CodeHQ maps what they built, entry point to failure path.</p>
           <div class="hero-cta reveal">
             <div class="cmd" role="group" aria-label="Install commands">
-              <div class="cmd-line"><span class="cmd-prompt">$</span><code>npx hq init</code></div>
-              <div class="cmd-line"><span class="cmd-prompt">$</span><code>npx hq open</code></div>
-              <button class="cmd-copy" type="button" data-copy="npx hq init" aria-label="Copy install command">
+              <div class="cmd-line"><span class="cmd-prompt">$</span><code>npx codehq init</code></div>
+              <div class="cmd-line"><span class="cmd-prompt">$</span><code>npx codehq open</code></div>
+              <button class="cmd-copy" type="button" data-copy="npx codehq init" aria-label="Copy install command">
                 <svg viewBox="0 0 16 16" width="13" height="13" aria-hidden="true"><path d="M5 2.5h7A1.5 1.5 0 0 1 13.5 4v7M3.5 5H11a1 1 0 0 1 1 1v6.5a1 1 0 0 1-1 1H3.5a1 1 0 0 1-1-1V6a1 1 0 0 1 1-1Z" fill="none" stroke="currentColor" stroke-width="1.2"/></svg>
                 <span>copy</span>
               </button>
@@ -108,7 +108,7 @@
     <section class="section" id="loop">
       <header class="section-head">
         <h2 class="section-title reveal">One loop, three moves.</h2>
-        <p class="section-lede reveal">Your agent writes. HQ validates and draws. You read the result and ask for the next workflow.</p>
+        <p class="section-lede reveal">Your agent writes. CodeHQ validates and draws. You read the result and ask for the next workflow.</p>
       </header>
 
       <div class="cycle">
@@ -119,9 +119,9 @@
             <span class="sp-node" data-sp="loop-1" aria-hidden="true"></span>
             <div class="station-copy">
               <h3>Scaffold</h3>
-              <p><code>hq init</code> drops a <code>.hq/</code> into your repo: a strict JSON contract and a <code>SKILL.md</code> your agent already knows how to read.</p>
+              <p><code>codehq init</code> drops a <code>.codehq/</code> into your repo: a strict JSON contract and a <code>SKILL.md</code> your agent already knows how to read.</p>
             </div>
-            <pre class="mini" aria-label="Scaffolded files">.hq/
+            <pre class="mini" aria-label="Scaffolded files">.codehq/
 ├── project.json
 ├── SKILL.md          agent contract
 ├── diagnostics.json  repair loop
@@ -150,7 +150,7 @@
             <span class="sp-node" data-sp="loop-3" aria-hidden="true"></span>
             <div class="station-copy">
               <h3>Observe</h3>
-              <p>HQ validates every file, watches for changes, and re-renders the canvas live. Invalid files become precise diagnostics, never a blank board.</p>
+              <p>CodeHQ validates every file, watches for changes, and re-renders the canvas live. Invalid files become precise diagnostics, never a blank board.</p>
             </div>
             <pre class="mini" aria-label="Diagnostics excerpt">issues[0]: error
   connections[3].to  step "send-receipt"
@@ -171,7 +171,7 @@
 
       <div class="demo reveal" id="demo" data-sp="canvas-frame">
         <div class="demo-bar">
-          <span class="demo-brand"><span class="brand-mark sm" aria-hidden="true">H</span> <strong>HQ</strong>&nbsp;<span class="demo-repo">motiona / generate-video</span></span>
+          <span class="demo-brand"><span class="brand-mark sm" aria-hidden="true">C</span> <strong>CodeHQ</strong>&nbsp;<span class="demo-repo">motiona / generate-video</span></span>
           <span class="demo-spacer"></span>
           <span class="live"><span class="live-dot" aria-hidden="true"></span><span class="live-txt">watching local files</span></span>
         </div>
@@ -214,7 +214,7 @@
         </footer>
       </div>
 
-      <p class="demo-caption reveal">Rendered from <code>examples/motiona/.hq/workflows/generate-video.json</code></p>
+      <p class="demo-caption reveal">Rendered from <code>examples/motiona/.codehq/workflows/generate-video.json</code></p>
     </section>
 
     <!-- ============ principles: the spine runs as a bus with four taps ============ -->
@@ -232,12 +232,12 @@
         <article class="tap reveal">
           <span class="sp-node" data-sp="prin-2" aria-hidden="true"></span>
           <h3>No LLM inside</h3>
-          <p>HQ contains no model and no prompts. Your agent is the brain. HQ is the instrument that keeps it honest.</p>
+          <p>CodeHQ contains no model and no prompts. Your agent is the brain. CodeHQ is the instrument that keeps it honest.</p>
         </article>
         <article class="tap reveal">
           <span class="sp-node" data-sp="prin-3" aria-hidden="true"></span>
           <h3>Agent-proof schema</h3>
-          <p>Strict Zod schemas reject invented fields, especially visual ones. Layout, colour and typography are computed by HQ, never authored by a model.</p>
+          <p>Strict Zod schemas reject invented fields, especially visual ones. Layout, colour and typography are computed by CodeHQ, never authored by a model.</p>
         </article>
         <article class="tap reveal">
           <span class="sp-node" data-sp="prin-4" aria-hidden="true"></span>
@@ -256,10 +256,10 @@
 
       <div class="install-grid">
         <div class="cmd cmd-lg reveal" role="group" aria-label="Getting started commands">
-          <div class="cmd-line"><span class="cmd-prompt">$</span><code>npx hq init</code><span class="cmd-comment">scaffold .hq/</span></div>
-          <div class="cmd-line"><span class="cmd-prompt">$</span><code>npx hq open</code><span class="cmd-comment">start the local canvas</span></div>
-          <div class="cmd-line"><span class="cmd-prompt">$</span><code>npx hq validate</code><span class="cmd-comment">check what your agent wrote</span></div>
-          <button class="cmd-copy" type="button" data-copy="npx hq init" aria-label="Copy install command">
+          <div class="cmd-line"><span class="cmd-prompt">$</span><code>npx codehq init</code><span class="cmd-comment">scaffold .codehq/</span></div>
+          <div class="cmd-line"><span class="cmd-prompt">$</span><code>npx codehq open</code><span class="cmd-comment">start the local canvas</span></div>
+          <div class="cmd-line"><span class="cmd-prompt">$</span><code>npx codehq validate</code><span class="cmd-comment">check what your agent wrote</span></div>
+          <button class="cmd-copy" type="button" data-copy="npx codehq init" aria-label="Copy install command">
             <svg viewBox="0 0 16 16" width="13" height="13" aria-hidden="true"><path d="M5 2.5h7A1.5 1.5 0 0 1 13.5 4v7M3.5 5H11a1 1 0 0 1 1 1v6.5a1 1 0 0 1-1 1H3.5a1 1 0 0 1-1-1V6a1 1 0 0 1 1-1Z" fill="none" stroke="currentColor" stroke-width="1.2"/></svg>
             <span>copy</span>
           </button>
@@ -281,9 +281,9 @@
   <footer class="site-foot">
     <div class="foot-inner">
       <div class="foot-brand">
-        <span class="brand-mark" aria-hidden="true">H</span>
+        <span class="brand-mark" aria-hidden="true">C</span>
         <div>
-          <strong>HQ</strong> <span class="dim">/ workflow maps</span>
+          <strong>CodeHQ</strong> <span class="dim">/ workflow maps</span>
           <p class="foot-tag">built local. stays local.</p>
         </div>
       </div>
@@ -294,7 +294,7 @@
         <a href="#principles">Principles</a>
         <a href="#install">Install</a>
       </nav>
-      <p class="foot-c">© 2026 · closed source, open loop</p>
+      <p class="foot-c">© 2026 · open source, local-first</p>
     </div>
   </footer>
 

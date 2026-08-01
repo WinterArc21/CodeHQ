@@ -1,20 +1,20 @@
 {
-  "name": "hq",
-  "version": "0.1.2",
+  "name": "codehq",
+  "version": "0.2.0",
   "type": "module",
   "description": "Local-first workflow mapping for coding agents, rendered as an interactive canvas.",
   "license": "MIT",
   "author": "WinterArc21",
-  "homepage": "https://github.com/WinterArc21/HQ#readme",
+  "homepage": "https://github.com/WinterArc21/CodeHQ#readme",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/WinterArc21/HQ.git"
+    "url": "git+https://github.com/WinterArc21/CodeHQ.git"
   },
   "bugs": {
-    "url": "https://github.com/WinterArc21/HQ/issues"
+    "url": "https://github.com/WinterArc21/CodeHQ/issues"
   },
   "keywords": [
-    "hq",
+    "codehq",
     "workflow",
     "architecture",
     "devtools",
@@ -32,7 +32,7 @@
   },
   "packageManager": "pnpm@11.5.3",
   "bin": {
-    "hq": "dist/node/cli.js"
+    "codehq": "dist/node/cli.js"
   },
   "files": [
     "dist",

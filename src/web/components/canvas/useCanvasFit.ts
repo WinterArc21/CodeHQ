@@ -8,7 +8,7 @@
  */
 import { useCallback, useEffect, useLayoutEffect, useRef, useState, type RefObject } from "react";
 import type { ReactFlowInstance } from "@xyflow/react";
-import type { Depth } from "../../store/useHQStore";
+import type { Depth } from "../../store/useCodeHQStore";
 import type { RoutedEdge } from "./edgeRouting";
 import { computeFitViewport } from "./fitViewport";
 import type { LayoutNode } from "./layout";

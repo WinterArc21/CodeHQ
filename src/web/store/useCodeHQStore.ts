@@ -12,7 +12,7 @@ export type Theme = "dark" | "light";
 /** Persist schema version — bump when migrating stored UI preferences. */
 const PERSIST_VERSION = 1;
 
-interface HQUiState {
+interface CodeHQUiState {
   selectedWorkflowId: string | null;
   selectedStepId: string | null;
   depth: Depth;
@@ -24,7 +24,7 @@ interface HQUiState {
   theme: Theme;
 }
 
-interface HQUiActions {
+interface CodeHQUiActions {
   selectWorkflow: (workflowId: string | null) => void;
   selectStep: (stepId: string | null) => void;
   setDepth: (depth: Depth) => void;
@@ -38,9 +38,9 @@ interface HQUiActions {
   setTheme: (theme: Theme) => void;
 }
 
-export type HQStore = HQUiState & HQUiActions;
+export type CodeHQStore = CodeHQUiState & CodeHQUiActions;
 
-const STORAGE_KEY = "hq.ui";
+const STORAGE_KEY = "codehq.ui";
 
 /**
  * Wraps `window.localStorage` so a failure (quota exceeded, private browsing, storage
@@ -71,7 +71,7 @@ const safeStorage: StateStorage = {
   },
 };
 
-const INITIAL_STATE: HQUiState = {
+const INITIAL_STATE: CodeHQUiState = {
   selectedWorkflowId: null,
   selectedStepId: null,
   depth: "workflow",
@@ -82,7 +82,7 @@ const INITIAL_STATE: HQUiState = {
   theme: "dark",
 };
 
-export const useHQStore = create<HQStore>()(
+export const useCodeHQStore = create<CodeHQStore>()(
   persist(
     (set) => ({
       ...INITIAL_STATE,
@@ -142,19 +142,19 @@ export const useHQStore = create<HQStore>()(
        */
       migrate: (persisted) => {
         if (persisted === undefined || persisted === null || typeof persisted !== "object") {
-          return persisted as HQUiState;
+          return persisted as CodeHQUiState;
         }
-        const state = persisted as Partial<HQUiState>;
+        const state = persisted as Partial<CodeHQUiState>;
         if (state.depth === "symbols") {
           return { ...state, depth: "modules" };
         }
-        return state as HQUiState;
+        return state as CodeHQUiState;
       },
     },
   ),
 );
 
 /** Test-only helper (and handy for "reset" affordances) to restore the initial UI state. */
-export function resetHQStore(): void {
-  useHQStore.setState({ ...INITIAL_STATE });
+export function resetCodeHQStore(): void {
+  useCodeHQStore.setState({ ...INITIAL_STATE });
 }

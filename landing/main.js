@@ -1,5 +1,5 @@
 /* ==========================================================================
-   HQ landing page runtime
+   CodeHQ landing page runtime
 
    Three pieces:
      1. the workflow canvas demo (real data from examples/motiona)

@@ -1,5 +1,5 @@
 /**
- * `hq validate` — loads and validates `.hq/`, writes
+ * `codehq validate` — loads and validates `.codehq/`, writes
  * `diagnostics.json`, and reports the result (contract §9, product brief §E).
  */
 
@@ -7,7 +7,7 @@ import type { DiagnosticsReport } from "@schema/diagnostics";
 import { buildDiagnostics, writeDiagnostics } from "@core/diagnostics";
 import { pathExists } from "@core/fs-utils";
 import { loadHQ } from "@core/load";
-import { hqPaths } from "@core/repository";
+import { codeHQPaths } from "@core/repository";
 import { pluralize, printIssues } from "../output";
 import { resolveCliRoot } from "../resolve-root";
 
@@ -17,20 +17,20 @@ export interface ValidateOptions {
 }
 
 export type ValidateResult =
-  | { exitCode: 0 | 1; root: string; kind: "missing-hq"; message: string }
+  | { exitCode: 0 | 1; root: string; kind: "missing-codehq"; message: string }
   | { exitCode: 0 | 1; root: string; kind: "report"; report: DiagnosticsReport; workflowCount: number };
 
-/** Loads, validates, and (when `.hq/` exists) writes `diagnostics.json`. */
+/** Loads, validates, and (when `.codehq/` exists) writes `diagnostics.json`. */
 export async function runValidate(options: ValidateOptions): Promise<ValidateResult> {
   const root = resolveCliRoot(options.root);
-  const paths = hqPaths(root);
+  const paths = codeHQPaths(root);
 
   if (!(await pathExists(paths.dir))) {
     return {
       exitCode: 1,
       root,
-      kind: "missing-hq",
-      message: `No .hq/ directory found at '${root}'. Run \`hq init\` first.`,
+      kind: "missing-codehq",
+      message: `No .codehq/ directory found at '${root}'. Run \`codehq init\` first.`,
     };
   }
 
@@ -49,7 +49,7 @@ export async function runValidate(options: ValidateOptions): Promise<ValidateRes
 
 /** Renders a `ValidateResult` to stdout/stderr in the requested format. */
 export function printValidateResult(result: ValidateResult, json: boolean): void {
-  if (result.kind === "missing-hq") {
+  if (result.kind === "missing-codehq") {
     console.error(result.message);
     return;
   }
@@ -61,7 +61,7 @@ export function printValidateResult(result: ValidateResult, json: boolean): void
 
   if (result.report.issues.length === 0) {
     if (result.workflowCount === 0) {
-      console.log("No workflow files found in .hq/workflows/.");
+      console.log("No workflow files found in .codehq/workflows/.");
       return;
     }
     const noun = result.workflowCount === 1 ? "workflow" : "workflows";

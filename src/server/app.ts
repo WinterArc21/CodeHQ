@@ -1,5 +1,5 @@
 /**
- * The Fastify application: `createHQServer` boots a store, a watcher, and every
+ * The Fastify application: `createCodeHQServer` boots a store, a watcher, and every
  * `/api/*` route, bound to `127.0.0.1` only — this is a local-only tool and must never
  * listen on `0.0.0.0`.
  */
@@ -10,11 +10,11 @@ import { fileURLToPath } from "node:url";
 import fastifyStatic from "@fastify/static";
 import fastify, { type FastifyInstance } from "fastify";
 import { pathExists } from "@core/fs-utils";
-import { createHQStore, type HQStore } from "@core/store";
+import { createCodeHQStore, type CodeHQStore } from "@core/store";
 import { registerEventsRoute } from "./events";
 import { registerRoutes } from "./routes";
 
-export interface HQServerOptions {
+export interface CodeHQServerOptions {
   root: string;
   port?: number;
   host?: string;
@@ -22,12 +22,12 @@ export interface HQServerOptions {
   logger?: boolean;
 }
 
-export interface HQServer {
+export interface CodeHQServer {
   url: string;
   port: number;
   root: string;
   close(): Promise<void>;
-  store: HQStore;
+  store: CodeHQStore;
 }
 
 const DEFAULT_PORT = 4310;
@@ -87,7 +87,7 @@ async function registerWebStatic(app: FastifyInstance): Promise<void> {
         .code(200)
         .type("text/plain")
         .send(
-          "HQ web UI has not been built yet.\n\n" +
+          "CodeHQ web UI has not been built yet.\n\n" +
             "Run `pnpm build` (or `pnpm build:web`) to generate dist/web, then restart the server.\n",
         );
     });
@@ -105,15 +105,15 @@ async function registerWebStatic(app: FastifyInstance): Promise<void> {
 }
 
 /** Boots the store, the watcher, and the Fastify app. Resolves once the server is listening. */
-export async function createHQServer(options: HQServerOptions): Promise<HQServer> {
+export async function createCodeHQServer(options: CodeHQServerOptions): Promise<CodeHQServer> {
   const host = options.host ?? DEFAULT_HOST;
   if (host === "0.0.0.0") {
-    throw new Error("Refusing to bind 0.0.0.0 — HQ is a local-only tool.");
+    throw new Error("Refusing to bind 0.0.0.0 — CodeHQ is a local-only tool.");
   }
 
   const port = await findAvailablePort(options.port ?? DEFAULT_PORT, host);
 
-  const store = createHQStore(options.root);
+  const store = createCodeHQStore(options.root);
   await store.reload();
   store.start();
 

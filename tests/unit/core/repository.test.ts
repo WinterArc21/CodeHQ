@@ -2,12 +2,12 @@ import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import path from "node:path";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
-import { hqPaths, repositoryName, resolveRepositoryRoot } from "@core/repository";
+import { codeHQPaths, repositoryName, resolveRepositoryRoot } from "@core/repository";
 
 let base: string;
 
 beforeEach(() => {
-  base = mkdtempSync(path.join(tmpdir(), "hq-repo-root-"));
+  base = mkdtempSync(path.join(tmpdir(), "codehq-repo-root-"));
 });
 
 afterEach(() => {
@@ -15,7 +15,7 @@ afterEach(() => {
 });
 
 describe("resolveRepositoryRoot", () => {
-  it("prefers a nearer .git over a farther .hq when .hq is absent", () => {
+  it("prefers a nearer .git over a farther .codehq when .codehq is absent", () => {
     mkdirSync(path.join(base, ".git"));
     const startDir = path.join(base, "src", "deep");
     mkdirSync(startDir, { recursive: true });
@@ -23,9 +23,9 @@ describe("resolveRepositoryRoot", () => {
     expect(resolveRepositoryRoot(startDir)).toBe(base);
   });
 
-  it("prefers .hq over a closer .git", () => {
-    // .hq sits at `base`, but `.git` sits closer, at `base/mid`.
-    mkdirSync(path.join(base, ".hq"));
+  it("prefers .codehq over a closer .git", () => {
+    // .codehq sits at `base`, but `.git` sits closer, at `base/mid`.
+    mkdirSync(path.join(base, ".codehq"));
     const midDir = path.join(base, "mid");
     mkdirSync(path.join(midDir, ".git"), { recursive: true });
     const startDir = path.join(midDir, "src");
@@ -34,7 +34,7 @@ describe("resolveRepositoryRoot", () => {
     expect(resolveRepositoryRoot(startDir)).toBe(base);
   });
 
-  it("falls back to the nearest package.json when neither .hq nor .git exist", () => {
+  it("falls back to the nearest package.json when neither .codehq nor .git exist", () => {
     writeFileSync(path.join(base, "package.json"), "{}");
     const startDir = path.join(base, "src");
     mkdirSync(startDir, { recursive: true });
@@ -46,7 +46,7 @@ describe("resolveRepositoryRoot", () => {
     const startDir = path.join(base, "src", "deep");
     mkdirSync(startDir, { recursive: true });
 
-    // No .hq, .git, or package.json anywhere above `startDir` inside our
+    // No .codehq, .git, or package.json anywhere above `startDir` inside our
     // isolated temp tree, so it must fall back to `startDir`.
     expect(resolveRepositoryRoot(startDir)).toBe(path.resolve(startDir));
   });
@@ -59,10 +59,10 @@ describe("resolveRepositoryRoot", () => {
 });
 
 describe("repositoryName", () => {
-  it("prefers .hq/project.json's project.name", () => {
-    mkdirSync(path.join(base, ".hq"));
+  it("prefers .codehq/project.json's project.name", () => {
+    mkdirSync(path.join(base, ".codehq"));
     writeFileSync(
-      path.join(base, ".hq", "project.json"),
+      path.join(base, ".codehq", "project.json"),
       JSON.stringify({ schemaVersion: "0.1", project: { id: "x", name: "From Project Json" } }),
     );
     writeFileSync(path.join(base, "package.json"), JSON.stringify({ name: "from-package-json" }));
@@ -81,22 +81,22 @@ describe("repositoryName", () => {
   });
 
   it("does not throw on a malformed project.json and falls through to the next source", () => {
-    mkdirSync(path.join(base, ".hq"));
-    writeFileSync(path.join(base, ".hq", "project.json"), "{ not valid json");
+    mkdirSync(path.join(base, ".codehq"));
+    writeFileSync(path.join(base, ".codehq", "project.json"), "{ not valid json");
     writeFileSync(path.join(base, "package.json"), JSON.stringify({ name: "fallback-name" }));
 
     expect(repositoryName(base)).toBe("fallback-name");
   });
 });
 
-describe("hqPaths", () => {
+describe("codeHQPaths", () => {
   it("derives every canonical path from the root", () => {
-    const paths = hqPaths(base);
-    expect(paths.dir).toBe(path.join(base, ".hq"));
-    expect(paths.projectFile).toBe(path.join(base, ".hq", "project.json"));
-    expect(paths.workflowsDir).toBe(path.join(base, ".hq", "workflows"));
-    expect(paths.diagnosticsFile).toBe(path.join(base, ".hq", "diagnostics.json"));
-    expect(paths.skillFile).toBe(path.join(base, ".hq", "SKILL.md"));
-    expect(paths.runtimeDir).toBe(path.join(base, ".hq", ".runtime"));
+    const paths = codeHQPaths(base);
+    expect(paths.dir).toBe(path.join(base, ".codehq"));
+    expect(paths.projectFile).toBe(path.join(base, ".codehq", "project.json"));
+    expect(paths.workflowsDir).toBe(path.join(base, ".codehq", "workflows"));
+    expect(paths.diagnosticsFile).toBe(path.join(base, ".codehq", "diagnostics.json"));
+    expect(paths.skillFile).toBe(path.join(base, ".codehq", "SKILL.md"));
+    expect(paths.runtimeDir).toBe(path.join(base, ".codehq", ".runtime"));
   });
 });

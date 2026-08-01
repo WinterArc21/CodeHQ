@@ -1,5 +1,5 @@
 /**
- * Private, disposable temp directories for tests that mutate `.hq/*`. Never touches
+ * Private, disposable temp directories for tests that mutate `.codehq/*`. Never touches
  * the committed `examples/motiona` fixture directly — everything here copies out of it (or
  * creates an empty directory from scratch) into `os.tmpdir()`, so the repo tree stays clean
  * no matter what a test writes.
@@ -11,7 +11,7 @@ import path from "node:path";
 import { SOURCE_FIXTURE_DIR } from "./paths";
 
 function uniqueDir(label: string): string {
-  return path.join(os.tmpdir(), `hq-e2e-${label}-${randomBytes(4).toString("hex")}`);
+  return path.join(os.tmpdir(), `codehq-e2e-${label}-${randomBytes(4).toString("hex")}`);
 }
 
 /** A private copy of `examples/motiona`, safe for a test to freely rewrite. */
@@ -21,7 +21,7 @@ export async function createTempFixtureCopy(label: string): Promise<string> {
   return dir;
 }
 
-/** A brand-new, empty directory (no `.hq` at all) for uninitialized-state / CLI tests. */
+/** A brand-new, empty directory (no `.codehq` at all) for uninitialized-state / CLI tests. */
 export async function createEmptyTempDir(label: string): Promise<string> {
   const dir = uniqueDir(label);
   await fsp.mkdir(dir, { recursive: true });

@@ -4,7 +4,7 @@ import type { FocusEvent as ReactFocusEvent, KeyboardEvent as ReactKeyboardEvent
 import { Position, type NodeHandle } from "@xyflow/react";
 import type { Workflow } from "@schema/workflow";
 import type { SourceStatus } from "../../api/types";
-import type { Depth } from "../../store/useHQStore";
+import type { Depth } from "../../store/useCodeHQStore";
 import { outcomeTone } from "../../design/semantics";
 import type { RoutedEdge } from "./edgeRouting";
 import { computeIncomingTypes } from "./graph";

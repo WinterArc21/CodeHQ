@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 import { validateWorkflowSemantics } from "@schema/semantics";
 import type { Workflow } from "@schema/workflow";
 
-const FILE = ".hq/workflows/sample.json";
+const FILE = ".codehq/workflows/sample.json";
 
 /**
  * `validateWorkflowSemantics` is a pure function operating on an already shape-valid
@@ -197,7 +197,7 @@ describe("validateWorkflowSemantics", () => {
     expect(issues).toContainEqual(
       expect.objectContaining({
         path: "steps[0].color",
-        message: "Visual properties are owned by HQ and must not appear in workflow files.",
+        message: "Visual properties are owned by CodeHQ and must not appear in workflow files.",
       }),
     );
   });

@@ -3,13 +3,13 @@ import { searchShortcutLabel } from "../../lib/platform";
 import { Kbd } from "../primitives";
 import { CopyAgentPrompt } from "./CopyAgentPrompt";
 import { LocalOnlyBadge } from "./LocalOnlyBadge";
-import { StatusIndicator, type HQStatus } from "./StatusIndicator";
+import { StatusIndicator, type CodeHQStatus } from "./StatusIndicator";
 import styles from "./TopBar.module.css";
 import { ThemeToggle } from "./ThemeToggle";
 
 export interface TopBarProps {
   repositoryName: string;
-  status: HQStatus;
+  status: CodeHQStatus;
   errorCount?: number;
   onOpenSearch: () => void;
 }

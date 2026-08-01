@@ -12,14 +12,14 @@ import path from "node:path";
 import { expect, test } from "@playwright/test";
 import { createTempFixtureCopy, removeTempDir } from "./helpers/fixture";
 import { PORTS } from "./helpers/paths";
-import { startHQServer, type ManagedServer } from "./helpers/server";
+import { startCodeHQServer, type ManagedServer } from "./helpers/server";
 
 let root: string;
 let server: ManagedServer;
 
 test.beforeAll(async () => {
   root = await createTempFixtureCopy("invalid-preserves-board");
-  server = await startHQServer(root, PORTS.invalidPreservesBoard);
+  server = await startCodeHQServer(root, PORTS.invalidPreservesBoard);
 });
 
 test.afterAll(async () => {
@@ -33,7 +33,7 @@ test("a truncated write keeps the board on screen and surfaces diagnostics, then
   await expect(page.locator("[data-step-node]")).toHaveCount(11);
   await expect(page.locator('[data-step-node="receive-request"]')).toContainText("Receive Request");
 
-  const workflowFile = path.join(root, ".hq", "workflows", "generate-video.json");
+  const workflowFile = path.join(root, ".codehq", "workflows", "generate-video.json");
   const validContents = await fsp.readFile(workflowFile, "utf-8");
 
   // Simulate an agent's partial write: truncate mid-object so the file is syntactically
@@ -56,7 +56,7 @@ test("a truncated write keeps the board on screen and surfaces diagnostics, then
   await page.getByRole("button", { name: "Open diagnostics" }).click();
   const panel = page.getByRole("dialog", { name: "Diagnostics" });
   await expect(panel).toBeVisible();
-  await expect(panel).toContainText(".hq/workflows/generate-video.json");
+  await expect(panel).toContainText(".codehq/workflows/generate-video.json");
   await expect(panel).toContainText("Failed to parse JSON");
   await expect(panel).toContainText("The file may have been saved while an agent was still writing it.");
   await expect(panel.getByText("Error", { exact: true })).toBeVisible();

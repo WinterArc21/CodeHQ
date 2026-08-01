@@ -37,12 +37,12 @@ interface RawWorkflow {
   connections: RawConnection[];
 }
 
-// The example workflow lives once, under templates/hq/workflows, and is loaded
+// The example workflow lives once, under templates/codehq/workflows, and is loaded
 // directly here rather than duplicated into a test fixture so the two cannot drift.
 const FIXTURE_PATH = fileURLToPath(
-  new URL("../../../templates/hq/workflows/example-generate-video.json", import.meta.url),
+  new URL("../../../templates/codehq/workflows/example-generate-video.json", import.meta.url),
 );
-const FILE = ".hq/workflows/generate-video.json";
+const FILE = ".codehq/workflows/generate-video.json";
 
 function loadFixture(): RawWorkflow {
   const raw = readFileSync(FIXTURE_PATH, "utf-8");
@@ -155,7 +155,7 @@ describe("parseWorkflow — shape and semantic rules", () => {
     }
     expect(
       result.issues.some(
-        (issue) => issue.message === "Visual properties are owned by HQ and must not appear in workflow files.",
+        (issue) => issue.message === "Visual properties are owned by CodeHQ and must not appear in workflow files.",
       ),
     ).toBe(true);
   });
@@ -172,7 +172,7 @@ describe("parseWorkflow — shape and semantic rules", () => {
     }
     expect(
       result.issues.some(
-        (issue) => issue.message === "Visual properties are owned by HQ and must not appear in workflow files.",
+        (issue) => issue.message === "Visual properties are owned by CodeHQ and must not appear in workflow files.",
       ),
     ).toBe(true);
   });

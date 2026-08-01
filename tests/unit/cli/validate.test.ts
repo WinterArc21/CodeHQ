@@ -7,7 +7,7 @@ import { printValidateResult, runValidate } from "../../../src/cli/commands/vali
 let root: string;
 
 beforeEach(() => {
-  root = mkdtempSync(path.join(tmpdir(), "hq-cli-validate-"));
+  root = mkdtempSync(path.join(tmpdir(), "codehq-cli-validate-"));
 });
 
 afterEach(() => {
@@ -16,13 +16,13 @@ afterEach(() => {
 
 function writeProject(overrides: Record<string, unknown> = {}): void {
   writeFileSync(
-    path.join(root, ".hq", "project.json"),
+    path.join(root, ".codehq", "project.json"),
     JSON.stringify({ schemaVersion: "0.1", project: { id: "fixture", name: "Fixture" }, ...overrides }),
   );
 }
 
 function scaffold(): void {
-  mkdirSync(path.join(root, ".hq", "workflows"), { recursive: true });
+  mkdirSync(path.join(root, ".codehq", "workflows"), { recursive: true });
   writeFileSync(path.join(root, "real-source.ts"), "export function realFunction() {}\n");
   writeProject();
 }
@@ -52,7 +52,7 @@ describe("runValidate — clean repository", () => {
   it("exits 0 and reports every workflow valid", async () => {
     scaffold();
     writeFileSync(
-      path.join(root, ".hq", "workflows", "sample.json"),
+      path.join(root, ".codehq", "workflows", "sample.json"),
       JSON.stringify({
         schemaVersion: "0.1",
         id: "sample",
@@ -80,7 +80,7 @@ describe("runValidate — broken connection", () => {
   it("exits 1 and names the missing step", async () => {
     scaffold();
     writeFileSync(
-      path.join(root, ".hq", "workflows", "checkout.json"),
+      path.join(root, ".codehq", "workflows", "checkout.json"),
       JSON.stringify({
         schemaVersion: "0.1",
         id: "checkout",
@@ -110,7 +110,7 @@ describe("runValidate — warnings only", () => {
   it("exits 0 when only warnings are present", async () => {
     scaffold();
     writeFileSync(
-      path.join(root, ".hq", "workflows", "sample.json"),
+      path.join(root, ".codehq", "workflows", "sample.json"),
       JSON.stringify({
         schemaVersion: "0.1",
         id: "sample",
@@ -141,7 +141,7 @@ describe("runValidate — --json", () => {
   it("prints only the DiagnosticsReport as JSON", async () => {
     scaffold();
     writeFileSync(
-      path.join(root, ".hq", "workflows", "sample.json"),
+      path.join(root, ".codehq", "workflows", "sample.json"),
       JSON.stringify({
         schemaVersion: "0.1",
         id: "sample",
@@ -163,15 +163,15 @@ describe("runValidate — --json", () => {
   });
 });
 
-describe("runValidate — missing .hq", () => {
+describe("runValidate — missing .codehq", () => {
   it("exits 1 with a hint to run init", async () => {
     const result = await runValidate({ root });
     expect(result.exitCode).toBe(1);
-    expect(result.kind).toBe("missing-hq");
+    expect(result.kind).toBe("missing-codehq");
 
     const capture = captureConsole();
     printValidateResult(result, false);
     capture.restore();
-    expect(capture.errors.join("\n")).toContain("hq init");
+    expect(capture.errors.join("\n")).toContain("codehq init");
   });
 });

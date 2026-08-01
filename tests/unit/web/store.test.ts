@@ -1,46 +1,46 @@
 import { beforeEach, describe, expect, it } from "vitest";
-import { resetHQStore, useHQStore } from "@web/store/useHQStore";
+import { resetCodeHQStore, useCodeHQStore } from "@web/store/useCodeHQStore";
 
-const STORAGE_KEY = "hq.ui";
+const STORAGE_KEY = "codehq.ui";
 
 beforeEach(() => {
   window.localStorage.clear();
-  resetHQStore();
+  resetCodeHQStore();
 });
 
-describe("useHQStore", () => {
+describe("useCodeHQStore", () => {
   it("selecting a workflow clears step selection and expansion", () => {
-    useHQStore.getState().selectStep("step-1");
-    useHQStore.getState().toggleStepExpanded("step-1");
-    expect(useHQStore.getState().selectedStepId).toBe("step-1");
-    expect(useHQStore.getState().expandedStepIds).toEqual({ "step-1": true });
+    useCodeHQStore.getState().selectStep("step-1");
+    useCodeHQStore.getState().toggleStepExpanded("step-1");
+    expect(useCodeHQStore.getState().selectedStepId).toBe("step-1");
+    expect(useCodeHQStore.getState().expandedStepIds).toEqual({ "step-1": true });
 
-    useHQStore.getState().selectWorkflow("workflow-a");
+    useCodeHQStore.getState().selectWorkflow("workflow-a");
 
-    expect(useHQStore.getState().selectedWorkflowId).toBe("workflow-a");
-    expect(useHQStore.getState().selectedStepId).toBeNull();
-    expect(useHQStore.getState().expandedStepIds).toEqual({});
+    expect(useCodeHQStore.getState().selectedWorkflowId).toBe("workflow-a");
+    expect(useCodeHQStore.getState().selectedStepId).toBeNull();
+    expect(useCodeHQStore.getState().expandedStepIds).toEqual({});
   });
 
   it("toggleStepExpanded toggles a single step id on and off", () => {
-    useHQStore.getState().toggleStepExpanded("a");
-    expect(useHQStore.getState().expandedStepIds).toEqual({ a: true });
+    useCodeHQStore.getState().toggleStepExpanded("a");
+    expect(useCodeHQStore.getState().expandedStepIds).toEqual({ a: true });
 
-    useHQStore.getState().toggleStepExpanded("a");
-    expect(useHQStore.getState().expandedStepIds).toEqual({});
+    useCodeHQStore.getState().toggleStepExpanded("a");
+    expect(useCodeHQStore.getState().expandedStepIds).toEqual({});
   });
 
   it("collapseAllSteps clears every expanded step", () => {
-    useHQStore.getState().toggleStepExpanded("a");
-    useHQStore.getState().toggleStepExpanded("b");
-    useHQStore.getState().collapseAllSteps();
-    expect(useHQStore.getState().expandedStepIds).toEqual({});
+    useCodeHQStore.getState().toggleStepExpanded("a");
+    useCodeHQStore.getState().toggleStepExpanded("b");
+    useCodeHQStore.getState().collapseAllSteps();
+    expect(useCodeHQStore.getState().expandedStepIds).toEqual({});
   });
 
   it("persists only theme and depth, under one namespaced localStorage key", () => {
-    useHQStore.getState().setTheme("light");
-    useHQStore.getState().setDepth("modules");
-    useHQStore.getState().selectWorkflow("some-workflow");
+    useCodeHQStore.getState().setTheme("light");
+    useCodeHQStore.getState().setDepth("modules");
+    useCodeHQStore.getState().selectWorkflow("some-workflow");
 
     const raw = window.localStorage.getItem(STORAGE_KEY);
     expect(raw).not.toBeNull();
@@ -57,7 +57,7 @@ describe("useHQStore", () => {
       throw new Error("QuotaExceededError");
     };
     try {
-      expect(() => useHQStore.getState().setTheme("dark")).not.toThrow();
+      expect(() => useCodeHQStore.getState().setTheme("dark")).not.toThrow();
     } finally {
       window.localStorage.setItem = originalSetItem;
     }
@@ -69,7 +69,7 @@ describe("useHQStore", () => {
       throw new Error("SecurityError");
     };
     try {
-      expect(() => useHQStore.getState().setDepth("modules")).not.toThrow();
+      expect(() => useCodeHQStore.getState().setDepth("modules")).not.toThrow();
     } finally {
       window.localStorage.getItem = originalGetItem;
     }

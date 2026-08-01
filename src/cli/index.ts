@@ -1,5 +1,5 @@
 /**
- * `hq` CLI entry point. Argument wiring only — every command's actual
+ * `codehq` CLI entry point. Argument wiring only — every command's actual
  * behaviour lives in `src/cli/commands/*.ts` as a plain, testable, non-exiting function.
  * This file is the only place that turns a command result into a process exit code, and the
  * only place that decides how an unhandled error gets printed.
@@ -13,7 +13,7 @@ import { red } from "./output";
 import { resolveCliVersion } from "./version";
 
 function isDebugMode(program: Command): boolean {
-  return program.opts<{ debug?: boolean }>().debug === true || process.env.HQ_DEBUG === "1";
+  return program.opts<{ debug?: boolean }>().debug === true || process.env.CODEHQ_DEBUG === "1";
 }
 
 /** Prints a clean one-line error unless debug mode is on, in which case it prints the stack. */
@@ -38,15 +38,15 @@ function buildProgram(): Command {
   const program = new Command();
 
   program
-    .name("hq")
+    .name("codehq")
     .description("Local-first workflow mapping for coding agents, rendered as an interactive canvas.")
     .version(resolveCliVersion(), "-v, --version", "Print the installed version")
-    .option("--debug", "Print full stack traces on error (also HQ_DEBUG=1)");
+    .option("--debug", "Print full stack traces on error (also CODEHQ_DEBUG=1)");
 
   program
     .command("init")
-    .description("Scaffold .hq/ in the current repository")
-    .option("--force", "Overwrite existing .hq files")
+    .description("Scaffold .codehq/ in the current repository")
+    .option("--force", "Overwrite existing .codehq files")
     .option("--example", "Also copy the bundled example workflow into workflows/")
     .action(async (options: { force?: boolean; example?: boolean }) => {
       const result = await runInit({
@@ -74,7 +74,7 @@ function buildProgram(): Command {
 
   program
     .command("validate")
-    .description("Validate .hq/ and print diagnostics")
+    .description("Validate .codehq/ and print diagnostics")
     .option("--root <path>", "Repository root (defaults to autodetection from the current directory)")
     .option("--json", "Print only the DiagnosticsReport as JSON")
     .action(async (options: { root?: string; json?: boolean }) => {
@@ -102,6 +102,6 @@ async function main(): Promise<void> {
 main().catch((error: unknown) => {
   // Should be unreachable (main() already catches command errors), but guarantees no raw
   // stack trace ever reaches the terminal even if something above it is wrong.
-  reportFatalError(error, process.env.HQ_DEBUG === "1");
+  reportFatalError(error, process.env.CODEHQ_DEBUG === "1");
   process.exitCode = 1;
 });

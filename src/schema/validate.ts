@@ -1,6 +1,6 @@
 import type { ZodError } from "zod";
 import type { Issue } from "./diagnostics";
-import { hqProjectSchema, type HQProject } from "./project";
+import { codeHQProjectSchema, type CodeHQProject } from "./project";
 import { formatIssuePath, validateWorkflowSemantics, VISUAL_KEYS, VISUAL_PROPERTY_MESSAGE } from "./semantics";
 import { workflowSchema, type Workflow } from "./workflow";
 
@@ -52,7 +52,7 @@ export function zodErrorToIssues(error: ZodError, file: string): Issue[] {
             file,
             path: keyPath,
             message: VISUAL_PROPERTY_MESSAGE,
-            hint: "Remove this property. HQ computes layout, color, and styling automatically.",
+            hint: "Remove this property. CodeHQ computes layout, color, and styling automatically.",
           });
         } else {
           issues.push({
@@ -81,12 +81,12 @@ export function zodErrorToIssues(error: ZodError, file: string): Issue[] {
 }
 
 export type ParseProjectResult =
-  | { ok: true; value: HQProject }
+  | { ok: true; value: CodeHQProject }
   | { ok: false; issues: Issue[] };
 
-/** Parses and shape-validates an `.hq/project.json` payload. */
+/** Parses and shape-validates an `.codehq/project.json` payload. */
 export function parseProject(data: unknown, file: string): ParseProjectResult {
-  const result = hqProjectSchema.safeParse(data);
+  const result = codeHQProjectSchema.safeParse(data);
   if (!result.success) {
     return { ok: false, issues: zodErrorToIssues(result.error, file) };
   }
@@ -98,7 +98,7 @@ export type ParseWorkflowResult =
   | { ok: false; issues: Issue[] };
 
 /**
- * Parses, shape-validates, and semantically validates an `.hq/workflows/<id>.json`
+ * Parses, shape-validates, and semantically validates an `.codehq/workflows/<id>.json`
  * payload. Shape errors (from Zod) short-circuit before semantic rules run. When shape
  * validation passes but a semantic rule reports an `error`, the whole workflow is invalid
  * (`ok: false`) and `issues` contains every semantic finding, errors and warnings alike, so

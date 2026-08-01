@@ -1,7 +1,7 @@
 import { useEffect } from "react";
 import { WorkflowCanvas } from "../components/canvas";
 import { StepDrawer } from "../components/drawer";
-import { useHQStore } from "../store/useHQStore";
+import { useCodeHQStore } from "../store/useCodeHQStore";
 import { ExportBanner } from "./ExportBanner";
 import { ExportModeProvider } from "./ExportModeContext";
 import type { ExportPayload } from "./types";
@@ -20,10 +20,10 @@ export interface ExportAppProps {
 export function ExportApp({ payload }: ExportAppProps) {
   const hideFilePaths = payload.hideFilePaths === true;
 
-  const theme = useHQStore((state) => state.theme);
-  const setTheme = useHQStore((state) => state.setTheme);
-  const selectedStepId = useHQStore((state) => state.selectedStepId);
-  const selectStep = useHQStore((state) => state.selectStep);
+  const theme = useCodeHQStore((state) => state.theme);
+  const setTheme = useCodeHQStore((state) => state.setTheme);
+  const selectedStepId = useCodeHQStore((state) => state.selectedStepId);
+  const selectStep = useCodeHQStore((state) => state.selectStep);
 
   useEffect(() => {
     document.documentElement.setAttribute("data-theme", theme);

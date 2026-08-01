@@ -1,10 +1,10 @@
 /**
- * Builds and atomically persists `.hq/diagnostics.json` (contract §6).
+ * Builds and atomically persists `.codehq/diagnostics.json` (contract §6).
  */
 
 import type { DiagnosticsReport, Issue } from "@schema/diagnostics";
 import { pathExists, writeFileAtomic } from "./fs-utils";
-import { hqPaths } from "./repository";
+import { codeHQPaths } from "./repository";
 
 function compareIssues(a: Issue, b: Issue): number {
   if (a.severity !== b.severity) {
@@ -32,12 +32,12 @@ export function buildDiagnostics(issues: Issue[]): DiagnosticsReport {
 }
 
 /**
- * Writes `report` to `.hq/diagnostics.json`, pretty-printed with a trailing
+ * Writes `report` to `.codehq/diagnostics.json`, pretty-printed with a trailing
  * newline, atomically (write-then-rename) so a watching agent never observes a
- * half-written file. A no-op when `.hq/` does not exist (uninitialized repo).
+ * half-written file. A no-op when `.codehq/` does not exist (uninitialized repo).
  */
 export async function writeDiagnostics(root: string, report: DiagnosticsReport): Promise<void> {
-  const paths = hqPaths(root);
+  const paths = codeHQPaths(root);
   if (!(await pathExists(paths.dir))) {
     return;
   }

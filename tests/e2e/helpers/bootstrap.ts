@@ -14,11 +14,11 @@ import { CLI_ENTRY, REPO_ROOT, SHARED_FIXTURE_DIR, SOURCE_FIXTURE_DIR, WEB_DIST_
 /**
  * The e2e suite serves the real built app, never source. Builds once if `dist/` is missing
  * or incomplete; leaves an already-built `dist/` alone (delete it, or set
- * `HQ_E2E_FORCE_BUILD=1`, to force a rebuild before the next run).
+ * `CodeHQ_E2E_FORCE_BUILD=1`, to force a rebuild before the next run).
  */
 export function ensureBuilt(): void {
   const alreadyBuilt = fs.existsSync(CLI_ENTRY) && fs.existsSync(WEB_DIST_INDEX);
-  if (alreadyBuilt && process.env["HQ_E2E_FORCE_BUILD"] !== "1") {
+  if (alreadyBuilt && process.env["CodeHQ_E2E_FORCE_BUILD"] !== "1") {
     return;
   }
 

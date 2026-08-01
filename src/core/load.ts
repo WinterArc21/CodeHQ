@@ -1,5 +1,5 @@
 /**
- * Reads `.hq/` off disk and turns it into everything an `HQSnapshot` needs
+ * Reads `.codehq/` off disk and turns it into everything an `CodeHQSnapshot` needs
  * EXCEPT the last-valid-state merge, which is `store.ts`'s job (it needs to remember
  * yesterday's valid workflow, and this module only ever sees today's disk).
  */
@@ -7,13 +7,13 @@
 import { promises as fs } from "node:fs";
 import path from "node:path";
 import type { Issue } from "@schema/diagnostics";
-import type { HQProject } from "@schema/project";
+import type { CodeHQProject } from "@schema/project";
 import { parseProject, parseWorkflow } from "@schema/validate";
 import type { Workflow } from "@schema/workflow";
 import { computeWorkflowSourceChecks, type SourceStatus } from "./source-check";
 import { parseJsonText, pathExists, toRepoRelativePosix } from "./fs-utils";
-import { hqPaths, type HQPaths } from "./repository";
-import type { HQStatus } from "./types";
+import { codeHQPaths, type CodeHQPaths } from "./repository";
+import type { CodeHQStatus } from "./types";
 
 export interface LoadedWorkflow {
   id: string;
@@ -28,21 +28,21 @@ export type WorkflowFileOutcome =
   | { file: string; status: "invalid" };
 
 export interface LoadResult {
-  status: HQStatus;
-  project: HQProject | null;
+  status: CodeHQStatus;
+  project: CodeHQProject | null;
   files: WorkflowFileOutcome[];
   issues: Issue[];
 }
 
-async function loadProject(paths: HQPaths, root: string, issues: Issue[]): Promise<HQProject | null> {
+async function loadProject(paths: CodeHQPaths, root: string, issues: Issue[]): Promise<CodeHQProject | null> {
   const relativeFile = toRepoRelativePosix(root, paths.projectFile);
 
   if (!(await pathExists(paths.projectFile))) {
     issues.push({
       severity: "error",
       file: relativeFile,
-      message: "Missing .hq/project.json.",
-      hint: "Run `hq init`, or create project.json following the documented schema.",
+      message: "Missing .codehq/project.json.",
+      hint: "Run `codehq init`, or create project.json following the documented schema.",
     });
     return null;
   }
@@ -171,9 +171,9 @@ function checkCrossFileRules(
   return true;
 }
 
-/** Loads and validates everything under `.hq/` for `root`. Never throws. */
+/** Loads and validates everything under `.codehq/` for `root`. Never throws. */
 export async function loadHQ(root: string): Promise<LoadResult> {
-  const paths = hqPaths(root);
+  const paths = codeHQPaths(root);
   const issues: Issue[] = [];
 
   if (!(await pathExists(paths.dir))) {

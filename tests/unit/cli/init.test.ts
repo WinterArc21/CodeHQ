@@ -8,18 +8,18 @@ import { runInit } from "../../../src/cli/commands/init";
 let root: string;
 
 beforeEach(() => {
-  root = mkdtempSync(path.join(tmpdir(), "hq-cli-init-"));
+  root = mkdtempSync(path.join(tmpdir(), "codehq-cli-init-"));
 });
 
 afterEach(() => {
   rmSync(root, { recursive: true, force: true });
 });
 
-const PROJECT_FILE = ".hq/project.json";
-const SKILL_FILE = ".hq/SKILL.md";
-const WORKFLOWS_DIR = ".hq/workflows";
-const EXAMPLE_WORKFLOW_FILE = ".hq/workflows/generate-video.json";
-const DIAGNOSTICS_FILE = ".hq/diagnostics.json";
+const PROJECT_FILE = ".codehq/project.json";
+const SKILL_FILE = ".codehq/SKILL.md";
+const WORKFLOWS_DIR = ".codehq/workflows";
+const EXAMPLE_WORKFLOW_FILE = ".codehq/workflows/generate-video.json";
+const DIAGNOSTICS_FILE = ".codehq/diagnostics.json";
 
 function abs(relative: string): string {
   return path.join(root, ...relative.split("/"));
@@ -39,7 +39,7 @@ describe("runInit — fresh repository", () => {
     // "does not exist" warnings about a workflow they did not write.
     expect(existsSync(abs(EXAMPLE_WORKFLOW_FILE))).toBe(false);
 
-    expect(result.created).toEqual([".hq/project.json", ".hq/workflows/", ".hq/SKILL.md"]);
+    expect(result.created).toEqual([".codehq/project.json", ".codehq/workflows/", ".codehq/SKILL.md"]);
     expect(result.unchanged).toEqual([]);
 
     const projectJson = JSON.parse(readFileSync(abs(PROJECT_FILE), "utf-8")) as unknown;
@@ -51,14 +51,14 @@ describe("runInit — fresh repository", () => {
     expect(diagnostics.issues).toEqual([]);
   });
 
-  it("appends .hq/.runtime/ to .gitignore exactly once, and never duplicates it on rerun", async () => {
+  it("appends .codehq/.runtime/ to .gitignore exactly once, and never duplicates it on rerun", async () => {
     await runInit({ root });
     const firstContent = readFileSync(path.join(root, ".gitignore"), "utf-8");
-    expect(firstContent).toContain(".hq/.runtime/");
+    expect(firstContent).toContain(".codehq/.runtime/");
 
     await runInit({ root });
     const secondContent = readFileSync(path.join(root, ".gitignore"), "utf-8");
-    const occurrences = secondContent.split(".hq/.runtime/").length - 1;
+    const occurrences = secondContent.split(".codehq/.runtime/").length - 1;
     expect(occurrences).toBe(1);
   });
 
@@ -66,14 +66,14 @@ describe("runInit — fresh repository", () => {
     writeFileSync(path.join(root, ".gitignore"), "node_modules");
     await runInit({ root });
     const content = readFileSync(path.join(root, ".gitignore"), "utf-8");
-    expect(content).toBe("node_modules\n.hq/.runtime/\n");
+    expect(content).toBe("node_modules\n.codehq/.runtime/\n");
   });
 
   it("never duplicates an equivalent pre-existing ignore pattern", async () => {
-    writeFileSync(path.join(root, ".gitignore"), "/.hq/.runtime\n");
+    writeFileSync(path.join(root, ".gitignore"), "/.codehq/.runtime\n");
     await runInit({ root });
     const content = readFileSync(path.join(root, ".gitignore"), "utf-8");
-    expect(content).toBe("/.hq/.runtime\n");
+    expect(content).toBe("/.codehq/.runtime\n");
   });
 });
 
@@ -116,7 +116,7 @@ describe("runInit — --example", () => {
 
     expect(existsSync(abs(EXAMPLE_WORKFLOW_FILE))).toBe(true);
     // Folded into the "workflows/" line rather than listed separately — see runInit.
-    expect(result.created).toContain(".hq/workflows/");
+    expect(result.created).toContain(".codehq/workflows/");
 
     const workflowJson = JSON.parse(readFileSync(abs(EXAMPLE_WORKFLOW_FILE), "utf-8")) as unknown;
     const workflowResult = parseWorkflow(workflowJson, EXAMPLE_WORKFLOW_FILE);
@@ -138,7 +138,7 @@ describe("runInit — non-project-root warning", () => {
   });
 
   it("does not warn when a .git directory is present", async () => {
-    const gitRoot = mkdtempSync(path.join(tmpdir(), "hq-cli-init-git-"));
+    const gitRoot = mkdtempSync(path.join(tmpdir(), "codehq-cli-init-git-"));
     try {
       const fs = await import("node:fs");
       fs.mkdirSync(path.join(gitRoot, ".git"));

@@ -1,5 +1,5 @@
 /**
- * `hq init` — scaffolds `.hq/` (contract §9, product brief §C).
+ * `codehq init` — scaffolds `.codehq/` (contract §9, product brief §C).
  *
  * Returns a plain result object; never calls `process.exit` (see `src/cli/index.ts`).
  */
@@ -8,7 +8,7 @@ import { existsSync, promises as fs } from "node:fs";
 import path from "node:path";
 import { buildDiagnostics } from "@core/diagnostics";
 import { pathExists, writeFileAtomic } from "@core/fs-utils";
-import { hqPaths } from "@core/repository";
+import { codeHQPaths } from "@core/repository";
 import { yellow } from "../output";
 import { resolveCliRoot } from "../resolve-root";
 import { resolveTemplatesDir } from "../templates";
@@ -36,7 +36,7 @@ export interface InitResult {
 }
 
 const EXAMPLE_WORKFLOW_TEMPLATE = "example-generate-video.json";
-const GITIGNORE_ENTRY = ".hq/.runtime/";
+const GITIGNORE_ENTRY = ".codehq/.runtime/";
 
 function toDisplayPath(root: string, absolute: string): string {
   return path.relative(root, absolute).split(path.sep).join("/");
@@ -88,12 +88,12 @@ function gitignoreAlreadyCoversRuntime(content: string): boolean {
       return false;
     }
     const normalized = normalizeIgnorePattern(trimmed);
-    return normalized === target || normalized === ".hq";
+    return normalized === target || normalized === ".codehq";
   });
 }
 
 /**
- * Appends `.hq/.runtime/` to the repository `.gitignore`, creating it if absent,
+ * Appends `.codehq/.runtime/` to the repository `.gitignore`, creating it if absent,
  * never duplicating the line (or an equivalent pattern) if already present, and preserving
  * the file's existing newline style when appending to it.
  */
@@ -116,7 +116,7 @@ async function ensureGitignoreEntry(root: string): Promise<void> {
   await fs.writeFile(gitignorePath, `${base}${GITIGNORE_ENTRY}${newline}`, "utf-8");
 }
 
-/** Scaffolds `.hq/` at the resolved repository root. Never throws; never exits. */
+/** Scaffolds `.codehq/` at the resolved repository root. Never throws; never exits. */
 export async function runInit(options: InitOptions): Promise<InitResult> {
   const root = resolveCliRoot(options.root);
   const force = options.force ?? false;
@@ -134,7 +134,7 @@ export async function runInit(options: InitOptions): Promise<InitResult> {
     warnings.push(`'${root}' has no .git or package.json — this may not be a project root.`);
   }
 
-  const paths = hqPaths(root);
+  const paths = codeHQPaths(root);
   await fs.mkdir(paths.workflowsDir, { recursive: true });
 
   const templatesDir = resolveTemplatesDir();
@@ -150,7 +150,7 @@ export async function runInit(options: InitOptions): Promise<InitResult> {
   const projectOutcome = await writeManagedFile(root, paths.projectFile, projectContents, force);
   const skillOutcome = await writeManagedFile(root, paths.skillFile, skillTemplate, force);
 
-  // .hq/workflows/ is a directory, not a versioned file: `mkdir recursive` above
+  // .codehq/workflows/ is a directory, not a versioned file: `mkdir recursive` above
   // already made it idempotent, so it is always reported as present under "Created:".
   const workflowsDirOutcome: FileOutcome = { displayPath: `${toDisplayPath(root, paths.workflowsDir)}/`, action: "created" };
 
@@ -189,7 +189,7 @@ export function printInitResult(result: InitResult): void {
     console.log("");
   }
 
-  console.log("HQ initialized.");
+  console.log("CodeHQ initialized.");
   console.log("");
   console.log("Created:");
   for (const line of result.created) {
@@ -206,5 +206,5 @@ export function printInitResult(result: InitResult): void {
 
   console.log("");
   console.log("Next:");
-  console.log("hq open");
+  console.log("codehq open");
 }

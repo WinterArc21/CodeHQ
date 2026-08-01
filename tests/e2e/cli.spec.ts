@@ -20,7 +20,7 @@ import { expect, test } from "@playwright/test";
 import { createEmptyTempDir, removeTempDir } from "./helpers/fixture";
 import { runCli } from "./helpers/cli";
 import { PORTS } from "./helpers/paths";
-import { startHQServer, waitForPortFree } from "./helpers/server";
+import { startCodeHQServer, waitForPortFree } from "./helpers/server";
 
 async function fileExists(target: string): Promise<boolean> {
   try {
@@ -42,24 +42,24 @@ test("init creates the documented tree and prints the documented banner", async 
     const result = await runCli(["init"], { cwd: dir });
 
     expect(result.exitCode).toBe(0);
-    expect(result.stdout).toContain("HQ initialized.");
+    expect(result.stdout).toContain("CodeHQ initialized.");
     expect(result.stdout).toContain("Created:");
-    expect(result.stdout).toContain(".hq/project.json");
-    expect(result.stdout).toContain(".hq/workflows/");
-    expect(result.stdout).toContain(".hq/SKILL.md");
+    expect(result.stdout).toContain(".codehq/project.json");
+    expect(result.stdout).toContain(".codehq/workflows/");
+    expect(result.stdout).toContain(".codehq/SKILL.md");
     expect(result.stdout).toContain("Next:");
-    expect(result.stdout).toContain("hq open");
+    expect(result.stdout).toContain("codehq open");
 
-    expect(await fileExists(path.join(dir, ".hq", "project.json"))).toBe(true);
-    expect(await fileExists(path.join(dir, ".hq", "SKILL.md"))).toBe(true);
-    expect(await fileExists(path.join(dir, ".hq", "diagnostics.json"))).toBe(true);
+    expect(await fileExists(path.join(dir, ".codehq", "project.json"))).toBe(true);
+    expect(await fileExists(path.join(dir, ".codehq", "SKILL.md"))).toBe(true);
+    expect(await fileExists(path.join(dir, ".codehq", "diagnostics.json"))).toBe(true);
     // The example workflow is opt-in (`init --example`): a plain init leaves workflows/ empty so
     // the user's first validate is warning-free and their board shows the guided empty state,
     // rather than diagnostics about a sample workflow they never wrote.
-    expect(await fileExists(path.join(dir, ".hq", "workflows", "generate-video.json"))).toBe(false);
+    expect(await fileExists(path.join(dir, ".codehq", "workflows", "generate-video.json"))).toBe(false);
 
     const gitignore = await fsp.readFile(path.join(dir, ".gitignore"), "utf-8");
-    expect(gitignore).toContain(".hq/.runtime/");
+    expect(gitignore).toContain(".codehq/.runtime/");
   } finally {
     await removeTempDir(dir);
   }
@@ -81,7 +81,7 @@ test("validate exits 0 on a fresh project, then exits 1 naming the step a broken
     // trivial, warning-free happy path.
     expect(freshValidate.stdout).toContain("0 errors");
 
-    const workflowFile = path.join(dir, ".hq", "workflows", "generate-video.json");
+    const workflowFile = path.join(dir, ".codehq", "workflows", "generate-video.json");
     const workflow = JSON.parse(await fsp.readFile(workflowFile, "utf-8")) as MinimalWorkflowFile;
     const target = workflow.connections.find((connection) => connection.to === "generate-story");
     if (target === undefined) {
@@ -121,8 +121,8 @@ test("open starts the real server and serving stops (and the port is released) w
     const initResult = await runCli(["init", "--example"], { cwd: dir });
     expect(initResult.exitCode).toBe(0);
 
-    const server = await startHQServer(dir, PORTS.cliOpen);
-    expect(server.stdout()).toContain("HQ is running.");
+    const server = await startCodeHQServer(dir, PORTS.cliOpen);
+    expect(server.stdout()).toContain("CodeHQ is running.");
 
     const stateResponse = await fetch(`${server.url}/api/state`);
     expect(stateResponse.ok).toBe(true);

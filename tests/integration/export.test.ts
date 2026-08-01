@@ -2,18 +2,18 @@ import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import path from "node:path";
 import { afterAll, afterEach, beforeAll, describe, expect, it } from "vitest";
-import { createHQServer, type HQServer } from "@server/app";
+import { createCodeHQServer, type CodeHQServer } from "@server/app";
 
 let root: string;
-let server: HQServer | null = null;
+let server: CodeHQServer | null = null;
 
 beforeAll(() => {
-  root = mkdtempSync(path.join(tmpdir(), "hq-export-"));
-  const workflowsDir = path.join(root, ".hq", "workflows");
+  root = mkdtempSync(path.join(tmpdir(), "codehq-export-"));
+  const workflowsDir = path.join(root, ".codehq", "workflows");
   mkdirSync(workflowsDir, { recursive: true });
   writeFileSync(path.join(root, "real-source.ts"), "export function realFunction() {}\n");
   writeFileSync(
-    path.join(root, ".hq", "project.json"),
+    path.join(root, ".codehq", "project.json"),
     JSON.stringify({
       schemaVersion: "0.1",
       project: { id: "fixture", name: "Fixture Project" },
@@ -53,8 +53,8 @@ afterEach(async () => {
   }
 });
 
-async function startServer(): Promise<HQServer> {
-  server = await createHQServer({ root, port: 0, serveWeb: false });
+async function startServer(): Promise<CodeHQServer> {
+  server = await createCodeHQServer({ root, port: 0, serveWeb: false });
   return server;
 }
 
@@ -91,9 +91,9 @@ describe("GET /api/export/:id", () => {
 
     // Machine-local data stripped.
     expect(html).not.toContain(root);
-    expect(html).not.toContain(".hq/workflows/sample.json");
+    expect(html).not.toContain(".codehq/workflows/sample.json");
     expect(html).not.toContain("absolutePath");
-    expect(html).not.toContain("hqDir");
+    expect(html).not.toContain("codeHQDir");
 
     // Contains the export viewer JS (IIFE) and CSS inlined.
     expect(html).toContain("<style>");

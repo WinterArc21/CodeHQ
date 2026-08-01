@@ -5,11 +5,11 @@
  */
 
 import type { DiagnosticsReport } from "@schema/diagnostics";
-import type { HQProject } from "@schema/project";
+import type { CodeHQProject } from "@schema/project";
 import type { Workflow } from "@schema/workflow";
 import type { SourceStatus } from "./source-check";
 
-export type HQStatus = "uninitialized" | "empty" | "ready";
+export type CodeHQStatus = "uninitialized" | "empty" | "ready";
 
 export interface WorkflowRecord {
   id: string;
@@ -25,14 +25,14 @@ export interface WorkflowRecord {
 export interface RepositoryInfo {
   name: string;
   root: string;
-  hqDir: string;
+  codeHQDir: string;
 }
 
-export interface HQSnapshot {
+export interface CodeHQSnapshot {
   generatedAt: string;
-  status: HQStatus;
+  status: CodeHQStatus;
   repository: RepositoryInfo;
-  project: HQProject | null;
+  project: CodeHQProject | null;
   workflows: WorkflowRecord[];
   diagnostics: DiagnosticsReport;
 }

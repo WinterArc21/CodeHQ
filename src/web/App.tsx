@@ -1,20 +1,20 @@
 import { useEffect } from "react";
 import { deleteWorkflow, recheck } from "./api/client";
-import { useHQSnapshot } from "./api/events";
-import { AppShell, TopBar, type HQStatus } from "./components/shell";
+import { useCodeHQSnapshot } from "./api/events";
+import { AppShell, TopBar, type CodeHQStatus } from "./components/shell";
 import { WorkflowNavigator } from "./components/navigator";
 import { EmptyState, ErrorState, LoadingState, UninitializedState } from "./components/states";
 import { DiagnosticsBanner, DiagnosticsPanel } from "./components/diagnostics";
 import { WorkflowCanvas } from "./components/canvas";
 import { StepDrawer } from "./components/drawer";
 import { CommandPalette } from "./components/search";
-import { useHQStore } from "./store/useHQStore";
+import { useCodeHQStore } from "./store/useCodeHQStore";
 
 function computeConnectionStatus(
   diagnosticsValid: boolean,
   hasStaleWorkflow: boolean,
   hookStatus: "loading" | "ready" | "error" | "disconnected",
-): HQStatus {
+): CodeHQStatus {
   if (!diagnosticsValid) {
     return "invalid";
   }
@@ -25,16 +25,16 @@ function computeConnectionStatus(
 }
 
 export function App() {
-  const { snapshot, status, error, refetch } = useHQSnapshot();
+  const { snapshot, status, error, refetch } = useCodeHQSnapshot();
 
-  const selectedWorkflowId = useHQStore((state) => state.selectedWorkflowId);
-  const selectWorkflow = useHQStore((state) => state.selectWorkflow);
-  const selectedStepId = useHQStore((state) => state.selectedStepId);
-  const selectStep = useHQStore((state) => state.selectStep);
-  const openSearch = useHQStore((state) => state.openSearch);
-  const diagnosticsOpen = useHQStore((state) => state.diagnosticsOpen);
-  const toggleDiagnostics = useHQStore((state) => state.toggleDiagnostics);
-  const closeDiagnostics = useHQStore((state) => state.closeDiagnostics);
+  const selectedWorkflowId = useCodeHQStore((state) => state.selectedWorkflowId);
+  const selectWorkflow = useCodeHQStore((state) => state.selectWorkflow);
+  const selectedStepId = useCodeHQStore((state) => state.selectedStepId);
+  const selectStep = useCodeHQStore((state) => state.selectStep);
+  const openSearch = useCodeHQStore((state) => state.openSearch);
+  const diagnosticsOpen = useCodeHQStore((state) => state.diagnosticsOpen);
+  const toggleDiagnostics = useCodeHQStore((state) => state.toggleDiagnostics);
+  const closeDiagnostics = useCodeHQStore((state) => state.closeDiagnostics);
 
   useEffect(() => {
     if (snapshot === null) {
@@ -51,7 +51,7 @@ export function App() {
 
   if (snapshot === null) {
     if (status === "error") {
-      return <ErrorState message={error ?? "Unable to reach the HQ server."} onRetry={refetch} />;
+      return <ErrorState message={error ?? "Unable to reach the CodeHQ server."} onRetry={refetch} />;
     }
     return <LoadingState />;
   }

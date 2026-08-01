@@ -2,11 +2,11 @@ import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import path from "node:path";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
-import { createHQStore, type HQStore } from "@core/store";
-import type { HQSnapshot } from "@core/types";
+import { createCodeHQStore, type CodeHQStore } from "@core/store";
+import type { CodeHQSnapshot } from "@core/types";
 
 let root: string;
-let store: HQStore | null = null;
+let store: CodeHQStore | null = null;
 
 async function waitFor<T>(check: () => T | undefined | false, timeoutMs = 5000, intervalMs = 30): Promise<T> {
   const deadline = Date.now() + timeoutMs;
@@ -34,10 +34,10 @@ function validWorkflowJson(name: string): string {
 }
 
 beforeEach(() => {
-  root = mkdtempSync(path.join(tmpdir(), "hq-watch-"));
-  mkdirSync(path.join(root, ".hq", "workflows"), { recursive: true });
+  root = mkdtempSync(path.join(tmpdir(), "codehq-watch-"));
+  mkdirSync(path.join(root, ".codehq", "workflows"), { recursive: true });
   writeFileSync(
-    path.join(root, ".hq", "project.json"),
+    path.join(root, ".codehq", "project.json"),
     JSON.stringify({ schemaVersion: "0.1", project: { id: "test", name: "Test" } }),
   );
 });
@@ -52,7 +52,7 @@ afterEach(async () => {
 
 describe("watcher + store integration", () => {
   it("picks up a new workflow file, then survives it going invalid, then recovers", async () => {
-    store = createHQStore(root);
+    store = createCodeHQStore(root);
     await store.reload();
     store.start();
 
@@ -62,11 +62,11 @@ describe("watcher + store integration", () => {
     // assertion below still uses bounded polling for the real outcome, never a raw sleep.
     await new Promise((resolve) => setTimeout(resolve, 400));
 
-    const workflowFile = path.join(root, ".hq", "workflows", "wf.json");
+    const workflowFile = path.join(root, ".codehq", "workflows", "wf.json");
 
     // 1. Writing a brand-new valid workflow file should surface it as "valid".
     writeFileSync(workflowFile, validWorkflowJson("Original Name"));
-    const afterCreate = await waitFor<HQSnapshot>(() => {
+    const afterCreate = await waitFor<CodeHQSnapshot>(() => {
       const snapshot = store?.getSnapshot();
       return snapshot?.workflows.length === 1 && snapshot.workflows[0]?.state === "valid" ? snapshot : undefined;
     });
@@ -75,7 +75,7 @@ describe("watcher + store integration", () => {
     // 2. Corrupting the file must NOT blank the board: the last valid workflow stays,
     //    marked stale, and diagnostics must explain why.
     writeFileSync(workflowFile, "{ this is not valid json");
-    const afterBreak = await waitFor<HQSnapshot>(() => {
+    const afterBreak = await waitFor<CodeHQSnapshot>(() => {
       const snapshot = store?.getSnapshot();
       return snapshot?.workflows[0]?.state === "stale" ? snapshot : undefined;
     });
@@ -87,7 +87,7 @@ describe("watcher + store integration", () => {
 
     // 3. Repairing the file must bring it back to "valid" and clear the stale marker.
     writeFileSync(workflowFile, validWorkflowJson("Repaired Name"));
-    const afterRepair = await waitFor<HQSnapshot>(() => {
+    const afterRepair = await waitFor<CodeHQSnapshot>(() => {
       const snapshot = store?.getSnapshot();
       return snapshot?.workflows[0]?.state === "valid" && snapshot.workflows[0]?.workflow.name === "Repaired Name"
         ? snapshot
