@@ -22,11 +22,10 @@ export function edgeMarkerId(type: MarkerVariant | undefined): string {
  * reference `--accent-*` tokens (never a literal colour), matching `connectionStyle` (contract
  * §10's connection-type table).
  *
- * Deliberately compact (a 9x9 viewBox with 8x8 marker dimensions, versus the previous 7x7 with
- * 6x6 dimensions): SVG's default `markerUnits="strokeWidth"` scales the rendered arrowhead with
- * the edge stroke, so primary and traced paths receive proportionately stronger direction cues.
- * The resulting heads stay unmistakable at fit-view zoom without reading as separate heavy
- * glyphs from their 2-2.5px lines.
+ * Deliberately compact: `markerUnits="userSpaceOnUse"` makes the 8x8 dimensions real canvas
+ * units instead of SVG's default stroke-width multiples (which inflated these to roughly
+ * 16-20px on the strengthened edges). Every connection type now gets the same quiet directional
+ * cue without a large triangle competing with its line or destination node.
  */
 export function EdgeMarkers() {
   return (
@@ -41,6 +40,7 @@ export function EdgeMarkers() {
             refY="4.5"
             markerWidth="8"
             markerHeight="8"
+            markerUnits="userSpaceOnUse"
             orient="auto-start-reverse"
           >
             <path d="M0,0 L9,4.5 L0,9 z" className={MARKER_CLASS_NAMES[variant]} />
