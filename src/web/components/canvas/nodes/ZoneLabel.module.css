@@ -13,4 +13,9 @@
   color: var(--text-tertiary);
   pointer-events: none;
   user-select: none;
+  transition: opacity var(--dur-fast) var(--ease-standard);
+}
+
+.dimmed {
+  opacity: 0.35;
 }

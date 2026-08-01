@@ -13,8 +13,8 @@ export interface StepNodeData extends Record<string, unknown> {
   expanded: boolean;
   selected: boolean;
   hasMissingSource: boolean;
-  /** Path tracing (contract §11): true whenever a trace is active (something is hovered or
-   * focused) and this step is neither the anchor nor on its upstream/downstream path. */
+  /** Path tracing: true whenever a trace is active and this step is outside the anchor's one-hop
+   * upstream/downstream neighborhood. */
   dimmed: boolean;
   tabIndex: 0 | -1;
   onToggleExpand: () => void;
@@ -43,6 +43,8 @@ export type OutcomeFlowNode = Node<OutcomeNodeData, "outcome">;
 
 export interface ZoneLabelNodeData extends Record<string, unknown> {
   text: string;
+  /** Decorative labels dim with the rest of the canvas while a trace is active. */
+  dimmed: boolean;
 }
 
 /** A decorative "MAIN LINE" / "OUTCOMES" region header — not part of the workflow graph itself,
@@ -63,13 +65,12 @@ export interface WorkflowEdgeData extends Record<string, unknown> {
    * retry/back edge — the source node's own rect, so `WorkflowEdge` can build a compact local
    * loop (`edgeRouting.ts`'s `buildRetryLoopPath`) instead of routing it like every other edge. */
   retryLoop?: Rect;
-  /** Path tracing: true whenever a trace is active and this edge is not part of the anchor's
-   * upstream/downstream path. */
+  /** Path tracing: true whenever a trace is active and this edge is not an outgoing edge from the
+   * anchor. */
   dimmed: boolean;
-  /** Path tracing: true whenever a trace is active and this edge IS part of the anchor's
-   * upstream/downstream path. Distinct from `!dimmed` (which is also true when no trace is
-   * active at all) so the renderer can strengthen the followed path only while tracing, never
-   * on the resting graph. */
+  /** Path tracing: true whenever a trace is active and this edge is an outgoing edge from the
+   * anchor. Distinct from `!dimmed` (which is also true when no trace is active at all) so the
+   * renderer can strengthen the highlighted edges only while tracing, never on the resting graph. */
   traced: boolean;
 }
 

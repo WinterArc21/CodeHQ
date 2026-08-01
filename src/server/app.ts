@@ -12,7 +12,6 @@ import fastify, { type FastifyInstance } from "fastify";
 import { pathExists } from "@core/fs-utils";
 import { createObservatoryStore, type ObservatoryStore } from "@core/store";
 import { registerEventsRoute } from "./events";
-import type { RevealImpl } from "./reveal";
 import { registerRoutes } from "./routes";
 
 export interface ObservatoryServerOptions {
@@ -21,8 +20,6 @@ export interface ObservatoryServerOptions {
   host?: string;
   serveWeb?: boolean;
   logger?: boolean;
-  /** Test/CLI injection point; defaults to actually spawning the OS file manager. */
-  revealImpl?: RevealImpl;
 }
 
 export interface ObservatoryServer {
@@ -122,7 +119,7 @@ export async function createObservatoryServer(options: ObservatoryServerOptions)
 
   const app = fastify({ logger: options.logger ?? false, forceCloseConnections: true });
 
-  registerRoutes(app, { root: options.root, store, ...(options.revealImpl !== undefined ? { revealImpl: options.revealImpl } : {}) });
+  registerRoutes(app, { root: options.root, store });
   registerEventsRoute(app, store);
 
   if (options.serveWeb === true) {

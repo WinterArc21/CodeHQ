@@ -4,12 +4,12 @@ import userEvent from "@testing-library/user-event";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { EmptyState } from "@web/components/states/EmptyState";
 import { UninitializedState } from "@web/components/states/UninitializedState";
-import { AGENT_ONBOARDING_PROMPT } from "@web/components/shell/CopyAgentPrompt";
+import { AGENT_PROMPT } from "@web/components/shell/CopyAgentPrompt";
 
 describe("EmptyState", () => {
   beforeEach(() => {
-    // "Reveal skill file" hits the real API client internally; stub fetch defensively so a
-    // stray click never attempts a real network call from the test environment.
+    // Stub fetch defensively so a stray action never attempts a real network call from the test
+    // environment.
     vi.stubGlobal(
       "fetch",
       vi.fn().mockRejectedValue(new Error("network calls are not expected in this test")),
@@ -25,15 +25,15 @@ describe("EmptyState", () => {
     vi.restoreAllMocks();
   });
 
-  it("renders all three actions", () => {
+  it("renders the copy and recheck actions plus discoverable examples", () => {
     render(<EmptyState onRecheck={() => Promise.resolve()} />);
 
     expect(screen.getByRole("button", { name: "Copy prompt" })).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "Reveal skill file" })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Recheck files" })).toBeInTheDocument();
+    expect(screen.getAllByRole("button", { name: "Copy example" })).toHaveLength(2);
   });
 
-  it("copies the exact onboarding prompt string", async () => {
+  it("copies the context-neutral prompt string", async () => {
     // fireEvent (not userEvent) here: userEvent.setup() installs its own Clipboard polyfill
     // whenever navigator.clipboard isn't already its own stub, which would shadow this mock.
     const clipboard = navigator.clipboard as unknown as { writeText: (text: string) => Promise<void> };
@@ -41,7 +41,7 @@ describe("EmptyState", () => {
 
     fireEvent.click(screen.getByRole("button", { name: "Copy prompt" }));
 
-    await waitFor(() => expect(clipboard.writeText).toHaveBeenCalledWith(AGENT_ONBOARDING_PROMPT));
+    await waitFor(() => expect(clipboard.writeText).toHaveBeenCalledWith(AGENT_PROMPT));
   });
 
   it("calls onRecheck when 'Recheck files' is activated", async () => {

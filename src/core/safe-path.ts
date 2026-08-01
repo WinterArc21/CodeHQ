@@ -1,7 +1,7 @@
 /**
  * Security-critical: resolves a repository-relative path against a repository root and
  * proves containment, resisting `..`, absolute paths, drive letters, UNC paths, and
- * symlink escapes. Used by source verification, `/api/source`, and `/api/reveal`.
+ * symlink escapes. Used by source verification, `/api/source`, and workflow file operations.
  */
 
 import { existsSync, realpathSync } from "node:fs";

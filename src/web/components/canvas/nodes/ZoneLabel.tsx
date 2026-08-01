@@ -11,8 +11,10 @@ import styles from "./ZoneLabel.module.css";
  * drifting out of alignment with it.
  */
 export function ZoneLabel({ data }: NodeProps<ZoneLabelFlowNode>) {
+  const className = [styles.label, data.dimmed ? styles.dimmed : ""].filter(Boolean).join(" ");
+
   return (
-    <span className={styles.label} aria-hidden="true">
+    <span className={className} aria-hidden="true">
       {data.text}
     </span>
   );

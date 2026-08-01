@@ -13,6 +13,11 @@
   font-family: var(--font-ui);
   font-size: var(--fs-micro);
   pointer-events: none;
+  transition: opacity var(--dur-fast) var(--ease-standard);
+}
+
+.dimmed {
+  opacity: 0.35;
 }
 
 .row {

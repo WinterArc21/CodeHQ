@@ -4,6 +4,8 @@ import styles from "./CanvasLegend.module.css";
 
 interface CanvasLegendProps {
   workflow: Workflow;
+  /** True while a step trace is active; the legend is context, so it dims with the canvas. */
+  dimmed?: boolean;
 }
 
 const CONNECTION_TYPES = ["success", "failure", "conditional", "async"] as const;
@@ -23,7 +25,7 @@ function swatchStyle(visual: ConnectionVisual) {
 }
 
 /** A read-only key for only the edge grammar currently visible in this workflow. */
-export function CanvasLegend({ workflow }: CanvasLegendProps) {
+export function CanvasLegend({ workflow, dimmed = false }: CanvasLegendProps) {
   // A self-loop renders with the retry grammar instead of its declared connection grammar, so
   // exclude it from the ordinary rows and add the dedicated Retry row below.
   const presentTypes = new Set(
@@ -40,7 +42,7 @@ export function CanvasLegend({ workflow }: CanvasLegendProps) {
   if (rows.length === 0) return null;
 
   return (
-    <div className={styles.legend} role="group" aria-label="Connection legend">
+    <div className={`${styles.legend} ${dimmed ? styles.dimmed : ""}`} role="group" aria-label="Connection legend">
       {rows.map((row) => (
         <div className={styles.row} key={row.key}>
           <span className={styles.swatch} style={swatchStyle(row.visual)} aria-hidden="true" />

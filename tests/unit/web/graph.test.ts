@@ -160,22 +160,25 @@ describe("computeTracePath", () => {
     expect(trace.stepIds.has("b")).toBe(true);
   });
 
-  it("includes every upstream ancestor and downstream descendant of the anchor", () => {
+  it("includes only the anchor's direct upstream and downstream neighbors", () => {
     const trace = computeTracePath(workflow, "b");
-    expect(trace.stepIds).toEqual(new Set(["a", "b", "c", "d"]));
-    // "e" only shares an ancestor with "b" (via "a") — it is neither upstream nor downstream of
-    // "b" itself, so it must not appear in the trace.
+    expect(trace.stepIds).toEqual(new Set(["a", "b", "c"]));
+    // "d" is two hops downstream and "e" only shares an ancestor with "b" (via "a"), so neither
+    // belongs in the local trace.
+    expect(trace.stepIds.has("d")).toBe(false);
     expect(trace.stepIds.has("e")).toBe(false);
   });
 
-  it("includes only the edges that actually lie on the traced path", () => {
+  it("highlights only the anchor's outgoing edges", () => {
     const trace = computeTracePath(workflow, "b");
-    expect(trace.edgeIds).toEqual(new Set(["a->b#0", "b->c#1", "c->d#2"]));
+    expect(trace.edgeIds).toEqual(new Set(["b->c#1"]));
   });
 
-  it("the anchor's full downstream/upstream sets are consistent from either end of the chain", () => {
-    expect(computeTracePath(workflow, "a").stepIds).toEqual(new Set(["a", "b", "c", "d", "e"]));
-    expect(computeTracePath(workflow, "d").stepIds).toEqual(new Set(["a", "b", "c", "d"]));
+  it("keeps the local neighborhood consistent from either end of the chain", () => {
+    expect(computeTracePath(workflow, "a").stepIds).toEqual(new Set(["a", "b", "e"]));
+    expect(computeTracePath(workflow, "a").edgeIds).toEqual(new Set(["a->b#0", "a->e#3"]));
+    expect(computeTracePath(workflow, "d").stepIds).toEqual(new Set(["c", "d"]));
+    expect(computeTracePath(workflow, "d").edgeIds).toEqual(new Set());
   });
 
   it("returns an empty trace for a step id that doesn't exist in the workflow", () => {
@@ -196,6 +199,7 @@ describe("computeTracePath", () => {
     const start = Date.now();
     const trace = computeTracePath(cyclic, "a");
     expect(Date.now() - start).toBeLessThan(2000);
-    expect(trace.stepIds).toEqual(new Set(["a", "b", "c"]));
+    expect(trace.stepIds).toEqual(new Set(["c", "a", "b"]));
+    expect(trace.edgeIds).toEqual(new Set(["a->b#0"]));
   });
 });

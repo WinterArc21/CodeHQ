@@ -73,8 +73,9 @@ export interface BuildFlowNodesParams extends TraceHandlers {
   expandedStepIds: Record<string, true>;
   sourceChecks: Record<string, SourceStatus>;
   selectedStepId: string | null;
-  /** The active trace's full step set (anchor + upstream + downstream), or `null` when nothing
-   * is hovered/focused/selected — every node dims when this is non-null and doesn't contain it. */
+  /** The active trace's one-hop step set (anchor + immediate upstream/downstream), or `null` when
+   * nothing is hovered/focused/selected — every node dims when this is non-null and doesn't
+   * contain it. */
   traceStepIds: ReadonlySet<string> | null;
   getTabIndex: (stepId: string) => 0 | -1;
   onToggleExpand: (stepId: string) => void;
@@ -165,6 +166,8 @@ export function buildFlowEdges(
     // connection semantics and use the sidecar route computed by edgeRouting.
     const isRetryLoop = backEdgeIds.has(edge.id) && edge.source === edge.target;
     const sourceNode = nodeById.get(edge.source);
+    // `computeTracePath` supplies only the anchor's outgoing edge ids. All other edges remain in
+    // the canvas as context but dim while a trace is active.
     const dimmed = traceEdgeIds !== null && !traceEdgeIds.has(edge.id);
     const traced = traceEdgeIds !== null && !dimmed;
 
@@ -201,7 +204,7 @@ const ZONE_LABEL_GAP_ABOVE = 20;
  * outcomes yet). Not part of `layout.ts`'s own node set — these never affect graph geometry,
  * routing, overlap checks, or the minimap's node count, purely a rendering-layer annotation.
  */
-export function buildZoneLabelNodes(layout: LayoutResult): ZoneLabelFlowNode[] {
+export function buildZoneLabelNodes(layout: LayoutResult, traceActive = false): ZoneLabelFlowNode[] {
   if (layout.nodes.length === 0) {
     return [];
   }
@@ -228,6 +231,6 @@ export function buildZoneLabelNodes(layout: LayoutResult): ZoneLabelFlowNode[] {
       draggable: false,
       selectable: false,
       focusable: false,
-      data: { text: spec.text },
+      data: { text: spec.text, dimmed: traceActive },
     }));
 }

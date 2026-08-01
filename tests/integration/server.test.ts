@@ -4,7 +4,6 @@ import { tmpdir } from "node:os";
 import path from "node:path";
 import { afterAll, afterEach, beforeAll, describe, expect, it } from "vitest";
 import { createObservatoryServer, findAvailablePort, type ObservatoryServer } from "@server/app";
-import type { RevealImpl } from "@server/reveal";
 
 let root: string;
 let server: ObservatoryServer | null = null;
@@ -55,12 +54,11 @@ afterEach(async () => {
   }
 });
 
-async function startServer(revealImpl?: RevealImpl): Promise<ObservatoryServer> {
+async function startServer(): Promise<ObservatoryServer> {
   server = await createObservatoryServer({
     root,
     port: 0,
     serveWeb: false,
-    ...(revealImpl !== undefined ? { revealImpl } : {}),
   });
   return server;
 }
@@ -115,6 +113,12 @@ describe("createObservatoryServer — endpoint shapes", () => {
     const body = (await response.json()) as { generatedAt: string };
     expect(typeof body.generatedAt).toBe("string");
   });
+
+  it("does not expose the removed folder/reveal endpoint", async () => {
+    const running = await startServer();
+    const response = await fetch(`${running.url}/api/reveal`, { method: "POST" });
+    expect(response.status).toBe(404);
+  });
 });
 
 describe("createObservatoryServer — /api/source", () => {
@@ -147,54 +151,6 @@ describe("createObservatoryServer — /api/source", () => {
     const running = await startServer();
     const response = await fetch(`${running.url}/api/source?file=real-source.ts&bogus=1`);
     expect(response.status).toBe(400);
-  });
-});
-
-describe("createObservatoryServer — /api/reveal", () => {
-  it("uses the injected revealImpl and never spawns a real process", async () => {
-    const calls: string[] = [];
-    const fakeReveal: RevealImpl = async (absolutePath) => {
-      calls.push(absolutePath);
-    };
-    const running = await startServer(fakeReveal);
-
-    const response = await fetch(`${running.url}/api/reveal`, {
-      method: "POST",
-      headers: { "content-type": "application/json" },
-      body: JSON.stringify({ target: "observatory" }),
-    });
-
-    expect(response.status).toBe(200);
-    const body = (await response.json()) as { revealed: boolean };
-    expect(body.revealed).toBe(true);
-    expect(calls).toHaveLength(1);
-    expect(calls[0]).toContain(".observatory");
-  });
-
-  it("rejects an unknown target with 400", async () => {
-    const running = await startServer(async () => {});
-    const response = await fetch(`${running.url}/api/reveal`, {
-      method: "POST",
-      headers: { "content-type": "application/json" },
-      body: JSON.stringify({ target: "not-a-real-target" }),
-    });
-    expect(response.status).toBe(400);
-  });
-
-  it("returns 500 with a reason when revealImpl throws", async () => {
-    const failingReveal: RevealImpl = async () => {
-      throw new Error("no file manager available");
-    };
-    const running = await startServer(failingReveal);
-    const response = await fetch(`${running.url}/api/reveal`, {
-      method: "POST",
-      headers: { "content-type": "application/json" },
-      body: JSON.stringify({ target: "skill" }),
-    });
-    expect(response.status).toBe(500);
-    const body = (await response.json()) as { revealed: boolean; reason: string };
-    expect(body.revealed).toBe(false);
-    expect(body.reason).toContain("no file manager available");
   });
 });
 

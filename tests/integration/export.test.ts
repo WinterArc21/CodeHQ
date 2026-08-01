@@ -99,4 +99,28 @@ describe("GET /api/export/:id", () => {
     expect(html).toContain("<style>");
     expect(html).toContain("<script>");
   });
+
+  it("redacts structured file references when hideFilePaths=true", async () => {
+    const running = await startServer();
+    const response = await fetch(`${running.url}/api/export/sample?hideFilePaths=true`);
+
+    expect(response.status).toBe(200);
+    const html = await response.text();
+    expect(html).toContain('"hideFilePaths":true');
+    expect(html).not.toContain("real-source.ts");
+    expect(html).toContain("redacted-file-1");
+  });
+
+  it("defaults hideFilePaths to false and rejects malformed or unknown export queries", async () => {
+    const running = await startServer();
+    const defaultResponse = await fetch(`${running.url}/api/export/sample`);
+    expect(defaultResponse.status).toBe(200);
+    expect(await defaultResponse.text()).toContain('"hideFilePaths":false');
+
+    const malformed = await fetch(`${running.url}/api/export/sample?hideFilePaths=maybe`);
+    expect(malformed.status).toBe(400);
+
+    const unknown = await fetch(`${running.url}/api/export/sample?hideFilePaths=false&extra=1`);
+    expect(unknown.status).toBe(400);
+  });
 });

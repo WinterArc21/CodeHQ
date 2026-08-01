@@ -83,7 +83,6 @@ describe("CommandPalette", () => {
     expect(screen.getByText("Site Flow")).toBeInTheDocument();
     expect(screen.getByText("Checkout")).toBeInTheDocument();
     expect(screen.getByText("Copy agent prompt")).toBeInTheDocument();
-    expect(screen.getByText("Reveal .observatory")).toBeInTheDocument();
     expect(screen.getByText("Recheck files")).toBeInTheDocument();
   });
 

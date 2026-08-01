@@ -2,23 +2,16 @@
  * Runs against the shared, read-only server (see playwright.config.ts's `webServer`).
  */
 import { expect, test } from "@playwright/test";
-import { switchDepth } from "./helpers/app";
 
 test.beforeEach(async ({ page }) => {
   await page.goto("/");
   await page.locator("[data-step-node]").first().waitFor({ state: "visible", timeout: 15_000 });
 });
 
-test("switching altitude changes a node's rendered content", async ({ page }) => {
-  // At Story altitude, StepNode never renders a Files section.
+test("keeps the default workflow altitude without exposing an altitude control", async ({ page }) => {
+  // The workflow narrative remains the default, while depth is no longer an exposed canvas control.
   await expect(page.getByText("Files", { exact: true })).toHaveCount(0);
-
-  await switchDepth(page, "Code map");
-
-  // Code map adds a Files section naming the step's source file.
-  const node = page.locator('[data-step-node="receive-request"]');
-  await expect(node.getByText("Files", { exact: true })).toBeVisible();
-  await expect(node).toContainText("route.ts");
+  await expect(page.getByRole("group", { name: "Canvas altitude" })).toHaveCount(0);
 });
 
 test("clicking a node opens the step drawer showing that step's name and purpose", async ({ page }) => {

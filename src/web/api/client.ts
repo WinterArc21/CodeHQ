@@ -1,4 +1,4 @@
-import type { ObservatorySnapshot, RevealTarget, SourceLookup } from "./types";
+import type { ObservatorySnapshot, SourceLookup } from "./types";
 
 /** Base URL is empty: Vite proxies `/api` to the local server (contract §8). */
 const BASE_URL = "";
@@ -37,9 +37,34 @@ async function requestJson<T>(path: string, init?: RequestInit): Promise<T> {
   return (await response.json()) as T;
 }
 
-async function requestVoid(path: string, init?: RequestInit): Promise<void> {
-  const response = await safeFetch(path, init);
+export interface WorkflowExportArtifact {
+  blob: Blob;
+  filename: string;
+}
+
+function exportFilename(contentDisposition: string | null, fallback: string): string {
+  const encodedMatch = contentDisposition?.match(/filename\*=UTF-8''([^;]+)/i);
+  if (encodedMatch?.[1] !== undefined) {
+    try {
+      return decodeURIComponent(encodedMatch[1]);
+    } catch {
+      return fallback;
+    }
+  }
+
+  const plainMatch = contentDisposition?.match(/filename="([^"]+)"|filename=([^;]+)/i);
+  return plainMatch?.[1] ?? plainMatch?.[2]?.trim() ?? fallback;
+}
+
+/** Fetches a self-contained export artifact with its privacy choice applied. */
+export async function fetchWorkflowExport(workflowId: string, hideFilePaths: boolean): Promise<WorkflowExportArtifact> {
+  const path = `/api/export/${encodeURIComponent(workflowId)}?hideFilePaths=${String(hideFilePaths)}`;
+  const response = await safeFetch(path);
   await ensureOk(path, response);
+  return {
+    blob: await response.blob(),
+    filename: exportFilename(response.headers.get("content-disposition"), "workflow-code-observatory.html"),
+  };
 }
 
 /** `GET /api/state` — the primary full snapshot. */
@@ -61,11 +86,7 @@ export function recheck(): Promise<ObservatorySnapshot> {
   return requestJson<ObservatorySnapshot>("/api/recheck", { method: "POST" });
 }
 
-/** `POST /api/reveal` — opens the OS file manager at a fixed, non-arbitrary target. */
-export function reveal(target: RevealTarget): Promise<void> {
-  return requestVoid("/api/reveal", {
-    method: "POST",
-    headers: { "content-type": "application/json" },
-    body: JSON.stringify({ target }),
-  });
+/** `DELETE /api/workflows/:id` — removes a verified workflow and returns the refreshed snapshot. */
+export function deleteWorkflow(id: string): Promise<ObservatorySnapshot> {
+  return requestJson<ObservatorySnapshot>(`/api/workflows/${encodeURIComponent(id)}`, { method: "DELETE" });
 }

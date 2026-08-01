@@ -1,5 +1,5 @@
 import { useEffect } from "react";
-import { recheck } from "./api/client";
+import { deleteWorkflow, recheck } from "./api/client";
 import { useObservatorySnapshot } from "./api/events";
 import { AppShell, TopBar, type ObservatoryStatus } from "./components/shell";
 import { WorkflowNavigator } from "./components/navigator";
@@ -46,9 +46,7 @@ export function App() {
     }
     const defaultId = snapshot.project?.settings?.defaultWorkflowId;
     const nextId = defaultId !== undefined && knownIds.has(defaultId) ? defaultId : snapshot.workflows[0]?.id;
-    if (nextId !== undefined) {
-      selectWorkflow(nextId);
-    }
+    selectWorkflow(nextId ?? null);
   }, [snapshot, selectedWorkflowId, selectWorkflow]);
 
   if (snapshot === null) {
@@ -81,7 +79,6 @@ export function App() {
         topBar={
           <TopBar
             repositoryName={snapshot.repository.name}
-            {...(snapshot.project !== null ? { schemaVersion: snapshot.project.schemaVersion } : {})}
             status={connectionStatus}
             {...(connectionStatus === "invalid" ? { errorCount } : {})}
             onOpenSearch={openSearch}
@@ -93,7 +90,14 @@ export function App() {
       >
         <DiagnosticsBanner diagnostics={snapshot.diagnostics} onOpenDiagnostics={toggleDiagnostics} />
         {displayedWorkflow !== null ? (
-          <WorkflowCanvas workflow={displayedWorkflow} sourceChecks={displayedSourceChecks} />
+          <WorkflowCanvas
+            workflow={displayedWorkflow}
+            sourceChecks={displayedSourceChecks}
+            onDeleteWorkflow={async () => {
+              await deleteWorkflow(displayedWorkflow.id);
+              refetch();
+            }}
+          />
         ) : (
           <EmptyState onRecheck={handleRecheck} />
         )}

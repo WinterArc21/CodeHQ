@@ -44,7 +44,7 @@ describe("sanitizeExportPayload", () => {
     expect(json).not.toContain("repository.root");
     expect(json).not.toContain("observatoryDir");
     expect(json).not.toContain("absolutePath");
-    // The workflow JSON's own file path (which reveals the .observatory dir) is stripped.
+    // The workflow JSON's own file path (which would expose the .observatory dir) is stripped.
     expect(json).not.toContain(".observatory/workflows/checkout.json");
     // modifiedAt is not carried into the snapshot.
     expect(json).not.toContain("2025-01-01T00:00:00.000Z");
@@ -58,12 +58,64 @@ describe("sanitizeExportPayload", () => {
     expect(payload.workflowId).toBe("checkout");
     expect(payload.exportedAt).toBe("2025-06-01T12:00:00.000Z");
     expect(payload.repositoryName).toBe("my-repo");
+    expect(payload.hideFilePaths).toBe(false);
     expect(payload.sourceChecks).toEqual({ "app/api/checkout/route.ts#POST": "verified" });
   });
 
   it("includes repository-relative source file paths (allowed by spec)", () => {
     const payload = sanitizeExportPayload(RECORD, "my-repo", "2025-06-01T12:00:00.000Z");
     expect(JSON.stringify(payload)).toContain("app/api/checkout/route.ts");
+  });
+
+  it("redacts every structured file reference before creating a private artifact", () => {
+    const privatePayload = sanitizeExportPayload(RECORD, "my-repo", { hideFilePaths: true });
+    const json = JSON.stringify(privatePayload);
+
+    expect(privatePayload.hideFilePaths).toBe(true);
+    expect(json).not.toContain("app/api/checkout/route.ts");
+    expect(json).not.toContain("app/api/checkout/route.ts#POST");
+    expect(privatePayload.workflow.entryPoint).toBeUndefined();
+    expect(privatePayload.sourceChecks).toEqual({ "redacted-file-1#POST": "verified" });
+    expect(privatePayload.workflow.steps[0]?.sources?.[0]?.file).toBe("redacted-file-1");
+  });
+
+  it("redacts every structured file reference and matching source-check key when requested", () => {
+    const workflow: Workflow = {
+      ...WORKFLOW,
+      entryPoint: { file: "app/api/checkout/route.ts", symbol: "POST" },
+      steps: [
+        {
+          ...WORKFLOW.steps[0]!,
+          tests: [{ file: "tests/checkout.test.ts", symbol: "checkoutTest", status: "passing" }],
+          edgeCases: [{ name: "Declined", sources: [{ file: "app/api/payments.ts", line: 8 }] }],
+        },
+      ],
+    };
+    const record: WorkflowRecord = {
+      ...RECORD,
+      workflow,
+      sourceChecks: {
+        "app/api/checkout/route.ts#POST": "verified",
+        "tests/checkout.test.ts#checkoutTest": "verified",
+        "app/api/payments.ts": "file-only",
+      },
+    };
+
+    const payload = sanitizeExportPayload(record, "my-repo", { hideFilePaths: true });
+    const json = JSON.stringify(payload);
+
+    expect(payload.hideFilePaths).toBe(true);
+    expect(json).not.toContain("app/api/checkout/route.ts");
+    expect(json).not.toContain("tests/checkout.test.ts");
+    expect(json).not.toContain("app/api/payments.ts");
+    expect(payload.workflow.entryPoint?.file).toBe("redacted-file-1");
+    expect(payload.workflow.steps[0]?.tests?.[0]?.file).toBe("redacted-file-2");
+    expect(payload.workflow.steps[0]?.edgeCases?.[0]?.sources?.[0]?.file).toBe("redacted-file-3");
+    expect(payload.sourceChecks).toEqual({
+      "redacted-file-1#POST": "verified",
+      "redacted-file-2#checkoutTest": "verified",
+      "redacted-file-3": "file-only",
+    });
   });
 
   it("generates a timestamp when none is provided", () => {
@@ -110,6 +162,7 @@ describe("buildExportHtml", () => {
   const PAYLOAD: ExportPayload = {
     workflow: WORKFLOW,
     sourceChecks: { "app/api/checkout/route.ts#POST": "verified" },
+    hideFilePaths: false,
     workflowName: "Checkout Flow",
     workflowId: "checkout",
     exportedAt: "2025-06-01T12:00:00.000Z",

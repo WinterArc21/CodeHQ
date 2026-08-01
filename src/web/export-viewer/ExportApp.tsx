@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect } from "react";
 import { WorkflowCanvas } from "../components/canvas";
 import { StepDrawer } from "../components/drawer";
 import { useObservatoryStore } from "../store/useObservatoryStore";
@@ -14,11 +14,11 @@ export interface ExportAppProps {
 /**
  * The export viewer's root: a thin export banner above the same `WorkflowCanvas` and
  * `StepDrawer` the live app uses, wrapped in an `ExportModeProvider` so server-only actions
- * (e.g. "Open in editor") are omitted and the "Hide file paths" toggle can mask paths.
+ * (e.g. "Open in editor") are omitted and the server-provided privacy choice is applied.
  * All data is frozen in the embedded payload — no server, no SSE, no recheck.
  */
 export function ExportApp({ payload }: ExportAppProps) {
-  const [hideFilePaths, setHideFilePaths] = useState(false);
+  const hideFilePaths = payload.hideFilePaths === true;
 
   const theme = useObservatoryStore((state) => state.theme);
   const setTheme = useObservatoryStore((state) => state.setTheme);
@@ -37,7 +37,6 @@ export function ExportApp({ payload }: ExportAppProps) {
           exportedAt={payload.exportedAt}
           repositoryName={payload.repositoryName}
           hideFilePaths={hideFilePaths}
-          onToggleHideFilePaths={() => setHideFilePaths((prev) => !prev)}
           theme={theme}
           onToggleTheme={() => setTheme(theme === "dark" ? "light" : "dark")}
         />
