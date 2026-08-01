@@ -42,13 +42,13 @@ test("init creates the documented tree and prints the documented banner", async 
     const result = await runCli(["init"], { cwd: dir });
 
     expect(result.exitCode).toBe(0);
-    expect(result.stdout).toContain("CodeHQ initialized.");
+    expect(result.stdout).toContain("HQFlow initialized.");
     expect(result.stdout).toContain("Created:");
     expect(result.stdout).toContain(".codehq/project.json");
     expect(result.stdout).toContain(".codehq/workflows/");
     expect(result.stdout).toContain(".codehq/SKILL.md");
     expect(result.stdout).toContain("Next:");
-    expect(result.stdout).toContain("codehq open");
+    expect(result.stdout).toContain("hqflow open");
 
     expect(await fileExists(path.join(dir, ".codehq", "project.json"))).toBe(true);
     expect(await fileExists(path.join(dir, ".codehq", "SKILL.md"))).toBe(true);
@@ -122,7 +122,7 @@ test("open starts the real server and serving stops (and the port is released) w
     expect(initResult.exitCode).toBe(0);
 
     const server = await startCodeHQServer(dir, PORTS.cliOpen);
-    expect(server.stdout()).toContain("CodeHQ is running.");
+    expect(server.stdout()).toContain("HQFlow is running.");
 
     const stateResponse = await fetch(`${server.url}/api/state`);
     expect(stateResponse.ok).toBe(true);

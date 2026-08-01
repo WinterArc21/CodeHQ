@@ -18,7 +18,7 @@ async function main(): Promise<void> {
 
   const server = await createCodeHQServer({ root, port: PORT, serveWeb: false, logger: false });
 
-  console.log(`CodeHQ dev server running at ${server.url}`);
+  console.log(`HQFlow dev server running at ${server.url}`);
   console.log(`Watching repository: ${server.root}`);
 
   const shutdown = (): void => {
@@ -29,6 +29,6 @@ async function main(): Promise<void> {
 }
 
 main().catch((error: unknown) => {
-  console.error("Failed to start CodeHQ dev server:", error);
+  console.error("Failed to start HQFlow dev server:", error);
   process.exitCode = 1;
 });

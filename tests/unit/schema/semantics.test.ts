@@ -197,7 +197,7 @@ describe("validateWorkflowSemantics", () => {
     expect(issues).toContainEqual(
       expect.objectContaining({
         path: "steps[0].color",
-        message: "Visual properties are owned by CodeHQ and must not appear in workflow files.",
+        message: "Visual properties are owned by HQFlow and must not appear in workflow files.",
       }),
     );
   });

@@ -58,7 +58,7 @@ jobs:
           tagged=false
           released=false
 
-          if npm view "codehq@$VERSION" version >/dev/null 2>&1; then
+          if npm view "hqflow@$VERSION" version >/dev/null 2>&1; then
             published=true
           fi
           if git ls-remote --exit-code --tags origin "refs/tags/v$VERSION" >/dev/null 2>&1; then

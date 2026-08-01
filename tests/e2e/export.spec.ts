@@ -53,7 +53,7 @@ test.describe("Export canvas", () => {
     await offlinePage.locator("[data-step-node]").first().waitFor({ state: "visible", timeout: 15_000 });
 
     // 8. The export banner should be visible with the privacy notice.
-    await expect(offlinePage.getByText("CodeHQ Export")).toBeVisible();
+    await expect(offlinePage.getByText("HQFlow Export")).toBeVisible();
     await expect(offlinePage.getByText("not source code")).toBeVisible();
 
     // 9. The export viewer reflects the choice made before download and has no post-export toggle.

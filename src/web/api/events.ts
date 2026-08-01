@@ -126,7 +126,7 @@ export function useCodeHQSnapshot(): UseCodeHQSnapshotResult {
           return;
         }
         setStatus("error");
-        setError(caught instanceof ApiError ? caught.message : "Unable to reach the CodeHQ server.");
+        setError(caught instanceof ApiError ? caught.message : "Unable to reach the HQFlow server.");
       });
 
     return () => {

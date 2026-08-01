@@ -1,5 +1,5 @@
 {
-  "name": "codehq",
+  "name": "hqflow",
   "version": "0.2.0",
   "type": "module",
   "description": "Local-first workflow mapping for coding agents, rendered as an interactive canvas.",
@@ -14,7 +14,8 @@
     "url": "https://github.com/WinterArc21/CodeHQ/issues"
   },
   "keywords": [
-    "codehq",
+    "hqflow",
+    "hq-flow",
     "workflow",
     "architecture",
     "devtools",
@@ -32,7 +33,7 @@
   },
   "packageManager": "pnpm@11.5.3",
   "bin": {
-    "codehq": "dist/node/cli.js"
+    "hqflow": "dist/node/cli.js"
   },
   "files": [
     "dist",

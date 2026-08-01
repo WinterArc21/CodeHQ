@@ -67,7 +67,7 @@ describe("CommandPalette", () => {
 
     fireEvent.keyDown(window, { key: "k", ctrlKey: true });
 
-    expect(screen.getByRole("dialog", { name: "Search CodeHQ" })).toBeInTheDocument();
+    expect(screen.getByRole("dialog", { name: "Search HQFlow" })).toBeInTheDocument();
   });
 
   it("opens on Cmd+K (metaKey) too", () => {

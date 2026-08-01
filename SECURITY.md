@@ -2,7 +2,7 @@
 
 ## What this project does with your code
 
-CodeHQ is **local-first**. The CLI and web UI run on your machine, read
+HQFlow is **local-first**. The CLI and web UI run on your machine, read
 `.codehq/` (and referenced paths inside your repository for source checks), and
 serve the canvas from `localhost`. **It does not upload your source code to a remote
 service**, and it does not call an LLM of its own.
@@ -14,7 +14,7 @@ exfiltration, or a way to break the local-only guarantee), please **do not open 
 public GitHub issue**.
 
 Email the maintainer at the address listed on the
-[npm package](https://www.npmjs.com/package/codehq) maintainers field, or
+[npm package](https://www.npmjs.com/package/hqflow) maintainers field, or
 open a private security advisory on the GitHub repository if that feature is enabled.
 
 Please include:

@@ -45,7 +45,7 @@ export function ExportBanner({
     <div className={styles.banner}>
       <div className={styles.identity}>
         <div className={styles.titleRow}>
-          <span className={styles.badge}>CodeHQ Export</span>
+          <span className={styles.badge}>HQFlow Export</span>
           <span className={styles.name}>{workflowName}</span>
         </div>
         <span className={styles.timestamp}>{repositoryName} · {formatTimestamp(exportedAt)}</span>

@@ -18,7 +18,7 @@ async function safeFetch(path: string, init?: RequestInit): Promise<Response> {
     return await fetch(`${BASE_URL}${path}`, init);
   } catch (error) {
     const detail = error instanceof Error ? error.message : String(error);
-    throw new ApiError(0, `Could not reach the CodeHQ server: ${detail}`);
+    throw new ApiError(0, `Could not reach the HQFlow server: ${detail}`);
   }
 }
 

@@ -1,10 +1,10 @@
-# CodeHQ
+# HQFlow
 
-CodeHQ is a local-first web app that renders your coding agent's understanding of
+HQFlow is a local-first web app that renders your coding agent's understanding of
 your codebase as an interactive workflow canvas. You run it inside your own repository; your
 existing agent (Cursor, Claude Code, Codex, or similar) reads `.codehq/SKILL.md`,
 inspects your real source code, and writes structured workflow JSON into `.codehq/`.
-CodeHQ validates those files, watches them, and renders them in your browser as you
+HQFlow validates those files, watches them, and renders them in your browser as you
 work. **It contains no LLM of its own and never uploads your code anywhere** — everything runs
 on `localhost`.
 
@@ -19,7 +19,7 @@ See [SECURITY.md](./SECURITY.md) to report vulnerabilities privately.
 ## The core loop
 
 ```
-you run `codehq open`
+you run `hqflow open`
         |
         v
   browser opens at http://localhost:4310
@@ -34,7 +34,7 @@ you run `codehq open`
   agent writes .codehq/workflows/checkout.json
         |
         v
-  CodeHQ validates it, writes diagnostics.json
+  HQFlow validates it, writes diagnostics.json
         |
         v
   the board updates live, in your browser, no refresh
@@ -47,8 +47,8 @@ in the meantime — it never blanks out.
 ## Quickstart
 
 ```sh
-npx codehq init
-npx codehq open
+npx hqflow init
+npx hqflow open
 ```
 
 Then paste this into your coding agent:
@@ -56,11 +56,11 @@ Then paste this into your coding agent:
 > Read `.codehq/SKILL.md`, then document the checkout workflow. It starts at the
 > `POST /api/checkout` route. Trace it through order creation, payment, and confirmation
 > email, and write the result to `.codehq/workflows/checkout.json`. Then run
-> `codehq validate` and fix anything it flags.
+> `hqflow validate` and fix anything it flags.
 
 ## Commands
 
-### `codehq init [--force] [--example]`
+### `hqflow init [--force] [--example]`
 
 Scaffolds `.codehq/` in the current repository: `project.json`, `SKILL.md`, an empty
 `workflows/`, and an initial `diagnostics.json`. Also appends `.codehq/.runtime/` to your
@@ -76,7 +76,7 @@ populated board before mapping your own.
   imaginary project, so `validate` will warn that the files it cites are not in your repository;
   that is the example being an example, not a problem with your setup.
 
-### `codehq open [--port <n>] [--no-open] [--root <path>]`
+### `hqflow open [--port <n>] [--no-open] [--root <path>]`
 
 Starts the local server and opens the workflow canvas in your browser.
 
@@ -88,7 +88,7 @@ Starts the local server and opens the workflow canvas in your browser.
 
 Stop it with `Ctrl+C`.
 
-### `codehq validate [--root <path>] [--json]`
+### `hqflow validate [--root <path>] [--json]`
 
 Validates everything under `.codehq/`, writes the result to
 `.codehq/diagnostics.json`, and prints it. Exits non-zero if there are any errors.
@@ -97,7 +97,7 @@ Validates everything under `.codehq/`, writes the result to
 - `--json` — print only the `DiagnosticsReport` as JSON, so an agent (or a script) can parse
   the result without scraping human-readable text.
 
-Also available: `--help`, `--version`, `--debug` (or `CODEHQ_DEBUG=1`) for full stack
+Also available: `--help`, `--version`, `--debug` (or `HQFLOW_DEBUG=1`) for full stack
 traces on error.
 
 ## The `.codehq` format
@@ -106,14 +106,14 @@ traces on error.
 .codehq/
 ├── project.json          # project id/name and a few display settings
 ├── SKILL.md               # instructions for the agent authoring workflows
-├── diagnostics.json        # written by CodeHQ, read by agents
+├── diagnostics.json        # written by HQFlow, read by agents
 ├── workflows/
 │   └── <id>.json           # one workflow per file
 └── .runtime/                # gitignored scratch space, ignored by validation
 ```
 
 A workflow is a directed graph of steps an agent has verified against the real code — no
-coordinates, colors, or styling, ever; CodeHQ owns all of that. A short annotated
+coordinates, colors, or styling, ever; HQFlow owns all of that. A short annotated
 example:
 
 ```json

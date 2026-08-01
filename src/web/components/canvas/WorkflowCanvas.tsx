@@ -183,7 +183,7 @@ function WorkflowCanvasInner({ workflow, sourceChecks, onDeleteWorkflow }: Workf
   const shareExport = useCallback(async (hideFilePaths: boolean): Promise<void> => {
     const artifact = await fetchWorkflowExport(workflow.id, hideFilePaths);
     const file = new File([artifact.blob], artifact.filename, { type: "text/html" });
-    const shareData = { files: [file], title: workflow.name, text: "CodeHQ workflow export" };
+    const shareData = { files: [file], title: workflow.name, text: "HQFlow workflow export" };
     if (typeof navigator.share === "function" && (typeof navigator.canShare !== "function" || navigator.canShare(shareData))) {
       await navigator.share(shareData);
       return;

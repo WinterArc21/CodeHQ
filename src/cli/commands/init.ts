@@ -189,7 +189,7 @@ export function printInitResult(result: InitResult): void {
     console.log("");
   }
 
-  console.log("CodeHQ initialized.");
+  console.log("HQFlow initialized.");
   console.log("");
   console.log("Created:");
   for (const line of result.created) {
@@ -206,5 +206,5 @@ export function printInitResult(result: InitResult): void {
 
   console.log("");
   console.log("Next:");
-  console.log("codehq open");
+  console.log("hqflow open");
 }

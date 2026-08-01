@@ -42,7 +42,7 @@ async function loadProject(paths: CodeHQPaths, root: string, issues: Issue[]): P
       severity: "error",
       file: relativeFile,
       message: "Missing .codehq/project.json.",
-      hint: "Run `codehq init`, or create project.json following the documented schema.",
+      hint: "Run `hqflow init`, or create project.json following the documented schema.",
     });
     return null;
   }

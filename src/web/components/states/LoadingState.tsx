@@ -5,7 +5,7 @@ export function LoadingState() {
   return (
     <div className={styles.layout} role="status" aria-live="polite">
       <span className={styles.pulse} aria-hidden="true" />
-      <p className={styles.label}>Loading CodeHQ…</p>
+      <p className={styles.label}>Loading HQFlow…</p>
     </div>
   );
 }

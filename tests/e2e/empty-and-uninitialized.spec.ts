@@ -26,8 +26,8 @@ test.describe("no .codehq directory at all", () => {
 
   test("renders the uninitialized state with the init command", async ({ page }) => {
     await page.goto(server.url);
-    await expect(page.getByText("CodeHQ isn't set up in this repository yet")).toBeVisible();
-    await expect(page.locator("code").filter({ hasText: "npx codehq init" })).toBeVisible();
+    await expect(page.getByText("HQFlow isn't set up in this repository yet")).toBeVisible();
+    await expect(page.locator("code").filter({ hasText: "npx hqflow init" })).toBeVisible();
   });
 });
 

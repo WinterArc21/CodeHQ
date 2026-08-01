@@ -34,6 +34,6 @@ export function resolveTemplatesDir(fromUrl: string = import.meta.url): string {
 
   throw new Error(
     "Could not locate the templates/codehq directory relative to the running CLI. " +
-      "This usually means CodeHQ was installed or built incorrectly — try reinstalling the package.",
+      "This usually means HQFlow was installed or built incorrectly — try reinstalling the package.",
   );
 }
