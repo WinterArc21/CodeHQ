@@ -25,12 +25,11 @@ describe("EmptyState", () => {
     vi.restoreAllMocks();
   });
 
-  it("renders all four actions", () => {
-    render(<EmptyState onShowExample={() => {}} onRecheck={() => Promise.resolve()} />);
+  it("renders all three actions", () => {
+    render(<EmptyState onRecheck={() => Promise.resolve()} />);
 
     expect(screen.getByRole("button", { name: "Copy prompt" })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Reveal skill file" })).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "Show example workflow" })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Recheck files" })).toBeInTheDocument();
   });
 
@@ -38,26 +37,16 @@ describe("EmptyState", () => {
     // fireEvent (not userEvent) here: userEvent.setup() installs its own Clipboard polyfill
     // whenever navigator.clipboard isn't already its own stub, which would shadow this mock.
     const clipboard = navigator.clipboard as unknown as { writeText: (text: string) => Promise<void> };
-    render(<EmptyState onShowExample={() => {}} onRecheck={() => Promise.resolve()} />);
+    render(<EmptyState onRecheck={() => Promise.resolve()} />);
 
     fireEvent.click(screen.getByRole("button", { name: "Copy prompt" }));
 
     await waitFor(() => expect(clipboard.writeText).toHaveBeenCalledWith(AGENT_ONBOARDING_PROMPT));
   });
 
-  it("calls onShowExample when 'Show example workflow' is activated", async () => {
-    const onShowExample = vi.fn();
-    render(<EmptyState onShowExample={onShowExample} onRecheck={() => Promise.resolve()} />);
-
-    const user = userEvent.setup();
-    await user.click(screen.getByRole("button", { name: "Show example workflow" }));
-
-    expect(onShowExample).toHaveBeenCalledTimes(1);
-  });
-
   it("calls onRecheck when 'Recheck files' is activated", async () => {
     const onRecheck = vi.fn().mockResolvedValue(undefined);
-    render(<EmptyState onShowExample={() => {}} onRecheck={onRecheck} />);
+    render(<EmptyState onRecheck={onRecheck} />);
 
     const user = userEvent.setup();
     await user.click(screen.getByRole("button", { name: "Recheck files" }));

@@ -18,6 +18,7 @@ import { OutcomeNode } from "./nodes/OutcomeNode";
 import { StepNode } from "./nodes/StepNode";
 import { ZoneLabel } from "./nodes/ZoneLabel";
 import type { CanvasFlowNode, WorkflowFlowEdge } from "./types";
+import { useExportMode } from "../../export-viewer/ExportModeContext";
 import { useCanvasFit } from "./useCanvasFit";
 import { useCanvasKeyboardNav } from "./useCanvasKeyboardNav";
 import styles from "./WorkflowCanvas.module.css";
@@ -51,6 +52,11 @@ export function WorkflowCanvas(props: WorkflowCanvasProps) {
 function WorkflowCanvasInner({ workflow, sourceChecks }: WorkflowCanvasProps) {
   const reactFlowInstance = useReactFlow<CanvasFlowNode, WorkflowFlowEdge>();
   const reducedMotion = usePrefersReducedMotion();
+  const exportMode = useExportMode();
+  // A valid live edit keeps the same workflow id, so the id alone cannot tell `useCanvasFit`
+  // that the graph's bounds changed. Source-check-only snapshots keep the workflow byte-identical
+  // and therefore retain this key, avoiding an unnecessary reframe.
+  const workflowRevision = useMemo(() => JSON.stringify(workflow), [workflow]);
 
   const theme = useObservatoryStore((state) => state.theme);
   const depth = useObservatoryStore((state) => state.depth);
@@ -89,6 +95,7 @@ function WorkflowCanvasInner({ workflow, sourceChecks }: WorkflowCanvasProps) {
     layoutNodes: layout.nodes,
     edgeRoutes,
     workflowId: workflow.id,
+    workflowRevision,
     depth,
     reactFlowInstance,
     reducedMotion,
@@ -155,6 +162,21 @@ function WorkflowCanvasInner({ workflow, sourceChecks }: WorkflowCanvasProps) {
     setRovingId(node.id);
   };
 
+  const handleExport = useCallback(() => {
+    const confirmed = window.confirm(
+      "This snapshot contains the agent-authored workflow description and repository-relative file paths. It does not contain source code. Export canvas?",
+    );
+    if (!confirmed) {
+      return;
+    }
+    const link = document.createElement("a");
+    link.href = `/api/export/${workflow.id}`;
+    link.rel = "noopener";
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+  }, [workflow.id]);
+
   const hasExpandedSteps = Object.keys(expandedStepIds).length > 0;
   const stepNodeCount = nodes.filter((node) => node.type === "step").length;
   const showMinimap = stepNodeCount > MINIMAP_NODE_THRESHOLD;
@@ -170,6 +192,7 @@ function WorkflowCanvasInner({ workflow, sourceChecks }: WorkflowCanvasProps) {
         onZoomOut={() => void reactFlowInstance.zoomOut({ duration: reducedMotion ? 0 : 150 })}
         onCollapseAll={collapseAllSteps}
         collapseDisabled={!hasExpandedSteps}
+        {...(exportMode === null ? { onExport: handleExport } : {})}
       />
       <div className={styles.stage} ref={containerRef}>
         <EdgeMarkers />

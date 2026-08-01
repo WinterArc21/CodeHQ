@@ -22,12 +22,12 @@ interface MinimalWorkflowFile {
 let root: string;
 let server: ManagedServer;
 
-test.beforeAll(async () => {
+test.beforeEach(async () => {
   root = await createTempFixtureCopy("live-update");
   server = await startObservatoryServer(root, PORTS.liveUpdate);
 });
 
-test.afterAll(async () => {
+test.afterEach(async () => {
   await server.stop();
   await removeTempDir(root);
 });
@@ -69,4 +69,61 @@ test("renaming a step, then adding a step and connection, both appear live witho
   await expect(page.locator("[data-step-node]")).toHaveCount(12, { timeout: 10_000 });
   await expect(page.locator('[data-step-node="post-process-video"]')).toContainText("Post-process Video");
   await expect(page.locator(".react-flow__edge")).toHaveCount(11, { timeout: 10_000 });
+});
+
+test("new graph elements animate in without detaching existing connectors", async ({ page }) => {
+  await page.goto(server.url);
+  await page.locator("[data-step-node]").first().waitFor({ state: "visible", timeout: 15_000 });
+
+  // New edges should have an enter animation (animation-name is not "none").
+  const existingEdgeAnimation = await page.locator(".react-flow__edge").first().evaluate((el) => {
+    return getComputedStyle(el).animationName;
+  });
+  expect(existingEdgeAnimation).not.toBe("none");
+
+  // Add a new step to trigger a live update, then verify the new node's wrapper has an enter
+  // animation (animation-name is not "none") while existing nodes retain their transform transition.
+  const workflowFile = path.join(root, ".observatory", "workflows", "generate-video.json");
+  const current = JSON.parse(await fsp.readFile(workflowFile, "utf-8")) as MinimalWorkflowFile;
+  const withExtraStep = structuredClone(current);
+  withExtraStep.steps.push({
+    id: "quality-check",
+    name: "Quality Check",
+    purpose: "Verifies output quality before delivery.",
+    category: "decision",
+    confidence: "verified",
+  });
+  // Turning an existing terminal outcome into a work step forces it to move from the outcome
+  // column back to the main line. Connectors must snap with it rather than remaining at the final
+  // geometry while the node glides independently.
+  withExtraStep.connections.push({ from: "outcome-generation-created", to: "quality-check" });
+  await fsp.writeFile(workflowFile, `${JSON.stringify(withExtraStep, null, 2)}\n`, "utf-8");
+
+  await expect(page.locator('[data-step-node="quality-check"]')).toBeVisible({ timeout: 10_000 });
+
+  // The enter animation (nodeEnter keyframe) is on the .react-flow__node wrapper, not the card
+  // inside — see WorkflowCanvas.module.css for why the opacity animation must be on the wrapper.
+  const newNodeAnimation = await page
+    .locator('.react-flow__node[data-id="quality-check"]')
+    .evaluate((el) => getComputedStyle(el).animationName);
+  expect(newNodeAnimation).not.toBe("none");
+
+  const incomingEdgeId = "save-result->outcome-generation-created#9";
+  const connectorDistance = await page.evaluate((edgeId) => {
+    const target = document.querySelector<HTMLElement>('[data-step-node="outcome-generation-created"]');
+    const path = document.querySelector<SVGPathElement>(
+      `.react-flow__edge[data-id="${edgeId}"] path.react-flow__edge-path`,
+    );
+    if (target === null || path === null) {
+      return Number.POSITIVE_INFINITY;
+    }
+    const rect = target.getBoundingClientRect();
+    const endpoint = path.getPointAtLength(path.getTotalLength());
+    const screenEndpoint = new DOMPoint(endpoint.x, endpoint.y).matrixTransform(path.getScreenCTM() ?? new DOMMatrix());
+    return Math.hypot(screenEndpoint.x - (rect.left + rect.width / 2), screenEndpoint.y - rect.top);
+  }, incomingEdgeId);
+  // The marker stops the visible path a couple of pixels before the card; anything materially
+  // larger means node and edge geometry have diverged during the update.
+  expect(connectorDistance).toBeLessThan(10);
+  await expect(page.getByText("More below", { exact: true })).toBeVisible();
 });

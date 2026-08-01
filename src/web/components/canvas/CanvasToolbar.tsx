@@ -1,4 +1,4 @@
-import { ArrowsInLineVertical, ArrowsOut, MagnifyingGlassMinus, MagnifyingGlassPlus } from "@phosphor-icons/react";
+import { ArrowsInLineVertical, ArrowsOut, DownloadSimple, MagnifyingGlassMinus, MagnifyingGlassPlus } from "@phosphor-icons/react";
 import type { Depth } from "../../store/useObservatoryStore";
 import { IconButton } from "../primitives";
 import { DepthControl } from "./DepthControl";
@@ -12,6 +12,8 @@ export interface CanvasToolbarProps {
   onZoomOut: () => void;
   onCollapseAll: () => void;
   collapseDisabled: boolean;
+  /** When provided, an "Export canvas" download button is shown. Omitted in the export viewer. */
+  onExport?: () => void;
 }
 
 /**
@@ -27,6 +29,7 @@ export function CanvasToolbar({
   onZoomOut,
   onCollapseAll,
   collapseDisabled,
+  onExport,
 }: CanvasToolbarProps) {
   return (
     <div className={styles.toolbar}>
@@ -45,6 +48,17 @@ export function CanvasToolbar({
         onClick={onCollapseAll}
         disabled={collapseDisabled}
       />
+      {onExport !== undefined ? (
+        <>
+          <div className={styles.divider} aria-hidden="true" />
+          <IconButton
+            label="Export canvas"
+            icon={<DownloadSimple size={16} />}
+            size="sm"
+            onClick={onExport}
+          />
+        </>
+      ) : null}
     </div>
   );
 }

@@ -114,9 +114,9 @@ test("renders the synthetic retry, return, async, fan-out/fan-in, and outcomes w
   const retry = page.locator('.react-flow__edge[data-id="retry-encode"] path.react-flow__edge-path');
   const returned = page.locator('.react-flow__edge[data-id="review-reencode"] path.react-flow__edge-path');
   const asyncHandoff = page.locator('.react-flow__edge[data-id="review-notify"] path.react-flow__edge-path');
-  await expect(retry).toHaveCSS("stroke-dasharray", /6px, 4px/);
-  await expect(returned).toHaveCSS("stroke-dasharray", /6px, 4px/);
-  await expect(asyncHandoff).toHaveCSS("stroke-dasharray", /1.5px, 4px/);
+  await expect(retry).toHaveCSS("stroke-dasharray", /7px, 5px/);
+  await expect(returned).toHaveCSS("stroke-dasharray", /7px, 5px/);
+  await expect(asyncHandoff).toHaveCSS("stroke-dasharray", /1px, 5px/);
   expect(await retry.getAttribute("d")).not.toBe(await returned.getAttribute("d"));
 
   await expect(page.locator('[data-step-node="outcome-created"]')).toHaveAttribute("aria-label", /^Success outcome:/);

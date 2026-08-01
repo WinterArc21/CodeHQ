@@ -95,10 +95,10 @@ async function main(): Promise<void> {
   }
 
   await browser.close();
-  console.log(`Wrote screenshots to ${OUT}`);
+  process.stdout.write(`Wrote screenshots to ${OUT}\n`);
 }
 
 main().catch((error) => {
-  console.error(error);
+  process.stderr.write(`${String(error)}\n`);
   process.exit(1);
 });

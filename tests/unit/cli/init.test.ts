@@ -26,15 +26,18 @@ function abs(relative: string): string {
 }
 
 describe("runInit — fresh repository", () => {
-  it("creates the expected tree, including a parseable project.json and example workflow", async () => {
+  it("creates the expected tree with an empty workflows/ and a parseable project.json", async () => {
     const result = await runInit({ root });
 
     expect(result.exitCode).toBe(0);
     expect(existsSync(abs(PROJECT_FILE))).toBe(true);
     expect(existsSync(abs(SKILL_FILE))).toBe(true);
     expect(existsSync(abs(WORKFLOWS_DIR))).toBe(true);
-    expect(existsSync(abs(EXAMPLE_WORKFLOW_FILE))).toBe(true);
     expect(existsSync(abs(DIAGNOSTICS_FILE))).toBe(true);
+    // The example is opt-in (see the `--example` block below): scaffolding a workflow that cites
+    // files this repository does not contain would make the user's first `validate` a wall of
+    // "does not exist" warnings about a workflow they did not write.
+    expect(existsSync(abs(EXAMPLE_WORKFLOW_FILE))).toBe(false);
 
     expect(result.created).toEqual([".observatory/project.json", ".observatory/workflows/", ".observatory/SKILL.md"]);
     expect(result.unchanged).toEqual([]);
@@ -42,10 +45,6 @@ describe("runInit — fresh repository", () => {
     const projectJson = JSON.parse(readFileSync(abs(PROJECT_FILE), "utf-8")) as unknown;
     const projectResult = parseProject(projectJson, PROJECT_FILE);
     expect(projectResult.ok).toBe(true);
-
-    const workflowJson = JSON.parse(readFileSync(abs(EXAMPLE_WORKFLOW_FILE), "utf-8")) as unknown;
-    const workflowResult = parseWorkflow(workflowJson, EXAMPLE_WORKFLOW_FILE);
-    expect(workflowResult.ok).toBe(true);
 
     const diagnostics = JSON.parse(readFileSync(abs(DIAGNOSTICS_FILE), "utf-8")) as { valid: boolean; issues: unknown[] };
     expect(diagnostics.valid).toBe(true);
@@ -92,8 +91,8 @@ describe("runInit — idempotency", () => {
   });
 
   it("also reports an existing example workflow as unchanged on rerun", async () => {
-    await runInit({ root });
-    const secondResult = await runInit({ root });
+    await runInit({ root, example: true });
+    const secondResult = await runInit({ root, example: true });
     expect(secondResult.unchanged).toContain(EXAMPLE_WORKFLOW_FILE);
   });
 });
@@ -111,8 +110,22 @@ describe("runInit — --force", () => {
   });
 });
 
-describe("runInit — --no-example", () => {
-  it("omits the example workflow file entirely", async () => {
+describe("runInit — --example", () => {
+  it("copies a parseable example workflow when explicitly asked for it", async () => {
+    const result = await runInit({ root, example: true });
+
+    expect(existsSync(abs(EXAMPLE_WORKFLOW_FILE))).toBe(true);
+    // Folded into the "workflows/" line rather than listed separately — see runInit.
+    expect(result.created).toContain(".observatory/workflows/");
+
+    const workflowJson = JSON.parse(readFileSync(abs(EXAMPLE_WORKFLOW_FILE), "utf-8")) as unknown;
+    const workflowResult = parseWorkflow(workflowJson, EXAMPLE_WORKFLOW_FILE);
+    expect(workflowResult.ok).toBe(true);
+  });
+
+  // `--no-example` is retained purely so existing invocations keep working; it now asks for what
+  // already happens by default.
+  it("omits the example workflow file entirely when explicitly declined", async () => {
     const result = await runInit({ root, example: false });
     expect(existsSync(abs(EXAMPLE_WORKFLOW_FILE))).toBe(false);
     expect(existsSync(abs(WORKFLOWS_DIR))).toBe(true);

@@ -31,6 +31,9 @@ export interface UseCanvasFitParams {
   layoutNodes: LayoutNode[];
   edgeRoutes: ReadonlyMap<string, RoutedEdge>;
   workflowId: string;
+  /** Stable serialization of the valid workflow content. Changes when a live semantic edit can
+   * alter graph bounds, but not for source-check-only snapshots or local expansion state. */
+  workflowRevision: string;
   depth: Depth;
   reactFlowInstance: Pick<ReactFlowInstance, "setViewport">;
   reducedMotion: boolean;
@@ -71,7 +74,7 @@ function computeGraphBounds(
 }
 
 export function useCanvasFit(params: UseCanvasFitParams): UseCanvasFitResult {
-  const { layoutNodes, edgeRoutes, workflowId, depth, reactFlowInstance, reducedMotion } = params;
+  const { layoutNodes, edgeRoutes, workflowId, workflowRevision, depth, reactFlowInstance, reducedMotion } = params;
   const containerRef = useRef<HTMLDivElement>(null);
   // Whether the fitted graph still has more content below the visible stage — a deeper depth
   // (`modules`/`symbols` grow every node) or a large workflow can be taller than even the
@@ -108,10 +111,11 @@ export function useCanvasFit(params: UseCanvasFitParams): UseCanvasFitResult {
   // before snapping to the fitted one.
   useLayoutEffect(() => {
     fitToViewport(reducedMotion ? 0 : 400);
-    // Re-fit only on a new workflow or a global depth change (contract §11) — expanding a single
-    // step, selecting a step, or a source-check update must never re-frame the viewport.
+    // Re-fit on a new workflow, a valid live workflow-content update, or a global depth change
+    // (contract §11). Expanding a single step, selecting a step, or a source-check-only update
+    // must never re-frame the viewport.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [workflowId, depth]);
+  }, [workflowId, workflowRevision, depth]);
 
   // One-shot fallback for the very first mount: the app auto-selects the default workflow from
   // a *regular* `useEffect` in `App.tsx` (necessarily async — it reacts to the server snapshot

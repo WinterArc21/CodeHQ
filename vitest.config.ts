@@ -24,6 +24,9 @@ export default defineConfig({
     jsx: "automatic",
   },
   test: {
+    // Local Fastify integration servers can exceed Vitest's 5s default during a cold Windows
+    // start, even though their request/response behavior is otherwise deterministic.
+    testTimeout: 10_000,
     exclude: ["tests/e2e/**", "node_modules/**", "dist/**"],
     // Split by environment: schema/core/server/cli tests run under plain Node, anything
     // under tests/unit/web (or named *.web.test.ts[x]) runs under jsdom for DOM access.

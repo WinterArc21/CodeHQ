@@ -1,5 +1,6 @@
 import type { WorkflowStep } from "@schema/workflow";
 import type { Depth } from "../../../store/useObservatoryStore";
+import { useExportMode } from "../../../export-viewer/ExportModeContext";
 import { MAX_MODULE_ROWS, MAX_SYMBOL_ROWS, splitPath, stepModuleFiles, stepSymbolRows } from "../nodeContent";
 import styles from "./StepNode.module.css";
 
@@ -17,7 +18,13 @@ export interface StepNodeDetailProps {
  * deeper view already gives.
  */
 export function StepNodeDetail({ step, depth }: StepNodeDetailProps) {
+  const exportMode = useExportMode();
+  const hideFilePaths = exportMode?.hideFilePaths === true;
+
   if (depth === "modules") {
+    if (hideFilePaths) {
+      return null;
+    }
     const files = stepModuleFiles(step);
     if (files.length === 0) {
       return null;
@@ -42,6 +49,9 @@ export function StepNodeDetail({ step, depth }: StepNodeDetailProps) {
   }
 
   if (depth === "symbols") {
+    if (hideFilePaths) {
+      return null;
+    }
     const rows = stepSymbolRows(step);
     if (rows.length === 0) {
       return null;

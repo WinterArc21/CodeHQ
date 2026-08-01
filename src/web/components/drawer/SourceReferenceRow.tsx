@@ -4,6 +4,7 @@ import type { SourceReference } from "@schema/workflow";
 import { ApiError, getSource } from "../../api/client";
 import type { SourceStatus } from "../../api/types";
 import { sourceStatusTone } from "../../design/semantics";
+import { useExportMode } from "../../export-viewer/ExportModeContext";
 import { Badge, Button, CopyButton, MonoPath } from "../primitives";
 import { formatLineRange, sourceCheckKey } from "./sourceKey";
 import styles from "./SourceReferenceRow.module.css";
@@ -26,6 +27,8 @@ export interface SourceReferenceRowProps {
 export function SourceReferenceRow({ source, sourceChecks }: SourceReferenceRowProps) {
   const [openError, setOpenError] = useState<string | null>(null);
   const [opening, setOpening] = useState(false);
+
+  const exportMode = useExportMode();
 
   const status = sourceChecks[sourceCheckKey(source)];
   const tone = status !== undefined ? sourceStatusTone(status) : null;
@@ -56,7 +59,7 @@ export function SourceReferenceRow({ source, sourceChecks }: SourceReferenceRowP
   return (
     <li className={`${styles.row} ${isMissing ? styles.missing : ""}`}>
       <div className={styles.pathLine}>
-        <MonoPath path={source.file} />
+        {exportMode?.hideFilePaths !== true ? <MonoPath path={source.file} /> : null}
         {source.symbol !== undefined ? <span className={styles.symbol}>{source.symbol}</span> : null}
         {lineRange !== null ? <span className={styles.lines}>{lineRange}</span> : null}
       </div>
@@ -67,12 +70,18 @@ export function SourceReferenceRow({ source, sourceChecks }: SourceReferenceRowP
         </Badge>
       </div>
       {source.description !== undefined ? <p className={styles.description}>{source.description}</p> : null}
-      <div className={styles.actions}>
-        <Button variant="secondary" size="sm" icon={<ArrowSquareOut size={14} />} onClick={() => void handleOpen()} disabled={opening}>
-          Open in editor
-        </Button>
-        <CopyButton value={source.file} label="Copy path" />
-      </div>
+      {exportMode === null ? (
+        <div className={styles.actions}>
+          <Button variant="secondary" size="sm" icon={<ArrowSquareOut size={14} />} onClick={() => void handleOpen()} disabled={opening}>
+            Open in editor
+          </Button>
+          <CopyButton value={source.file} label="Copy path" />
+        </div>
+      ) : exportMode.hideFilePaths !== true ? (
+        <div className={styles.actions}>
+          <CopyButton value={source.file} label="Copy path" />
+        </div>
+      ) : null}
       {openError !== null ? (
         <p className={styles.error} role="alert">
           {openError}

@@ -18,9 +18,14 @@
     "workflow",
     "architecture",
     "devtools",
+    "visualization",
+    "canvas",
+    "codebase",
+    "documentation",
+    "coding-agent",
     "local-first",
     "coding-agents",
-    "canvas"
+    "cli"
   ],
   "engines": {
     "node": ">=20"
@@ -36,19 +41,21 @@
     "README.md"
   ],
   "scripts": {
-    "dev": "npm-run-all2 --parallel dev:web dev:server",
+    "dev": "pnpm run build:export && npm-run-all2 --parallel dev:web dev:server",
     "dev:web": "vite",
     "dev:server": "tsx watch src/server/dev.ts",
-    "build": "pnpm run build:node && pnpm run build:web",
+    "build": "pnpm run build:node && pnpm run build:web && pnpm run build:export",
+    "prepublishOnly": "pnpm run build",
     "build:node": "tsup",
     "build:web": "vite build",
+    "build:export": "vite build --config vite.export.config.ts",
     "typecheck": "tsc -p tsconfig.node.json --noEmit && tsc -p tsconfig.web.json --noEmit && tsc -p tsconfig.e2e.json --noEmit",
     "lint": "eslint .",
     "lint:fix": "eslint . --fix",
+    "pretest": "pnpm run build:export",
     "test": "vitest run",
     "test:watch": "vitest",
-    "test:e2e": "playwright test",
-    "prepublishOnly": "pnpm run build"
+    "test:e2e": "playwright test"
   },
   "dependencies": {
     "@fastify/static": "^10.1.2",

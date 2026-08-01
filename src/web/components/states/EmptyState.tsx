@@ -6,15 +6,14 @@ import { StateLayout } from "./StateLayout";
 import styles from "./EmptyState.module.css";
 
 export interface EmptyStateProps {
-  onShowExample: () => void;
   onRecheck: () => Promise<void>;
 }
 
 /**
- * Initialized but no workflows exist yet. Four real, working actions — no embedded chat box
+ * Initialized but no workflows exist yet. Three real, working actions — no embedded chat box
  * (contract §12: no fake buttons).
  */
-export function EmptyState({ onShowExample, onRecheck }: EmptyStateProps) {
+export function EmptyState({ onRecheck }: EmptyStateProps) {
   const revealSkill = useAsyncAction(() => reveal("skill"));
   const recheck = useAsyncAction(onRecheck);
 
@@ -28,9 +27,6 @@ export function EmptyState({ onShowExample, onRecheck }: EmptyStateProps) {
         <CopyButton value={AGENT_ONBOARDING_PROMPT} label="Copy prompt" />
         <Button variant="secondary" size="sm" onClick={revealSkill.run}>
           Reveal skill file
-        </Button>
-        <Button variant="secondary" size="sm" onClick={onShowExample}>
-          Show example workflow
         </Button>
         <Button variant="secondary" size="sm" onClick={recheck.run}>
           Recheck files

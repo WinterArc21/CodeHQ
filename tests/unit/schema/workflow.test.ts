@@ -58,8 +58,11 @@ describe("parseWorkflow — generate-video example", () => {
       throw new Error(`expected ok, got issues: ${JSON.stringify(result.issues)}`);
     }
     expect(result.value.id).toBe("generate-video");
+    // A loose range, not an exact count: this guards "the example is still a substantial,
+    // parseable workflow" without pinning the example's editorial shape. The upper bound covers
+    // the 7 work steps plus the 4 terminal outcome steps the current canvas design expects.
     expect(result.value.steps.length).toBeGreaterThanOrEqual(5);
-    expect(result.value.steps.length).toBeLessThanOrEqual(9);
+    expect(result.value.steps.length).toBeLessThanOrEqual(14);
     expect(result.warnings).toEqual([]);
   });
 });

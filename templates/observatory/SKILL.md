@@ -64,6 +64,27 @@ than one that is exhaustive and speculative.
    usually mean the workflow is more complex or less connected than it should be — consider
    whether they point at a real problem.
 
+## Incremental authoring — the map grows as you read
+
+Code Observatory renders the canvas the moment a workflow file is complete and valid, and it
+watches the directory for changes — so you can build the map incrementally as you trace the
+code, not only at the end. Each saved version is a real checkpoint a human could open and
+explore.
+
+1. **Create the file early.** Once you have the entry point and the first verified step, write
+   a complete, valid workflow — schema-correct, with `schemaVersion`, `id`, `name`, `purpose`,
+   `steps` (one is enough), and `connections` (empty is fine). Run `code-observatory validate`
+   immediately.
+2. **Save in complete, valid increments.** Every time you verify a new step or connection,
+   rewrite the file as the full, valid workflow — never a partial, malformed, or placeholder
+   version. The canvas only advances when the JSON parses and validates; a broken save leaves
+   the last valid map on screen and stale diagnostics in the banner.
+3. **Check diagnostics after each increment** (rule 17). Read `.observatory/diagnostics.json`
+   and repair anything you introduced before continuing to trace.
+4. **Never fabricate steps, connections, or categories to make the map move.** Every saved
+   version must describe real behavior you have verified — an unverified step that appears then
+   vanishes was never real, and a reader who saw it has been misled.
+
 ## JSON schema reference
 
 Every object below is validated strictly: **unknown keys are a hard error.** This is

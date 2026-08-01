@@ -1,0 +1,78 @@
+/**
+ * End-to-end export test: clicks the "Export canvas" button in the running app, captures the
+ * downloaded HTML file, opens it directly from disk (file:// — no server), and asserts that
+ * the frozen snapshot renders an interactive canvas with step nodes, the export banner, and
+ * no "Open in editor" (server-only) buttons.
+ */
+import { promises as fsp } from "node:fs";
+import path from "node:path";
+import { expect, test } from "@playwright/test";
+import { SHARED_BASE_URL } from "./helpers/paths";
+
+test.describe("Export canvas", () => {
+  test("downloads a self-contained HTML snapshot that renders offline", async ({ page, browser }) => {
+    // 1. Navigate to the running app and wait for the canvas to render.
+    await page.goto(SHARED_BASE_URL);
+    await page.locator("[data-step-node]").first().waitFor({ state: "visible", timeout: 15_000 });
+
+    // 2. Set up a download listener and accept the export confirmation dialog, then click
+    //    the "Export canvas" button.
+    const downloadPromise = page.waitForEvent("download", { timeout: 15_000 });
+    page.once("dialog", (dialog) => dialog.accept());
+    await page.getByRole("button", { name: "Export canvas" }).click();
+    const download = await downloadPromise;
+
+    // 3. Save the downloaded file to a temp path.
+    const tmpDir = await fsp.mkdtemp(path.join(await import("node:os").then((m) => m.tmpdir()), "observatory-export-"));
+    const exportPath = path.join(tmpDir, "export.html");
+    await download.saveAs(exportPath);
+
+    const html = await fsp.readFile(exportPath, "utf-8");
+
+    // 4. Assert: no external resource references (src/href pointing to http(s) or //).
+    expect(html).not.toMatch(/<script[^>]+src=/i);
+    expect(html).not.toMatch(/<link[^>]+href=/i);
+    // No external URL in attribute values (src="", href="https://...", etc.)
+    expect(html).not.toMatch(/\b(?:src|href)\s*=\s*["'](?:https?:)?\/\//i);
+    // No external URL in link/script/img/style attribute values
+    expect(html).not.toMatch(/<(?:link|script|img|source|iframe)\b[^>]*\bsrc\s*=\s*["']https?:\/\//i);
+    expect(html).not.toMatch(/<(?:link|script|img)\b[^>]*\bhref\s*=\s*["']https?:\/\//i);
+
+    // 5. Assert: contains the export banner and payload.
+    expect(html).toContain("observatory-export-payload");
+
+    // 6. Open the exported file in a fresh browser context via file:// — no server.
+    const offlineContext = await browser.newContext();
+    const offlinePage = await offlineContext.newPage();
+    await offlinePage.goto(`file://${exportPath}`);
+
+    // 7. The frozen canvas should render step nodes.
+    await offlinePage.locator("[data-step-node]").first().waitFor({ state: "visible", timeout: 15_000 });
+
+    // 8. The export banner should be visible with the privacy notice.
+    await expect(offlinePage.getByText("Code Observatory Export")).toBeVisible();
+    await expect(offlinePage.getByText("not source code")).toBeVisible();
+
+    // 9. "Hide file paths" toggle should be present.
+    const hideToggle = offlinePage.getByRole("checkbox", { name: /Hide file paths/i });
+    await expect(hideToggle).toBeVisible();
+
+    // 10. Click a step node to open the drawer, then verify no "Open in editor" button.
+    await offlinePage.locator("[data-step-node]").first().click();
+    await expect(offlinePage.getByRole("heading", { name: "Source references" })).toBeVisible({ timeout: 5_000 });
+
+    // The server-only "Open in editor" action must be absent in the export.
+    await expect(offlinePage.getByRole("button", { name: "Open in editor" })).toHaveCount(0);
+
+    // The "Export canvas" button (which would point at /api/export/... under file://) must
+    // also be absent in the export viewer — it is a server-only action.
+    await expect(offlinePage.getByRole("button", { name: "Export canvas" })).toHaveCount(0);
+
+    // 11. Theme toggle should work.
+    const themeButton = offlinePage.getByRole("button", { name: /Switch to.*theme/i });
+    await expect(themeButton).toBeVisible();
+
+    await offlineContext.close();
+    await fsp.rm(tmpDir, { recursive: true, force: true });
+  });
+});

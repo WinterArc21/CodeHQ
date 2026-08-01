@@ -10,7 +10,11 @@ export default defineConfig([
     format: "esm",
     target: "node20",
     platform: "node",
-    sourcemap: true,
+    // No source maps: `files` in package.json ships only `dist` and `templates`, so a published
+    // map would point at `src/` paths the installing user does not have. Dropping them takes the
+    // tarball from 284 KB to 219 KB (256 KB unpacked) for a pointer that could never resolve.
+    // Local debugging is unaffected — it runs from the source tree via tsx.
+    sourcemap: false,
     clean: false,
     tsconfig: "tsconfig.node.json",
     // Bakes the package version into the CLI binary so `--version` never has to read
@@ -28,7 +32,7 @@ export default defineConfig([
     format: "esm",
     target: "node20",
     platform: "node",
-    sourcemap: true,
+    sourcemap: false,
     clean: false,
     tsconfig: "tsconfig.node.json",
   },
