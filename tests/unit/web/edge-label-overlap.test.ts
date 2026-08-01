@@ -71,7 +71,7 @@ function assertNoLabelOverlapsAnyNode(workflow: Workflow): void {
 
 describe("edge label / node overlap", () => {
   it("never overlaps a node box for a labelled primary edge between adjacent ranks (the upload-assets 'clean' shape)", () => {
-    // Mirrors `examples/motiona/.observatory/workflows/upload-assets.json`'s exact shape: a
+    // Mirrors `examples/motiona/.hq/workflows/upload-assets.json`'s exact shape: a
     // labelled *success* connection ("clean") straight from one spine step to the very next —
     // the case `LAYOUT_RANK_SEP` alone (18px) was too narrow to hold the label chip for.
     const workflow = makeWorkflow(

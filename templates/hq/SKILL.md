@@ -1,14 +1,14 @@
-# Code Observatory — Agent Skill
+# HQ — Agent Skill
 
 You are documenting how this repository actually behaves, for a tool called **Code
-Observatory**. Code Observatory has no LLM of its own and never uploads code anywhere — it
-only renders the structured JSON files you write here, in `.observatory/`, as an interactive
+HQ**. HQ has no LLM of its own and never uploads code anywhere — it
+only renders the structured JSON files you write here, in `.hq/`, as an interactive
 workflow canvas that a human can explore in their browser. Your job is to read the real
 source code and describe real workflows accurately, honestly, and at the right altitude.
 
-Everything you write goes into `.observatory/workflows/<id>.json`. Code Observatory validates
+Everything you write goes into `.hq/workflows/<id>.json`. HQ validates
 every file you write, watches this directory, and updates the canvas live. If you make a
-mistake, it will tell you exactly what is wrong in `.observatory/diagnostics.json` — read that
+mistake, it will tell you exactly what is wrong in `.hq/diagnostics.json` — read that
 file after every change and fix anything you broke.
 
 ## The 18 rules
@@ -25,11 +25,11 @@ file after every change and fix anything you broke.
 10. Mark information as verified only when it is directly supported by the code.
 11. Mark reasonable interpretations as inferred.
 12. Preserve human-written names, notes, and corrections.
-13. Edit only files inside `.observatory` unless the user explicitly asks for source-code changes.
+13. Edit only files inside `.hq` unless the user explicitly asks for source-code changes.
 14. Follow the supplied JSON schema exactly.
 15. Never add layout coordinates, colors, styling, or visual instructions.
-16. Run `code-observatory validate` after making changes.
-17. Read `.observatory/diagnostics.json` and repair any errors you introduced.
+16. Run `hq validate` after making changes.
+17. Read `.hq/diagnostics.json` and repair any errors you introduced.
 18. Write step `name` and `purpose` in product language a non-author can understand (e.g. "Collect website data", not `pollFirecrawlBatch`). Keep type and symbol names in `inputs`/`outputs`/`sources` — the canvas shows Story by default and Code map on demand.
 
 The goal is not to document every function in the codebase. It is to give the next person (or
@@ -40,10 +40,10 @@ than one that is exhaustive and speculative.
 
 ## Example user prompt
 
-> "Read `.observatory/SKILL.md`, then document the checkout workflow. It starts at the
+> "Read `.hq/SKILL.md`, then document the checkout workflow. It starts at the
 > `POST /api/checkout` route. Trace it through order creation, payment, and confirmation
-> email, and write the result to `.observatory/workflows/checkout.json`. Then run
-> `code-observatory validate` and fix anything it flags."
+> email, and write the result to `.hq/workflows/checkout.json`. Then run
+> `hq validate` and fix anything it flags."
 
 ## Workflow authoring loop
 
@@ -52,35 +52,56 @@ than one that is exhaustive and speculative.
 3. For each step, record sources, inputs/outputs, edge cases, tests, and external services
    that you can actually verify in the code (rules 6–10). Mark anything you had to guess or
    generalize as `"confidence": "inferred"` (rule 11).
-4. Write (or update) `.observatory/workflows/<id>.json`. If a human previously edited this
+4. Write (or update) `.hq/workflows/<id>.json`. If a human previously edited this
    file, keep their names, notes, and corrections — do not overwrite them with your own
    guesses (rule 12).
-5. Do not touch anything outside `.observatory` unless the user explicitly asked you to change
+5. Do not touch anything outside `.hq` unless the user explicitly asked you to change
    source code (rule 13). Follow the schema below exactly (rule 14) — do not invent fields,
    and never add layout, color, or styling (rule 15).
-6. Run `code-observatory validate` (rule 16).
-7. Open `.observatory/diagnostics.json`. If it reports any errors for files you touched, fix
+6. Run `hq validate` (rule 16).
+7. Open `.hq/diagnostics.json`. If it reports any errors for files you touched, fix
    them and re-run `validate` until it is clean (rule 17). Warnings are not blocking, but they
    usually mean the workflow is more complex or less connected than it should be — consider
    whether they point at a real problem.
 
+## Incremental authoring — the map grows as you read
+
+HQ renders the canvas the moment a workflow file is complete and valid, and it
+watches the directory for changes — so you can build the map incrementally as you trace the
+code, not only at the end. Each saved version is a real checkpoint a human could open and
+explore.
+
+1. **Create the file early.** Once you have the entry point and the first verified step, write
+   a complete, valid workflow — schema-correct, with `schemaVersion`, `id`, `name`, `purpose`,
+   `steps` (one is enough), and `connections` (empty is fine). Run `hq validate`
+   immediately.
+2. **Save in complete, valid increments.** Every time you verify a new step or connection,
+   rewrite the file as the full, valid workflow — never a partial, malformed, or placeholder
+   version. The canvas only advances when the JSON parses and validates; a broken save leaves
+   the last valid map on screen and stale diagnostics in the banner.
+3. **Check diagnostics after each increment** (rule 17). Read `.hq/diagnostics.json`
+   and repair anything you introduced before continuing to trace.
+4. **Never fabricate steps, connections, or categories to make the map move.** Every saved
+   version must describe real behavior you have verified — an unverified step that appears then
+   vanishes was never real, and a reader who saw it has been misled.
+
 ## JSON schema reference
 
 Every object below is validated strictly: **unknown keys are a hard error.** This is
-deliberate — Code Observatory owns all layout, color, and styling, and a field it does not
+deliberate — HQ owns all layout, color, and styling, and a field it does not
 recognize (especially something like `x`, `y`, `color`, or `style`) will be rejected with:
 
-> "Visual properties are owned by Code Observatory and must not appear in workflow files."
+> "Visual properties are owned by HQ and must not appear in workflow files."
 
 Never add coordinates, colors, fonts, CSS, icons, or any other visual/layout property,
-anywhere in these files. Code Observatory computes all of that automatically from the
+anywhere in these files. HQ computes all of that automatically from the
 `category`/`confidence`/connection `type` values below.
 
 All file paths (`SourceReference.file`, `TestReference.file`) **must be repository-relative**:
 no leading `/`, no drive letters (`C:\`), no UNC paths (`\\server\...`), and no `..` segments.
 Use forward slashes or backslashes, e.g. `"src/server/routes/checkout.ts"`.
 
-### `Workflow` (one file per workflow, `.observatory/workflows/<id>.json`)
+### `Workflow` (one file per workflow, `.hq/workflows/<id>.json`)
 
 | Field | Type | Required | Notes |
 |---|---|---|---|
@@ -179,7 +200,7 @@ fictional branches merely to demonstrate these canvas forms.
 | `purpose` | string | no | Why this step calls it. |
 | `operation` | string | no | The specific operation, e.g. `"POST /charges"`, `"read"`, `"publish"`. |
 
-### `.observatory/project.json`
+### `.hq/project.json`
 
 You will not usually need to edit this file, but its shape is:
 

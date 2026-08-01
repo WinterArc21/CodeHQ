@@ -22,7 +22,7 @@ function makeWorkflow(steps: WorkflowStep[], connections: Workflow["connections"
 
 const BASE_OPTS = { depth: "workflow" as const, expandedStepIds: {} };
 
-/** Mirrors `generate-video`'s real shape (see `examples/motiona/.observatory/workflows`): three
+/** Mirrors `generate-video`'s real shape (see `examples/motiona/.hq/workflows`): three
  * decision/logic steps on the spine each also fail/branch straight through to one shared terminal
  * step several ranks below — the exact case that used to draw through the intervening cards. */
 function generateVideoShapedWorkflow(): Workflow {

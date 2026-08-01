@@ -1,4 +1,4 @@
-# Code Observatory — Engineering Contract
+# HQ — Engineering Contract
 
 This document is the **binding technical contract** for every agent working on this repository.
 Read it fully before writing code. Do not deviate. If something here is genuinely wrong,
@@ -8,11 +8,11 @@ say so in your final report instead of silently changing it.
 
 ## 1. Product in one paragraph
 
-Code Observatory is a closed-source, local-first web app. A developer runs it inside their own
-repository. Their existing coding agent (Cursor / Claude Code / Codex) reads `.observatory/SKILL.md`,
-inspects the real source code, and writes structured workflow JSON into `.observatory/`.
-Code Observatory validates those files, watches them, and renders them as an interactive
-workflow canvas in the browser. **Observatory contains no LLM and never uploads code.**
+HQ is a closed-source, local-first web app. A developer runs it inside their own
+repository. Their existing coding agent (Cursor / Claude Code / Codex) reads `.hq/SKILL.md`,
+inspects the real source code, and writes structured workflow JSON into `.hq/`.
+HQ validates those files, watches them, and renders them as an interactive
+workflow canvas in the browser. **HQ contains no LLM and never uploads code.**
 
 ---
 
@@ -62,8 +62,8 @@ src/
   server/     # node-only. Fastify app + routes + SSE
   cli/        # node-only. commander CLI
   web/        # browser. React app
-templates/observatory/      # files copied by `init`
-examples/motiona/           # a demo repo-shaped fixture with a full .observatory
+templates/hq/      # files copied by `init`
+examples/motiona/           # a demo repo-shaped fixture with a full .hq
 tests/
   unit/
   integration/
@@ -83,26 +83,26 @@ tests/
 
 ### Build outputs
 
-- `dist/node/cli.js` — CLI entry, has the shebang. `package.json` → `"bin": { "code-observatory": "dist/node/cli.js" }`
+- `dist/node/cli.js` — CLI entry, has the shebang. `package.json` → `"bin": { "hq": "dist/node/cli.js" }`
 - `dist/node/server.js` — programmatic server entry
 - `dist/web/` — Vite output, served statically by the server in production
 
 ---
 
-## 4. `.observatory` format (source of truth)
+## 4. `.hq` format (source of truth)
 
 ```
-.observatory/
+.hq/
 ├── project.json
 ├── SKILL.md
-├── diagnostics.json        # written by Observatory, read by agents
+├── diagnostics.json        # written by HQ, read by agents
 ├── workflows/
 │   └── <id>.json
 └── .runtime/               # gitignored, runtime scratch only
 ```
 
-`init` appends `.observatory/.runtime/` to the repo `.gitignore` (creating it if absent, never
-duplicating the line). It must **not** ignore the rest of `.observatory`.
+`init` appends `.hq/.runtime/` to the repo `.gitignore` (creating it if absent, never
+duplicating the line). It must **not** ignore the rest of `.hq`.
 
 ---
 
@@ -111,7 +111,7 @@ duplicating the line). It must **not** ignore the rest of `.observatory`.
 Author with Zod; export inferred TS types. Exact shapes are in the product brief and must be
 followed literally. Summary:
 
-- `ObservatoryProject` — `schemaVersion: "0.1"`, `project { id, name, description? }`,
+- `HQProject` — `schemaVersion: "0.1"`, `project { id, name, description? }`,
   `settings? { defaultWorkflowId?, sourceLinkMode?: "editor"|"github"|"none" }`
 - `Workflow` — `schemaVersion: "0.1"`, `id`, `name`, `purpose`,
   `entryPoint?: SourceReference` (**an object, not a string**),
@@ -148,7 +148,7 @@ Semantic validation returns `Issue[]`, never throws.
 
 The schema must reject visual/layout keys anywhere (`x`, `y`, `position`, `color`, `colour`,
 `style`, `width`, `height`, `font`, `css`, `layout`, `icon`) with the message
-`"Visual properties are owned by Code Observatory and must not appear in workflow files."`
+`"Visual properties are owned by HQ and must not appear in workflow files."`
 `.strict()` gets most of this; add an explicit check so the error message is actionable.
 
 ---
@@ -159,7 +159,7 @@ The schema must reject visual/layout keys anywhere (`x`, `y`, `position`, `color
 type Severity = "error" | "warning";
 type Issue = {
   severity: Severity;
-  file: string;      // repo-relative, e.g. ".observatory/workflows/checkout.json"
+  file: string;      // repo-relative, e.g. ".hq/workflows/checkout.json"
   path?: string;     // JSON pointer-ish, e.g. "connections[3].to"
   message: string;   // complete sentence, human readable
   hint?: string;     // what to do about it
@@ -171,7 +171,7 @@ type DiagnosticsReport = {
 };
 ```
 
-Written to `.observatory/diagnostics.json` (pretty, 2-space, trailing newline) after every
+Written to `.hq/diagnostics.json` (pretty, 2-space, trailing newline) after every
 load/revalidation. Must be both human-readable and machine-readable — agents repair from it.
 
 ---
@@ -192,11 +192,11 @@ type WorkflowRecord = {
   sourceChecks: Record<string, SourceStatus>;
 };
 
-type ObservatorySnapshot = {
+type HQSnapshot = {
   generatedAt: string;
-  status: "uninitialized" | "empty" | "ready";  // no .observatory | no workflows | ok
-  repository: { name: string; root: string; observatoryDir: string };
-  project: ObservatoryProject | null;
+  status: "uninitialized" | "empty" | "ready";  // no .hq | no workflows | ok
+  repository: { name: string; root: string; hqDir: string };
+  project: HQProject | null;
   workflows: WorkflowRecord[];
   diagnostics: DiagnosticsReport;
 };
@@ -213,8 +213,8 @@ partial JSON, schema error), the previously valid `workflow` stays in the snapsh
 
 | Method | Path | Notes |
 |---|---|---|
-| GET | `/api/state` | Primary. Full `ObservatorySnapshot`. |
-| GET | `/api/project` | `ObservatoryProject \| null` |
+| GET | `/api/state` | Primary. Full `HQSnapshot`. |
+| GET | `/api/project` | `HQProject \| null` |
 | GET | `/api/workflows` | `WorkflowRecord[]` |
 | GET | `/api/workflows/:id` | `WorkflowRecord`, 404 if unknown |
 | GET | `/api/diagnostics` | `DiagnosticsReport` |
@@ -222,7 +222,7 @@ partial JSON, schema error), the previously valid `workflow` stays in the snapsh
 | POST | `/api/recheck` | Force a full reload; returns the new snapshot |
 | GET | `/api/events` | SSE |
 
-SSE frames: `data: {"type":"snapshot","payload":ObservatorySnapshot}` on connect and on every
+SSE frames: `data: {"type":"snapshot","payload":HQSnapshot}` on connect and on every
 change; `data: {"type":"ping"}` every 25s to keep proxies alive.
 
 ### Security (mandatory, tested)
@@ -238,9 +238,9 @@ endpoint that returns arbitrary file contents. Ever.
 ## 9. CLI
 
 ```
-code-observatory init       # scaffold .observatory
-code-observatory open       # start server + open browser
-code-observatory validate   # validate, print, exit non-zero on error
+hq init       # scaffold .hq
+hq open       # start server + open browser
+hq validate   # validate, print, exit non-zero on error
 ```
 
 Also `--help`, `--version`, and `open --port <n>`, `open --no-open`.
@@ -250,7 +250,7 @@ Also `--help`, `--version`, and `open --port <n>`, `open --no-open`.
   (failure to open is a warning, not an error).
 - `validate` — human-readable grouped output, exit 1 on any error.
 
-Repository root resolution: walk up from cwd looking for `.observatory/`, then `.git/`, then
+Repository root resolution: walk up from cwd looking for `.hq/`, then `.git/`, then
 `package.json`; fall back to cwd. Implemented once in `src/core/repository.ts` and reused.
 
 Output text is specified in the product brief — match it closely.
@@ -369,7 +369,7 @@ src/web/
   App.tsx
   styles/{tokens.css,reset.css,base.css}
   api/{client.ts,events.ts}        # fetch wrappers + SSE hook
-  store/{useObservatoryStore.ts}   # zustand: selectedWorkflowId, selectedStepId, depth,
+  store/{useHQStore.ts}   # zustand: selectedWorkflowId, selectedStepId, depth,
                                    # expandedStepIds, searchQuery, diagnosticsOpen, theme
   components/
     shell/      AppShell, TopBar, StatusIndicator, ThemeToggle, LocalOnlyBadge
@@ -417,10 +417,10 @@ drag-only interactions, works down to 1024px width.
 
 ## 13. Definition of done for the whole product
 
-A developer can `npx code-observatory init`, then `open`, see the local app, copy the agent
+A developer can `npx hq init`, then `open`, see the local app, copy the agent
 prompt, have their agent write a workflow JSON, watch the board update live without refreshing,
 click a step, understand its purpose/sources/data/edge cases/tests, open the referenced file in
 their editor, and see honest diagnostics when the agent writes something invalid — all with
 nothing leaving their machine.
 
-> Your coding agent can read the code. Code Observatory lets you see what it understands.
+> Your coding agent can read the code. HQ lets you see what it understands.

@@ -8,14 +8,14 @@ import { fileURLToPath } from "node:url";
 import type { FastifyInstance } from "fastify";
 import { z } from "zod";
 import { pathExists } from "@core/fs-utils";
-import { observatoryPaths, repositoryName } from "@core/repository";
+import { hqPaths, repositoryName } from "@core/repository";
 import { resolveInsideRepository } from "@core/safe-path";
-import type { ObservatoryStore } from "@core/store";
+import type { HQStore } from "@core/store";
 import { buildExportHtml, buildContentDisposition, sanitizeExportPayload } from "./export";
 
 export interface RouteContext {
   root: string;
-  store: ObservatoryStore;
+  store: HQStore;
 }
 
 const sourceQuerySchema = z
@@ -73,7 +73,7 @@ function resolveWorkflowFileForDeletion(root: string, relativeFile: string): { o
     return resolved;
   }
 
-  const paths = observatoryPaths(root);
+  const paths = hqPaths(root);
   const workflowsDir = resolveInsideRepository(root, path.relative(root, paths.workflowsDir));
   if (!workflowsDir.ok) {
     return { ok: false, reason: workflowsDir.reason };
@@ -125,7 +125,7 @@ async function loadExportViewerAssets(): Promise<ExportViewerAssets> {
   return cachedExportViewerAssets;
 }
 
-function registerExportRoute(app: FastifyInstance, root: string, store: ObservatoryStore): void {
+function registerExportRoute(app: FastifyInstance, root: string, store: HQStore): void {
   app.get<{ Params: { id: string } }>("/api/export/:id", async (request, reply) => {
     const parsedQuery = exportQuerySchema.safeParse(request.query);
     if (!parsedQuery.success) {

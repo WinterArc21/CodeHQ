@@ -8,18 +8,18 @@ import { runInit } from "../../../src/cli/commands/init";
 let root: string;
 
 beforeEach(() => {
-  root = mkdtempSync(path.join(tmpdir(), "observatory-cli-init-"));
+  root = mkdtempSync(path.join(tmpdir(), "hq-cli-init-"));
 });
 
 afterEach(() => {
   rmSync(root, { recursive: true, force: true });
 });
 
-const PROJECT_FILE = ".observatory/project.json";
-const SKILL_FILE = ".observatory/SKILL.md";
-const WORKFLOWS_DIR = ".observatory/workflows";
-const EXAMPLE_WORKFLOW_FILE = ".observatory/workflows/generate-video.json";
-const DIAGNOSTICS_FILE = ".observatory/diagnostics.json";
+const PROJECT_FILE = ".hq/project.json";
+const SKILL_FILE = ".hq/SKILL.md";
+const WORKFLOWS_DIR = ".hq/workflows";
+const EXAMPLE_WORKFLOW_FILE = ".hq/workflows/generate-video.json";
+const DIAGNOSTICS_FILE = ".hq/diagnostics.json";
 
 function abs(relative: string): string {
   return path.join(root, ...relative.split("/"));
@@ -39,7 +39,7 @@ describe("runInit — fresh repository", () => {
     // "does not exist" warnings about a workflow they did not write.
     expect(existsSync(abs(EXAMPLE_WORKFLOW_FILE))).toBe(false);
 
-    expect(result.created).toEqual([".observatory/project.json", ".observatory/workflows/", ".observatory/SKILL.md"]);
+    expect(result.created).toEqual([".hq/project.json", ".hq/workflows/", ".hq/SKILL.md"]);
     expect(result.unchanged).toEqual([]);
 
     const projectJson = JSON.parse(readFileSync(abs(PROJECT_FILE), "utf-8")) as unknown;
@@ -51,14 +51,14 @@ describe("runInit — fresh repository", () => {
     expect(diagnostics.issues).toEqual([]);
   });
 
-  it("appends .observatory/.runtime/ to .gitignore exactly once, and never duplicates it on rerun", async () => {
+  it("appends .hq/.runtime/ to .gitignore exactly once, and never duplicates it on rerun", async () => {
     await runInit({ root });
     const firstContent = readFileSync(path.join(root, ".gitignore"), "utf-8");
-    expect(firstContent).toContain(".observatory/.runtime/");
+    expect(firstContent).toContain(".hq/.runtime/");
 
     await runInit({ root });
     const secondContent = readFileSync(path.join(root, ".gitignore"), "utf-8");
-    const occurrences = secondContent.split(".observatory/.runtime/").length - 1;
+    const occurrences = secondContent.split(".hq/.runtime/").length - 1;
     expect(occurrences).toBe(1);
   });
 
@@ -66,14 +66,14 @@ describe("runInit — fresh repository", () => {
     writeFileSync(path.join(root, ".gitignore"), "node_modules");
     await runInit({ root });
     const content = readFileSync(path.join(root, ".gitignore"), "utf-8");
-    expect(content).toBe("node_modules\n.observatory/.runtime/\n");
+    expect(content).toBe("node_modules\n.hq/.runtime/\n");
   });
 
   it("never duplicates an equivalent pre-existing ignore pattern", async () => {
-    writeFileSync(path.join(root, ".gitignore"), "/.observatory/.runtime\n");
+    writeFileSync(path.join(root, ".gitignore"), "/.hq/.runtime\n");
     await runInit({ root });
     const content = readFileSync(path.join(root, ".gitignore"), "utf-8");
-    expect(content).toBe("/.observatory/.runtime\n");
+    expect(content).toBe("/.hq/.runtime\n");
   });
 });
 
@@ -116,16 +116,14 @@ describe("runInit — --example", () => {
 
     expect(existsSync(abs(EXAMPLE_WORKFLOW_FILE))).toBe(true);
     // Folded into the "workflows/" line rather than listed separately — see runInit.
-    expect(result.created).toContain(".observatory/workflows/");
+    expect(result.created).toContain(".hq/workflows/");
 
     const workflowJson = JSON.parse(readFileSync(abs(EXAMPLE_WORKFLOW_FILE), "utf-8")) as unknown;
     const workflowResult = parseWorkflow(workflowJson, EXAMPLE_WORKFLOW_FILE);
     expect(workflowResult.ok).toBe(true);
   });
 
-  // `--no-example` is retained purely so existing invocations keep working; it now asks for what
-  // already happens by default.
-  it("omits the example workflow file entirely when explicitly declined", async () => {
+  it("omits the example workflow file when no example is requested", async () => {
     const result = await runInit({ root, example: false });
     expect(existsSync(abs(EXAMPLE_WORKFLOW_FILE))).toBe(false);
     expect(existsSync(abs(WORKFLOWS_DIR))).toBe(true);
@@ -140,7 +138,7 @@ describe("runInit — non-project-root warning", () => {
   });
 
   it("does not warn when a .git directory is present", async () => {
-    const gitRoot = mkdtempSync(path.join(tmpdir(), "observatory-cli-init-git-"));
+    const gitRoot = mkdtempSync(path.join(tmpdir(), "hq-cli-init-git-"));
     try {
       const fs = await import("node:fs");
       fs.mkdirSync(path.join(gitRoot, ".git"));

@@ -1,11 +1,11 @@
 import { CopyButton } from "../primitives";
 
 /** A context-neutral instruction a developer's coding agent can use to map a workflow. */
-export const AGENT_PROMPT = "Read .observatory/SKILL.md and map the main product workflow into Observatory.";
+export const AGENT_PROMPT = "Read .hq/SKILL.md and map the main product workflow as a workflow.";
 
 export const AGENT_PROMPT_EXAMPLES = [
-  "Read .observatory/SKILL.md and map the purchase workflow into Observatory.",
-  "Read .observatory/SKILL.md and map the user journey from sign-in to download into Observatory.",
+  "Read .hq/SKILL.md and map the purchase workflow as a workflow.",
+  "Read .hq/SKILL.md and map the user journey from sign-in to download as a workflow.",
 ] as const;
 
 export function CopyAgentPrompt() {

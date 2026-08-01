@@ -1,8 +1,8 @@
 {
-  "name": "code-observatory",
+  "name": "hq",
   "version": "0.1.2",
   "type": "module",
-  "description": "Local-first workflow observatory that renders coding-agent-authored .observatory workflow files as an interactive canvas.",
+  "description": "Local-first workflow mapping for coding agents, rendered as an interactive canvas.",
   "license": "MIT",
   "author": "WinterArc21",
   "homepage": "https://github.com/WinterArc21/HQ#readme",
@@ -14,7 +14,7 @@
     "url": "https://github.com/WinterArc21/HQ/issues"
   },
   "keywords": [
-    "observatory",
+    "hq",
     "workflow",
     "architecture",
     "devtools",
@@ -32,7 +32,7 @@
   },
   "packageManager": "pnpm@11.5.3",
   "bin": {
-    "code-observatory": "dist/node/cli.js"
+    "hq": "dist/node/cli.js"
   },
   "files": [
     "dist",

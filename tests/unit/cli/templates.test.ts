@@ -6,7 +6,7 @@ import { describe, expect, it } from "vitest";
 import { resolveTemplatesDir } from "../../../src/cli/templates";
 
 describe("resolveTemplatesDir", () => {
-  it("finds templates/observatory when running from source (e.g. under tsx or vitest)", () => {
+  it("finds templates/hq when running from source (e.g. under tsx or vitest)", () => {
     const dir = resolveTemplatesDir();
     expect(existsSync(dir)).toBe(true);
     expect(existsSync(path.join(dir, "project.json"))).toBe(true);
@@ -15,8 +15,8 @@ describe("resolveTemplatesDir", () => {
   });
 
   it("throws a clear, actionable error when no templates directory can be found nearby", () => {
-    const fakeDeepPath = path.join(tmpdir(), "observatory-templates-missing", "a", "b", "c", "d", "file.ts");
+    const fakeDeepPath = path.join(tmpdir(), "hq-templates-missing", "a", "b", "c", "d", "file.ts");
     const bogusUrl = pathToFileURL(fakeDeepPath).href;
-    expect(() => resolveTemplatesDir(bogusUrl)).toThrow(/templates\/observatory/);
+    expect(() => resolveTemplatesDir(bogusUrl)).toThrow(/templates\/hq/);
   });
 });

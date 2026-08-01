@@ -3,7 +3,7 @@
  * inlines that payload together with the pre-built export-viewer JS/CSS into a single
  * self-contained HTML file that renders an interactive, offline workflow snapshot.
  *
- * Machine-local data (repository root, observatory directory, absolute paths, the workflow
+ * Machine-local data (repository root, hq directory, absolute paths, the workflow
  * file's own path) is stripped. The workflow's repository-relative source paths are kept
  * (they are part of the agent-authored description) but source file *contents* are never
  * included — the payload only carries the already-validated `Workflow` JSON and the
@@ -22,7 +22,7 @@ export interface ExportPayload {
   workflowId: string;
   /** ISO timestamp of when the export was generated. */
   exportedAt: string;
-  /** Repository display name only — never the root path or observatory directory. */
+  /** Repository display name only — never the root path or hq directory. */
   repositoryName: string;
 }
 
@@ -130,7 +130,7 @@ function normalizeSanitizeOptions(
 /**
  * Strips machine-local data from a `WorkflowRecord` and its repository context, producing
  * the minimal payload the export viewer needs. `record.file` (the workflow JSON's own path,
- * which would expose the `.observatory` directory layout) is intentionally dropped — only the
+ * which would expose the `.hq` directory layout) is intentionally dropped — only the
  * workflow's internal source references (already validated as repository-relative) survive.
  */
 export function sanitizeExportPayload(
@@ -217,7 +217,7 @@ export interface BuildExportHtmlOptions {
  */
 export function buildExportHtml({ payload, viewerJs, viewerCss }: BuildExportHtmlOptions): string {
   const payloadJson = escapeJsonForScript(JSON.stringify(payload));
-  const title = `${payload.workflowName} — Code Observatory Export`;
+  const title = `${payload.workflowName} — HQ Export`;
 
   return `<!doctype html>
 <html lang="en" data-theme="dark">
@@ -228,11 +228,11 @@ export function buildExportHtml({ payload, viewerJs, viewerCss }: BuildExportHtm
 <style>
 ${viewerCss}
 </style>
-<script>(function(){try{var r=localStorage.getItem("code-observatory.ui");if(r){var p=JSON.parse(r);var t=p&&p.state&&p.state.theme;if(t==="light"||t==="dark"){document.documentElement.setAttribute("data-theme",t);}}}catch(e){}})();</script>
+<script>(function(){try{var r=localStorage.getItem("hq.ui");if(r){var p=JSON.parse(r);var t=p&&p.state&&p.state.theme;if(t==="light"||t==="dark"){document.documentElement.setAttribute("data-theme",t);}}}catch(e){}})();</script>
 </head>
 <body>
 <div id="root"></div>
-<script type="application/json" id="observatory-export-payload">${payloadJson}</script>
+<script type="application/json" id="hq-export-payload">${payloadJson}</script>
 <script>
 ${escapeScriptContent(viewerJs)}
 </script>
@@ -243,6 +243,6 @@ ${escapeScriptContent(viewerJs)}
 /** Builds the Content-Disposition header value for a download. */
 export function buildContentDisposition(workflowName: string): string {
   const slug = sanitizeFilename(workflowName);
-  const filename = `${slug}-code-observatory.html`;
+  const filename = `${slug}-hq.html`;
   return `attachment; filename="${filename}"`;
 }

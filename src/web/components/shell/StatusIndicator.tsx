@@ -1,15 +1,15 @@
 import styles from "./StatusIndicator.module.css";
 
 /** Connection + validation state, expressed as one indicator (contract §11 shell list). */
-export type ObservatoryStatus = "live" | "disconnected" | "invalid" | "stale";
+export type HQStatus = "live" | "disconnected" | "invalid" | "stale";
 
 export interface StatusIndicatorProps {
-  status: ObservatoryStatus;
+  status: HQStatus;
   /** Rendered alongside the label when `status === "invalid"`. */
   errorCount?: number;
 }
 
-const STATUS_META: Record<ObservatoryStatus, { tone: "green" | "amber" | "red"; label: string }> = {
+const STATUS_META: Record<HQStatus, { tone: "green" | "amber" | "red"; label: string }> = {
   live: { tone: "green", label: "Live" },
   disconnected: { tone: "amber", label: "Disconnected" },
   invalid: { tone: "red", label: "Invalid" },

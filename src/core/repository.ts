@@ -1,12 +1,12 @@
 /**
- * Repository root resolution and the canonical `.observatory/*` paths derived from it.
+ * Repository root resolution and the canonical `.hq/*` paths derived from it.
  * Node-only; reused by the server, the store, and (in a later wave) the CLI.
  */
 
 import { existsSync, readFileSync } from "node:fs";
 import path from "node:path";
 
-const OBSERVATORY_DIR_NAME = ".observatory";
+const HQ_DIR_NAME = ".hq";
 
 function findNearestAncestorWith(startDir: string, markerName: string): string | null {
   let current = startDir;
@@ -22,8 +22,8 @@ function findNearestAncestorWith(startDir: string, markerName: string): string |
 }
 
 /**
- * Walks up from `startDir` looking for `.observatory/`, then `.git/`, then `package.json`,
- * each as an independent upward search so `.observatory` always wins even when `.git` sits
+ * Walks up from `startDir` looking for `.hq/`, then `.git/`, then `package.json`,
+ * each as an independent upward search so `.hq` always wins even when `.git` sits
  * closer to `startDir`. Falls back to `startDir` itself. Stops at the filesystem root
  * (works for POSIX `/`, Windows drive roots like `C:\`, and UNC-style roots, since
  * `path.dirname` becomes a fixed point there).
@@ -31,7 +31,7 @@ function findNearestAncestorWith(startDir: string, markerName: string): string |
 export function resolveRepositoryRoot(startDir: string): string {
   const resolvedStart = path.resolve(startDir);
   return (
-    findNearestAncestorWith(resolvedStart, OBSERVATORY_DIR_NAME) ??
+    findNearestAncestorWith(resolvedStart, HQ_DIR_NAME) ??
     findNearestAncestorWith(resolvedStart, ".git") ??
     findNearestAncestorWith(resolvedStart, "package.json") ??
     resolvedStart
@@ -61,13 +61,13 @@ function tryReadJsonName(filePath: string, pick: (data: unknown) => unknown): st
 }
 
 /**
- * Best-effort, human-readable repository name: `.observatory/project.json`'s
+ * Best-effort, human-readable repository name: `.hq/project.json`'s
  * `project.name`, else `package.json`'s `name`, else the root directory's basename.
  * Never throws — a malformed or unreadable file is silently skipped in favor of the
  * next fallback.
  */
 export function repositoryName(root: string): string {
-  const paths = observatoryPaths(root);
+  const paths = hqPaths(root);
   const fromProject = tryReadJsonName(paths.projectFile, (data) => (data as MinimalProjectFile).project?.name);
   if (fromProject !== null) {
     return fromProject;
@@ -81,7 +81,7 @@ export function repositoryName(root: string): string {
   return path.basename(root);
 }
 
-export interface ObservatoryPaths {
+export interface HQPaths {
   dir: string;
   projectFile: string;
   workflowsDir: string;
@@ -90,9 +90,9 @@ export interface ObservatoryPaths {
   runtimeDir: string;
 }
 
-/** Canonical `.observatory/*` paths for a resolved repository `root`. */
-export function observatoryPaths(root: string): ObservatoryPaths {
-  const dir = path.join(root, OBSERVATORY_DIR_NAME);
+/** Canonical `.hq/*` paths for a resolved repository `root`. */
+export function hqPaths(root: string): HQPaths {
+  const dir = path.join(root, HQ_DIR_NAME);
   return {
     dir,
     projectFile: path.join(dir, "project.json"),

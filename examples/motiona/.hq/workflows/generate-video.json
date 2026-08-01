@@ -186,6 +186,6 @@
     { "from": "save-result", "to": "outcome-generation-created", "type": "success" }
   ],
   "notes": [
-    "Reference implementation shipped as Code Observatory's example project; see examples/motiona."
+    "Reference implementation shipped as HQ's example project; see examples/motiona."
   ]
 }

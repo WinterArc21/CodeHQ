@@ -23,7 +23,7 @@ async function main(): Promise<void> {
   // Clear any persisted Code map preference so Story is the starting altitude.
   await page.evaluate(() => {
     localStorage.setItem(
-      "code-observatory.ui",
+      "hq.ui",
       JSON.stringify({ state: { theme: "light", depth: "workflow" }, version: 1 }),
     );
   });

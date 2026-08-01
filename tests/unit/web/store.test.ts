@@ -1,46 +1,46 @@
 import { beforeEach, describe, expect, it } from "vitest";
-import { resetObservatoryStore, useObservatoryStore } from "@web/store/useObservatoryStore";
+import { resetHQStore, useHQStore } from "@web/store/useHQStore";
 
-const STORAGE_KEY = "code-observatory.ui";
+const STORAGE_KEY = "hq.ui";
 
 beforeEach(() => {
   window.localStorage.clear();
-  resetObservatoryStore();
+  resetHQStore();
 });
 
-describe("useObservatoryStore", () => {
+describe("useHQStore", () => {
   it("selecting a workflow clears step selection and expansion", () => {
-    useObservatoryStore.getState().selectStep("step-1");
-    useObservatoryStore.getState().toggleStepExpanded("step-1");
-    expect(useObservatoryStore.getState().selectedStepId).toBe("step-1");
-    expect(useObservatoryStore.getState().expandedStepIds).toEqual({ "step-1": true });
+    useHQStore.getState().selectStep("step-1");
+    useHQStore.getState().toggleStepExpanded("step-1");
+    expect(useHQStore.getState().selectedStepId).toBe("step-1");
+    expect(useHQStore.getState().expandedStepIds).toEqual({ "step-1": true });
 
-    useObservatoryStore.getState().selectWorkflow("workflow-a");
+    useHQStore.getState().selectWorkflow("workflow-a");
 
-    expect(useObservatoryStore.getState().selectedWorkflowId).toBe("workflow-a");
-    expect(useObservatoryStore.getState().selectedStepId).toBeNull();
-    expect(useObservatoryStore.getState().expandedStepIds).toEqual({});
+    expect(useHQStore.getState().selectedWorkflowId).toBe("workflow-a");
+    expect(useHQStore.getState().selectedStepId).toBeNull();
+    expect(useHQStore.getState().expandedStepIds).toEqual({});
   });
 
   it("toggleStepExpanded toggles a single step id on and off", () => {
-    useObservatoryStore.getState().toggleStepExpanded("a");
-    expect(useObservatoryStore.getState().expandedStepIds).toEqual({ a: true });
+    useHQStore.getState().toggleStepExpanded("a");
+    expect(useHQStore.getState().expandedStepIds).toEqual({ a: true });
 
-    useObservatoryStore.getState().toggleStepExpanded("a");
-    expect(useObservatoryStore.getState().expandedStepIds).toEqual({});
+    useHQStore.getState().toggleStepExpanded("a");
+    expect(useHQStore.getState().expandedStepIds).toEqual({});
   });
 
   it("collapseAllSteps clears every expanded step", () => {
-    useObservatoryStore.getState().toggleStepExpanded("a");
-    useObservatoryStore.getState().toggleStepExpanded("b");
-    useObservatoryStore.getState().collapseAllSteps();
-    expect(useObservatoryStore.getState().expandedStepIds).toEqual({});
+    useHQStore.getState().toggleStepExpanded("a");
+    useHQStore.getState().toggleStepExpanded("b");
+    useHQStore.getState().collapseAllSteps();
+    expect(useHQStore.getState().expandedStepIds).toEqual({});
   });
 
   it("persists only theme and depth, under one namespaced localStorage key", () => {
-    useObservatoryStore.getState().setTheme("light");
-    useObservatoryStore.getState().setDepth("modules");
-    useObservatoryStore.getState().selectWorkflow("some-workflow");
+    useHQStore.getState().setTheme("light");
+    useHQStore.getState().setDepth("modules");
+    useHQStore.getState().selectWorkflow("some-workflow");
 
     const raw = window.localStorage.getItem(STORAGE_KEY);
     expect(raw).not.toBeNull();
@@ -57,7 +57,7 @@ describe("useObservatoryStore", () => {
       throw new Error("QuotaExceededError");
     };
     try {
-      expect(() => useObservatoryStore.getState().setTheme("dark")).not.toThrow();
+      expect(() => useHQStore.getState().setTheme("dark")).not.toThrow();
     } finally {
       window.localStorage.setItem = originalSetItem;
     }
@@ -69,7 +69,7 @@ describe("useObservatoryStore", () => {
       throw new Error("SecurityError");
     };
     try {
-      expect(() => useObservatoryStore.getState().setDepth("modules")).not.toThrow();
+      expect(() => useHQStore.getState().setDepth("modules")).not.toThrow();
     } finally {
       window.localStorage.getItem = originalGetItem;
     }

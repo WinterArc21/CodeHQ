@@ -1,5 +1,5 @@
 /**
- * Reads `.observatory/` off disk and turns it into everything an `ObservatorySnapshot` needs
+ * Reads `.hq/` off disk and turns it into everything an `HQSnapshot` needs
  * EXCEPT the last-valid-state merge, which is `store.ts`'s job (it needs to remember
  * yesterday's valid workflow, and this module only ever sees today's disk).
  */
@@ -7,13 +7,13 @@
 import { promises as fs } from "node:fs";
 import path from "node:path";
 import type { Issue } from "@schema/diagnostics";
-import type { ObservatoryProject } from "@schema/project";
+import type { HQProject } from "@schema/project";
 import { parseProject, parseWorkflow } from "@schema/validate";
 import type { Workflow } from "@schema/workflow";
 import { computeWorkflowSourceChecks, type SourceStatus } from "./source-check";
 import { parseJsonText, pathExists, toRepoRelativePosix } from "./fs-utils";
-import { observatoryPaths, type ObservatoryPaths } from "./repository";
-import type { ObservatoryStatus } from "./types";
+import { hqPaths, type HQPaths } from "./repository";
+import type { HQStatus } from "./types";
 
 export interface LoadedWorkflow {
   id: string;
@@ -28,21 +28,21 @@ export type WorkflowFileOutcome =
   | { file: string; status: "invalid" };
 
 export interface LoadResult {
-  status: ObservatoryStatus;
-  project: ObservatoryProject | null;
+  status: HQStatus;
+  project: HQProject | null;
   files: WorkflowFileOutcome[];
   issues: Issue[];
 }
 
-async function loadProject(paths: ObservatoryPaths, root: string, issues: Issue[]): Promise<ObservatoryProject | null> {
+async function loadProject(paths: HQPaths, root: string, issues: Issue[]): Promise<HQProject | null> {
   const relativeFile = toRepoRelativePosix(root, paths.projectFile);
 
   if (!(await pathExists(paths.projectFile))) {
     issues.push({
       severity: "error",
       file: relativeFile,
-      message: "Missing .observatory/project.json.",
-      hint: "Run `code-observatory init`, or create project.json following the documented schema.",
+      message: "Missing .hq/project.json.",
+      hint: "Run `hq init`, or create project.json following the documented schema.",
     });
     return null;
   }
@@ -171,9 +171,9 @@ function checkCrossFileRules(
   return true;
 }
 
-/** Loads and validates everything under `.observatory/` for `root`. Never throws. */
-export async function loadObservatory(root: string): Promise<LoadResult> {
-  const paths = observatoryPaths(root);
+/** Loads and validates everything under `.hq/` for `root`. Never throws. */
+export async function loadHQ(root: string): Promise<LoadResult> {
+  const paths = hqPaths(root);
   const issues: Issue[] = [];
 
   if (!(await pathExists(paths.dir))) {

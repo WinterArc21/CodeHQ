@@ -28,7 +28,7 @@ const WORKFLOW: Workflow = {
 
 const RECORD: WorkflowRecord = {
   id: "checkout",
-  file: ".observatory/workflows/checkout.json",
+  file: ".hq/workflows/checkout.json",
   workflow: WORKFLOW,
   modifiedAt: "2025-01-01T00:00:00.000Z",
   state: "valid",
@@ -36,16 +36,16 @@ const RECORD: WorkflowRecord = {
 };
 
 describe("sanitizeExportPayload", () => {
-  it("strips repository.root, observatoryDir, absolutePath, and the workflow file path", () => {
+  it("strips repository.root, hqDir, absolutePath, and the workflow file path", () => {
     const payload = sanitizeExportPayload(RECORD, "my-repo", "2025-06-01T12:00:00.000Z");
     const json = JSON.stringify(payload);
 
     // Machine-local data must never appear in the payload.
     expect(json).not.toContain("repository.root");
-    expect(json).not.toContain("observatoryDir");
+    expect(json).not.toContain("hqDir");
     expect(json).not.toContain("absolutePath");
-    // The workflow JSON's own file path (which would expose the .observatory dir) is stripped.
-    expect(json).not.toContain(".observatory/workflows/checkout.json");
+    // The workflow JSON's own file path (which would expose the .hq dir) is stripped.
+    expect(json).not.toContain(".hq/workflows/checkout.json");
     // modifiedAt is not carried into the snapshot.
     expect(json).not.toContain("2025-01-01T00:00:00.000Z");
   });
@@ -154,7 +154,7 @@ describe("sanitizeFilename", () => {
 describe("buildContentDisposition", () => {
   it("produces an attachment header with a sanitized filename", () => {
     const header = buildContentDisposition("Checkout Flow");
-    expect(header).toBe('attachment; filename="checkout-flow-code-observatory.html"');
+    expect(header).toBe('attachment; filename="checkout-flow-hq.html"');
   });
 });
 
@@ -189,7 +189,7 @@ describe("buildExportHtml", () => {
   });
 
   it("embeds the payload as a JSON script tag", () => {
-    expect(HTML).toContain('id="observatory-export-payload"');
+    expect(HTML).toContain('id="hq-export-payload"');
     expect(HTML).toContain("Checkout Flow");
     expect(HTML).toContain("app/api/checkout/route.ts");
   });

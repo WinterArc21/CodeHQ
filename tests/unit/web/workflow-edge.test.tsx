@@ -170,7 +170,7 @@ describe("WorkflowEdge visual grammar", () => {
 
     it("keeps the arrowhead marker on the semantic stroke, not the halo", () => {
       const { semantic, halo } = edgePaths(renderEdge(makeData({ connection: makeConnection({ type: "failure" }) })));
-      expect(semantic.getAttribute("marker-end")).toBe("url(#observatory-arrow-failure)");
+      expect(semantic.getAttribute("marker-end")).toBe("url(#hq-arrow-failure)");
       expect(halo.getAttribute("marker-end")).toBeNull();
     });
   });

@@ -4,7 +4,7 @@ import { MiniMap, ReactFlow, ReactFlowProvider, useReactFlow, type NodeMouseHand
 import type { Workflow } from "@schema/workflow";
 import type { SourceStatus } from "../../api/types";
 import { usePrefersReducedMotion } from "../../lib/usePrefersReducedMotion";
-import { useObservatoryStore } from "../../store/useObservatoryStore";
+import { useHQStore } from "../../store/useHQStore";
 import { buildFlowEdges, buildFlowNodes, buildZoneLabelNodes } from "./buildFlowElements";
 import { CanvasLegend } from "./CanvasLegend";
 import { CanvasHeader } from "./CanvasHeader";
@@ -62,13 +62,13 @@ function WorkflowCanvasInner({ workflow, sourceChecks, onDeleteWorkflow }: Workf
   // and therefore retain this key, avoiding an unnecessary reframe.
   const workflowRevision = useMemo(() => JSON.stringify(workflow), [workflow]);
 
-  const theme = useObservatoryStore((state) => state.theme);
-  const depth = useObservatoryStore((state) => state.depth);
-  const expandedStepIds = useObservatoryStore((state) => state.expandedStepIds);
-  const toggleStepExpanded = useObservatoryStore((state) => state.toggleStepExpanded);
-  const collapseAllSteps = useObservatoryStore((state) => state.collapseAllSteps);
-  const selectedStepId = useObservatoryStore((state) => state.selectedStepId);
-  const selectStep = useObservatoryStore((state) => state.selectStep);
+  const theme = useHQStore((state) => state.theme);
+  const depth = useHQStore((state) => state.depth);
+  const expandedStepIds = useHQStore((state) => state.expandedStepIds);
+  const toggleStepExpanded = useHQStore((state) => state.toggleStepExpanded);
+  const collapseAllSteps = useHQStore((state) => state.collapseAllSteps);
+  const selectedStepId = useHQStore((state) => state.selectedStepId);
+  const selectStep = useHQStore((state) => state.selectStep);
 
   const layout = useMemo(() => computeLayout(workflow, { depth, expandedStepIds }), [workflow, depth, expandedStepIds]);
   // Sidecar routes for branch edges whose direct path would clip an intervening spine card
@@ -183,7 +183,7 @@ function WorkflowCanvasInner({ workflow, sourceChecks, onDeleteWorkflow }: Workf
   const shareExport = useCallback(async (hideFilePaths: boolean): Promise<void> => {
     const artifact = await fetchWorkflowExport(workflow.id, hideFilePaths);
     const file = new File([artifact.blob], artifact.filename, { type: "text/html" });
-    const shareData = { files: [file], title: workflow.name, text: "Code Observatory workflow export" };
+    const shareData = { files: [file], title: workflow.name, text: "HQ workflow export" };
     if (typeof navigator.share === "function" && (typeof navigator.canShare !== "function" || navigator.canShare(shareData))) {
       await navigator.share(shareData);
       return;

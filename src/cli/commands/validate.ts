@@ -1,13 +1,13 @@
 /**
- * `code-observatory validate` — loads and validates `.observatory/`, writes
+ * `hq validate` — loads and validates `.hq/`, writes
  * `diagnostics.json`, and reports the result (contract §9, product brief §E).
  */
 
 import type { DiagnosticsReport } from "@schema/diagnostics";
 import { buildDiagnostics, writeDiagnostics } from "@core/diagnostics";
 import { pathExists } from "@core/fs-utils";
-import { loadObservatory } from "@core/load";
-import { observatoryPaths } from "@core/repository";
+import { loadHQ } from "@core/load";
+import { hqPaths } from "@core/repository";
 import { pluralize, printIssues } from "../output";
 import { resolveCliRoot } from "../resolve-root";
 
@@ -17,24 +17,24 @@ export interface ValidateOptions {
 }
 
 export type ValidateResult =
-  | { exitCode: 0 | 1; root: string; kind: "missing-observatory"; message: string }
+  | { exitCode: 0 | 1; root: string; kind: "missing-hq"; message: string }
   | { exitCode: 0 | 1; root: string; kind: "report"; report: DiagnosticsReport; workflowCount: number };
 
-/** Loads, validates, and (when `.observatory/` exists) writes `diagnostics.json`. */
+/** Loads, validates, and (when `.hq/` exists) writes `diagnostics.json`. */
 export async function runValidate(options: ValidateOptions): Promise<ValidateResult> {
   const root = resolveCliRoot(options.root);
-  const paths = observatoryPaths(root);
+  const paths = hqPaths(root);
 
   if (!(await pathExists(paths.dir))) {
     return {
       exitCode: 1,
       root,
-      kind: "missing-observatory",
-      message: `No .observatory/ directory found at '${root}'. Run \`code-observatory init\` first.`,
+      kind: "missing-hq",
+      message: `No .hq/ directory found at '${root}'. Run \`hq init\` first.`,
     };
   }
 
-  const loaded = await loadObservatory(root);
+  const loaded = await loadHQ(root);
   const report = buildDiagnostics(loaded.issues);
   await writeDiagnostics(root, report);
 
@@ -49,7 +49,7 @@ export async function runValidate(options: ValidateOptions): Promise<ValidateRes
 
 /** Renders a `ValidateResult` to stdout/stderr in the requested format. */
 export function printValidateResult(result: ValidateResult, json: boolean): void {
-  if (result.kind === "missing-observatory") {
+  if (result.kind === "missing-hq") {
     console.error(result.message);
     return;
   }
@@ -61,7 +61,7 @@ export function printValidateResult(result: ValidateResult, json: boolean): void
 
   if (result.report.issues.length === 0) {
     if (result.workflowCount === 0) {
-      console.log("No workflow files found in .observatory/workflows/.");
+      console.log("No workflow files found in .hq/workflows/.");
       return;
     }
     const noun = result.workflowCount === 1 ? "workflow" : "workflows";

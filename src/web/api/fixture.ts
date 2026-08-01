@@ -1,16 +1,16 @@
 import type { Workflow } from "@schema/workflow";
 import { EXAMPLE_WORKFLOW } from "../design/exampleWorkflow";
-import type { ObservatorySnapshot, SourceStatus, WorkflowRecord } from "./types";
+import type { HQSnapshot, SourceStatus, WorkflowRecord } from "./types";
 
 /**
  * DEVELOPMENT-ONLY fixture data. This module is imported by exactly one place —
- * `api/events.ts` — and only used when `isObservatoryFixtureEnabled()` is true, i.e.
- * `VITE_OBSERVATORY_FIXTURE === "1"`. It exists so the web app (and component tests) can be
- * built against a realistic, schema-shaped `ObservatorySnapshot` before `src/server` exists.
+ * `api/events.ts` — and only used when `isHQFixtureEnabled()` is true, i.e.
+ * `VITE_HQ_FIXTURE === "1"`. It exists so the web app (and component tests) can be
+ * built against a realistic, schema-shaped `HQSnapshot` before `src/server` exists.
  * It must never be reachable from a normal `pnpm dev`/production build.
  */
-export function isObservatoryFixtureEnabled(): boolean {
-  return import.meta.env.VITE_OBSERVATORY_FIXTURE === "1";
+export function isHQFixtureEnabled(): boolean {
+  return import.meta.env.VITE_HQ_FIXTURE === "1";
 }
 
 const minutesAgo = (minutes: number): string => new Date(Date.now() - minutes * 60_000).toISOString();
@@ -118,7 +118,7 @@ function buildGenerateVideoRecord(): WorkflowRecord {
   };
   return {
     id: EXAMPLE_WORKFLOW.id,
-    file: `.observatory/workflows/${EXAMPLE_WORKFLOW.id}.json`,
+    file: `.hq/workflows/${EXAMPLE_WORKFLOW.id}.json`,
     workflow: EXAMPLE_WORKFLOW,
     modifiedAt: minutesAgo(14),
     state: "valid",
@@ -135,7 +135,7 @@ function buildCheckoutRecord(): WorkflowRecord {
   };
   return {
     id: CHECKOUT_WORKFLOW.id,
-    file: `.observatory/workflows/${CHECKOUT_WORKFLOW.id}.json`,
+    file: `.hq/workflows/${CHECKOUT_WORKFLOW.id}.json`,
     workflow: CHECKOUT_WORKFLOW,
     modifiedAt: minutesAgo(180),
     state: "stale",
@@ -145,14 +145,14 @@ function buildCheckoutRecord(): WorkflowRecord {
 }
 
 /** Builds a fresh fixture snapshot (fresh timestamps) every time it is called. */
-export function buildObservatoryFixtureSnapshot(): ObservatorySnapshot {
+export function buildHQFixtureSnapshot(): HQSnapshot {
   return {
     generatedAt: minutesAgo(0),
     status: "ready",
     repository: {
       name: "motiona",
       root: "/home/dev/projects/motiona",
-      observatoryDir: "/home/dev/projects/motiona/.observatory",
+      hqDir: "/home/dev/projects/motiona/.hq",
     },
     project: {
       schemaVersion: "0.1",
@@ -170,14 +170,14 @@ export function buildObservatoryFixtureSnapshot(): ObservatorySnapshot {
       issues: [
         {
           severity: "error",
-          file: ".observatory/workflows/checkout.json",
+          file: ".hq/workflows/checkout.json",
           path: "steps[2].colour",
-          message: "Visual properties are owned by Code Observatory and must not appear in workflow files.",
-          hint: "Remove this property. Code Observatory computes layout, color, and styling automatically.",
+          message: "Visual properties are owned by HQ and must not appear in workflow files.",
+          hint: "Remove this property. HQ computes layout, color, and styling automatically.",
         },
         {
           severity: "warning",
-          file: ".observatory/workflows/checkout.json",
+          file: ".hq/workflows/checkout.json",
           path: "connections[2]",
           message: "Duplicate connection from 'validate-cart' to 'capture-payment' (type: success).",
           hint: "Remove this duplicate, or differentiate it with a distinct 'condition' or 'type'.",

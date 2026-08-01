@@ -1,5 +1,5 @@
 /**
- * Locates `templates/observatory/` at runtime. Must work both when `src/cli/index.ts` runs
+ * Locates `templates/hq/` at runtime. Must work both when `src/cli/index.ts` runs
  * directly under `tsx` (from source) and when it runs bundled as `dist/node/cli.js` — in
  * both layouts the templates directory sits exactly two directories above the running file
  * (`src/cli/` -> repo root, `dist/node/` -> package root), but we walk upward defensively
@@ -13,7 +13,7 @@ import { fileURLToPath } from "node:url";
 const MAX_ANCESTOR_DEPTH = 6;
 
 /**
- * Returns the absolute path to `templates/observatory/`, searching upward from the
+ * Returns the absolute path to `templates/hq/`, searching upward from the
  * directory containing `fromUrl` (defaults to this module's own location). Throws a clear,
  * actionable error if it cannot be found within `MAX_ANCESTOR_DEPTH` levels.
  */
@@ -21,7 +21,7 @@ export function resolveTemplatesDir(fromUrl: string = import.meta.url): string {
   let dir = path.dirname(fileURLToPath(fromUrl));
 
   for (let depth = 0; depth <= MAX_ANCESTOR_DEPTH; depth += 1) {
-    const candidate = path.join(dir, "templates", "observatory");
+    const candidate = path.join(dir, "templates", "hq");
     if (existsSync(candidate)) {
       return candidate;
     }
@@ -33,7 +33,7 @@ export function resolveTemplatesDir(fromUrl: string = import.meta.url): string {
   }
 
   throw new Error(
-    "Could not locate the templates/observatory directory relative to the running CLI. " +
-      "This usually means Code Observatory was installed or built incorrectly — try reinstalling the package.",
+    "Could not locate the templates/hq directory relative to the running CLI. " +
+      "This usually means HQ was installed or built incorrectly — try reinstalling the package.",
   );
 }

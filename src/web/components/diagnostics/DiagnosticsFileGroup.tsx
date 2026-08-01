@@ -46,7 +46,7 @@ export function DiagnosticsFileGroup({ group }: DiagnosticsFileGroupProps) {
       }
       window.location.href = lookup.editorUrl;
     } catch (error) {
-      setOpenError(error instanceof ApiError ? error.message : "Could not reach the Code Observatory server.");
+      setOpenError(error instanceof ApiError ? error.message : "Could not reach the HQ server.");
     } finally {
       setOpening(false);
     }

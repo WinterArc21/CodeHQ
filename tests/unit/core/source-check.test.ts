@@ -8,7 +8,7 @@ import { parseWorkflow } from "@schema/validate";
 let root: string;
 
 beforeEach(() => {
-  root = mkdtempSync(path.join(tmpdir(), "observatory-source-check-"));
+  root = mkdtempSync(path.join(tmpdir(), "hq-source-check-"));
 });
 
 afterEach(() => {
@@ -126,13 +126,13 @@ describe("computeWorkflowSourceChecks", () => {
       ],
       connections: [],
     };
-    const parsed = parseWorkflow(raw, ".observatory/workflows/wf.json");
+    const parsed = parseWorkflow(raw, ".hq/workflows/wf.json");
     expect(parsed.ok).toBe(true);
     if (!parsed.ok) {
       throw new Error("expected workflow to parse");
     }
 
-    const { sourceChecks, issues } = computeWorkflowSourceChecks(root, parsed.value, ".observatory/workflows/wf.json");
+    const { sourceChecks, issues } = computeWorkflowSourceChecks(root, parsed.value, ".hq/workflows/wf.json");
 
     expect(sourceChecks["lib/real.ts#realThing"]).toBe("verified");
     expect(sourceChecks["lib/missing.ts"]).toBe("missing");

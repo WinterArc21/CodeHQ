@@ -24,7 +24,7 @@ test.describe("Export canvas", () => {
     const download = await downloadPromise;
 
     // 3. Save the downloaded file to a temp path.
-    const tmpDir = await fsp.mkdtemp(path.join(await import("node:os").then((m) => m.tmpdir()), "observatory-export-"));
+    const tmpDir = await fsp.mkdtemp(path.join(await import("node:os").then((m) => m.tmpdir()), "hq-export-"));
     const exportPath = path.join(tmpDir, "export.html");
     await download.saveAs(exportPath);
 
@@ -40,7 +40,7 @@ test.describe("Export canvas", () => {
     expect(html).not.toMatch(/<(?:link|script|img)\b[^>]*\bhref\s*=\s*["']https?:\/\//i);
 
     // 5. Assert: contains the export banner and payload.
-    expect(html).toContain("observatory-export-payload");
+    expect(html).toContain("hq-export-payload");
     expect(html).toContain('"hideFilePaths":true');
     expect(html).not.toContain("real-source.ts");
 
@@ -53,7 +53,7 @@ test.describe("Export canvas", () => {
     await offlinePage.locator("[data-step-node]").first().waitFor({ state: "visible", timeout: 15_000 });
 
     // 8. The export banner should be visible with the privacy notice.
-    await expect(offlinePage.getByText("Code Observatory Export")).toBeVisible();
+    await expect(offlinePage.getByText("HQ Export")).toBeVisible();
     await expect(offlinePage.getByText("not source code")).toBeVisible();
 
     // 9. The export viewer reflects the choice made before download and has no post-export toggle.

@@ -86,7 +86,7 @@ describe("printIssues", () => {
       const issues: Issue[] = [
         {
           severity: "error",
-          file: ".observatory/workflows/checkout.json",
+          file: ".hq/workflows/checkout.json",
           path: "connections[3].to",
           message: "Connection references missing step 'create-order'.",
           hint: "Add a step with id 'create-order', or point this connection at an existing step.",
@@ -97,7 +97,7 @@ describe("printIssues", () => {
         printIssues(issues, "/repo");
       });
 
-      expect(lines[0]).toBe(".observatory/workflows/checkout.json");
+      expect(lines[0]).toBe(".hq/workflows/checkout.json");
       expect(lines[1]).toBe("  error  connections[3].to  Connection references missing step 'create-order'.");
       expect(lines[2]).toBe("         Add a step with id 'create-order', or point this connection at an existing step.");
     });

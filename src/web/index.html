@@ -3,14 +3,14 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Code Observatory</title>
+    <title>HQ</title>
     <script>
       // Applies the saved theme before first paint to avoid a flash of the wrong theme.
       // Best-effort only: any failure (storage disabled, corrupt value) just keeps the
       // default dark theme, so it is deliberately swallowed rather than surfaced.
       (function () {
         try {
-          var raw = window.localStorage.getItem("code-observatory.ui");
+          var raw = window.localStorage.getItem("hq.ui");
           if (raw) {
             var parsed = JSON.parse(raw);
             var theme = parsed && parsed.state && parsed.state.theme;

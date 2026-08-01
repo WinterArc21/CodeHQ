@@ -5,11 +5,11 @@
  */
 
 import type { DiagnosticsReport } from "@schema/diagnostics";
-import type { ObservatoryProject } from "@schema/project";
+import type { HQProject } from "@schema/project";
 import type { Workflow } from "@schema/workflow";
 import type { SourceStatus } from "./source-check";
 
-export type ObservatoryStatus = "uninitialized" | "empty" | "ready";
+export type HQStatus = "uninitialized" | "empty" | "ready";
 
 export interface WorkflowRecord {
   id: string;
@@ -25,14 +25,14 @@ export interface WorkflowRecord {
 export interface RepositoryInfo {
   name: string;
   root: string;
-  observatoryDir: string;
+  hqDir: string;
 }
 
-export interface ObservatorySnapshot {
+export interface HQSnapshot {
   generatedAt: string;
-  status: ObservatoryStatus;
+  status: HQStatus;
   repository: RepositoryInfo;
-  project: ObservatoryProject | null;
+  project: HQProject | null;
   workflows: WorkflowRecord[];
   diagnostics: DiagnosticsReport;
 }

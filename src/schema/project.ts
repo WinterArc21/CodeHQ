@@ -17,9 +17,9 @@ const projectInfoSchema = z
   })
   .strict();
 
-export const observatoryProjectSchema = z
+export const hqProjectSchema = z
   .object({
-    schemaVersion: z.literal("0.1", { message: 'ObservatoryProject.schemaVersion must be "0.1".' }),
+    schemaVersion: z.literal("0.1", { message: 'HQProject.schemaVersion must be "0.1".' }),
     project: projectInfoSchema,
     settings: projectSettingsSchema.optional(),
   })
@@ -27,4 +27,4 @@ export const observatoryProjectSchema = z
 
 export type ProjectSettings = z.infer<typeof projectSettingsSchema>;
 export type ProjectInfo = z.infer<typeof projectInfoSchema>;
-export type ObservatoryProject = z.infer<typeof observatoryProjectSchema>;
+export type HQProject = z.infer<typeof hqProjectSchema>;

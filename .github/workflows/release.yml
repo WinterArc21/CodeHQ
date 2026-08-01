@@ -66,8 +66,8 @@ jobs:
         env:
           PACKAGE_VERSION: ${{ steps.version.outputs.value }}
         run: |
-          if npm view "code-observatory@$PACKAGE_VERSION" version >/dev/null 2>&1; then
-            echo "code-observatory@$PACKAGE_VERSION already exists on npm."
+          if npm view "hq@$PACKAGE_VERSION" version >/dev/null 2>&1; then
+            echo "hq@$PACKAGE_VERSION already exists on npm."
             exit 1
           fi
 

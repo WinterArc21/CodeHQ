@@ -2,20 +2,20 @@ import { existsSync, mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:
 import { tmpdir } from "node:os";
 import path from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
-import { createObservatoryServer, type ObservatoryServer } from "@server/app";
+import { createHQServer, type HQServer } from "@server/app";
 
-const servers: ObservatoryServer[] = [];
+const servers: HQServer[] = [];
 
 afterEach(async () => {
   await Promise.all(servers.splice(0).map((server) => server.close()));
 });
 
 function createWorkflowRoot(fileName: string, status: "draft" | "verified"): { root: string; workflowFile: string } {
-  const root = mkdtempSync(path.join(tmpdir(), "observatory-delete-workflow-"));
-  const workflowsDir = path.join(root, ".observatory", "workflows");
+  const root = mkdtempSync(path.join(tmpdir(), "hq-delete-workflow-"));
+  const workflowsDir = path.join(root, ".hq", "workflows");
   mkdirSync(workflowsDir, { recursive: true });
   writeFileSync(
-    path.join(root, ".observatory", "project.json"),
+    path.join(root, ".hq", "project.json"),
     JSON.stringify({ schemaVersion: "0.1", project: { id: "delete-test", name: "Delete Test" } }),
   );
   const workflowFile = path.join(workflowsDir, fileName);
@@ -34,8 +34,8 @@ function createWorkflowRoot(fileName: string, status: "draft" | "verified"): { r
   return { root, workflowFile };
 }
 
-async function startServer(root: string): Promise<ObservatoryServer> {
-  const server = await createObservatoryServer({ root, port: 0, serveWeb: false });
+async function startServer(root: string): Promise<HQServer> {
+  const server = await createHQServer({ root, port: 0, serveWeb: false });
   servers.push(server);
   return server;
 }

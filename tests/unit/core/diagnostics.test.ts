@@ -8,7 +8,7 @@ import { buildDiagnostics, writeDiagnostics } from "@core/diagnostics";
 let root: string;
 
 beforeEach(() => {
-  root = mkdtempSync(path.join(tmpdir(), "observatory-diagnostics-"));
+  root = mkdtempSync(path.join(tmpdir(), "hq-diagnostics-"));
 });
 
 afterEach(() => {
@@ -51,18 +51,18 @@ describe("buildDiagnostics", () => {
 });
 
 describe("writeDiagnostics", () => {
-  it("is a no-op when .observatory does not exist", async () => {
+  it("is a no-op when .hq does not exist", async () => {
     await writeDiagnostics(root, buildDiagnostics([]));
-    expect(existsSync(path.join(root, ".observatory"))).toBe(false);
+    expect(existsSync(path.join(root, ".hq"))).toBe(false);
   });
 
   it("writes valid, pretty-printed JSON with a trailing newline, atomically", async () => {
-    mkdirSync(path.join(root, ".observatory"));
+    mkdirSync(path.join(root, ".hq"));
     const report = buildDiagnostics([{ severity: "error", file: "x.json", message: "bad" }]);
 
     await writeDiagnostics(root, report);
 
-    const filePath = path.join(root, ".observatory", "diagnostics.json");
+    const filePath = path.join(root, ".hq", "diagnostics.json");
     const contents = readFileSync(filePath, "utf-8");
 
     expect(contents.endsWith("\n")).toBe(true);
@@ -70,16 +70,16 @@ describe("writeDiagnostics", () => {
     expect(JSON.parse(contents)).toEqual(report);
 
     // No leftover .tmp staging files.
-    const leftovers = readdirSync(path.join(root, ".observatory")).filter((name) => name.endsWith(".tmp"));
+    const leftovers = readdirSync(path.join(root, ".hq")).filter((name) => name.endsWith(".tmp"));
     expect(leftovers).toEqual([]);
   });
 
   it("overwrites a previous diagnostics.json cleanly", async () => {
-    mkdirSync(path.join(root, ".observatory"));
+    mkdirSync(path.join(root, ".hq"));
     await writeDiagnostics(root, buildDiagnostics([{ severity: "error", file: "x.json", message: "first" }]));
     await writeDiagnostics(root, buildDiagnostics([]));
 
-    const filePath = path.join(root, ".observatory", "diagnostics.json");
+    const filePath = path.join(root, ".hq", "diagnostics.json");
     const parsed = JSON.parse(readFileSync(filePath, "utf-8")) as { valid: boolean; issues: unknown[] };
     expect(parsed.valid).toBe(true);
     expect(parsed.issues).toEqual([]);

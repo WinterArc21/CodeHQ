@@ -13,12 +13,12 @@ const MARKER_CLASS_NAMES: Record<MarkerVariant, string | undefined> = {
 
 /** The SVG marker id for a connection `type` (`undefined` maps to the `"success"` marker). */
 export function edgeMarkerId(type: MarkerVariant | undefined): string {
-  return `observatory-arrow-${type ?? "success"}`;
+  return `hq-arrow-${type ?? "success"}`;
 }
 
 /**
  * One arrowhead `<marker>` per connection type/colour, defined once and shared by every edge via
- * `markerEnd="url(#observatory-arrow-<type>)"`. Coloured entirely through CSS classes that
+ * `markerEnd="url(#hq-arrow-<type>)"`. Coloured entirely through CSS classes that
  * reference `--accent-*` tokens (never a literal colour), matching `connectionStyle` (contract
  * §10's connection-type table).
  *

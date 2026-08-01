@@ -3,14 +3,14 @@ import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type { Workflow } from "@schema/workflow";
-import type { ObservatorySnapshot, WorkflowRecord } from "@web/api/types";
+import type { HQSnapshot, WorkflowRecord } from "@web/api/types";
 import { CommandPalette } from "@web/components/search/CommandPalette";
-import { resetObservatoryStore, useObservatoryStore } from "@web/store/useObservatoryStore";
+import { resetHQStore, useHQStore } from "@web/store/useHQStore";
 
 function makeRecord(workflow: Workflow): WorkflowRecord {
   return {
     id: workflow.id,
-    file: `.observatory/workflows/${workflow.id}.json`,
+    file: `.hq/workflows/${workflow.id}.json`,
     workflow,
     modifiedAt: new Date().toISOString(),
     state: "valid",
@@ -36,10 +36,10 @@ const WORKFLOW_B: Workflow = {
   connections: [],
 };
 
-const SNAPSHOT: ObservatorySnapshot = {
+const SNAPSHOT: HQSnapshot = {
   generatedAt: new Date().toISOString(),
   status: "ready",
-  repository: { name: "demo", root: "/demo", observatoryDir: "/demo/.observatory" },
+  repository: { name: "demo", root: "/demo", hqDir: "/demo/.hq" },
   project: null,
   workflows: [makeRecord(WORKFLOW_A), makeRecord(WORKFLOW_B)],
   diagnostics: { generatedAt: new Date().toISOString(), valid: true, issues: [] },
@@ -47,7 +47,7 @@ const SNAPSHOT: ObservatorySnapshot = {
 
 describe("CommandPalette", () => {
   beforeEach(() => {
-    resetObservatoryStore();
+    resetHQStore();
     vi.stubGlobal("fetch", vi.fn().mockRejectedValue(new Error("network calls are not expected in this test")));
     Object.defineProperty(navigator, "clipboard", {
       value: { writeText: vi.fn().mockResolvedValue(undefined) },
@@ -56,7 +56,7 @@ describe("CommandPalette", () => {
   });
 
   afterEach(() => {
-    resetObservatoryStore();
+    resetHQStore();
     vi.unstubAllGlobals();
     vi.restoreAllMocks();
   });
@@ -67,7 +67,7 @@ describe("CommandPalette", () => {
 
     fireEvent.keyDown(window, { key: "k", ctrlKey: true });
 
-    expect(screen.getByRole("dialog", { name: "Search Code Observatory" })).toBeInTheDocument();
+    expect(screen.getByRole("dialog", { name: "Search HQ" })).toBeInTheDocument();
   });
 
   it("opens on Cmd+K (metaKey) too", () => {
@@ -77,7 +77,7 @@ describe("CommandPalette", () => {
   });
 
   it("shows every workflow plus the default actions on an empty query", () => {
-    useObservatoryStore.getState().openSearch();
+    useHQStore.getState().openSearch();
     render(<CommandPalette snapshot={SNAPSHOT} onRecheck={() => Promise.resolve()} />);
 
     expect(screen.getByText("Site Flow")).toBeInTheDocument();
@@ -87,7 +87,7 @@ describe("CommandPalette", () => {
   });
 
   it("filters as the user types", async () => {
-    useObservatoryStore.getState().openSearch();
+    useHQStore.getState().openSearch();
     render(<CommandPalette snapshot={SNAPSHOT} onRecheck={() => Promise.resolve()} />);
 
     const user = userEvent.setup();
@@ -99,7 +99,7 @@ describe("CommandPalette", () => {
   });
 
   it("shows an honest empty message when nothing matches", async () => {
-    useObservatoryStore.getState().openSearch();
+    useHQStore.getState().openSearch();
     render(<CommandPalette snapshot={SNAPSHOT} onRecheck={() => Promise.resolve()} />);
 
     const user = userEvent.setup();
@@ -109,33 +109,33 @@ describe("CommandPalette", () => {
   });
 
   it("moves the active option with Arrow keys and selects the second workflow with Enter", async () => {
-    useObservatoryStore.getState().openSearch();
+    useHQStore.getState().openSearch();
     render(<CommandPalette snapshot={SNAPSHOT} onRecheck={() => Promise.resolve()} />);
 
     const combobox = screen.getByRole("combobox");
     const user = userEvent.setup();
     await user.type(combobox, "{ArrowDown}{Enter}");
 
-    expect(useObservatoryStore.getState().selectedWorkflowId).toBe("checkout");
-    expect(useObservatoryStore.getState().selectedStepId).toBeNull();
-    expect(useObservatoryStore.getState().searchOpen).toBe(false);
+    expect(useHQStore.getState().selectedWorkflowId).toBe("checkout");
+    expect(useHQStore.getState().selectedStepId).toBeNull();
+    expect(useHQStore.getState().searchOpen).toBe(false);
   });
 
   it("selecting a step result focuses both the workflow and the step, and opens the drawer", async () => {
-    useObservatoryStore.getState().openSearch();
+    useHQStore.getState().openSearch();
     render(<CommandPalette snapshot={SNAPSHOT} onRecheck={() => Promise.resolve()} />);
 
     const user = userEvent.setup();
     await user.type(screen.getByRole("combobox"), "Scrape");
     await user.click(screen.getByRole("option", { name: /Scrape Website/ }));
 
-    expect(useObservatoryStore.getState().selectedWorkflowId).toBe("site-flow");
-    expect(useObservatoryStore.getState().selectedStepId).toBe("scrape");
-    expect(useObservatoryStore.getState().searchOpen).toBe(false);
+    expect(useHQStore.getState().selectedWorkflowId).toBe("site-flow");
+    expect(useHQStore.getState().selectedStepId).toBe("scrape");
+    expect(useHQStore.getState().searchOpen).toBe(false);
   });
 
   it("closes on Escape", async () => {
-    useObservatoryStore.getState().openSearch();
+    useHQStore.getState().openSearch();
     render(<CommandPalette snapshot={SNAPSHOT} onRecheck={() => Promise.resolve()} />);
 
     expect(screen.getByRole("dialog")).toBeInTheDocument();
@@ -153,7 +153,7 @@ describe("CommandPalette", () => {
     render(<CommandPalette snapshot={SNAPSHOT} onRecheck={() => Promise.resolve()} />);
     expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
 
-    useObservatoryStore.getState().openSearch();
+    useHQStore.getState().openSearch();
     await waitFor(() => expect(screen.getByRole("dialog")).toBeInTheDocument());
 
     const user = userEvent.setup();
@@ -163,7 +163,7 @@ describe("CommandPalette", () => {
   });
 
   it("closes when a click starts and ends on the backdrop", async () => {
-    useObservatoryStore.getState().openSearch();
+    useHQStore.getState().openSearch();
     render(<CommandPalette snapshot={SNAPSHOT} onRecheck={() => Promise.resolve()} />);
 
     const dialog = screen.getByRole("dialog");
@@ -177,7 +177,7 @@ describe("CommandPalette", () => {
   });
 
   it("does not close when a click lands inside the dialog", async () => {
-    useObservatoryStore.getState().openSearch();
+    useHQStore.getState().openSearch();
     render(<CommandPalette snapshot={SNAPSHOT} onRecheck={() => Promise.resolve()} />);
 
     const dialog = screen.getByRole("dialog");
@@ -188,7 +188,7 @@ describe("CommandPalette", () => {
   });
 
   it("does not close on a pointer-down inside the dialog that drags out and releases on the backdrop", async () => {
-    useObservatoryStore.getState().openSearch();
+    useHQStore.getState().openSearch();
     render(<CommandPalette snapshot={SNAPSHOT} onRecheck={() => Promise.resolve()} />);
 
     const dialog = screen.getByRole("dialog");

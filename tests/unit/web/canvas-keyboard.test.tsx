@@ -4,7 +4,7 @@ import userEvent from "@testing-library/user-event";
 import { afterEach, describe, expect, it } from "vitest";
 import type { Workflow } from "@schema/workflow";
 import { WorkflowCanvas } from "@web/components/canvas";
-import { resetObservatoryStore, useObservatoryStore } from "@web/store/useObservatoryStore";
+import { resetHQStore, useHQStore } from "@web/store/useHQStore";
 
 const WORKFLOW: Workflow = {
   schemaVersion: "0.1",
@@ -27,7 +27,7 @@ const WORKFLOW: Workflow = {
 };
 
 afterEach(() => {
-  resetObservatoryStore();
+  resetHQStore();
 });
 
 /**
@@ -112,9 +112,9 @@ describe("WorkflowCanvas keyboard navigation", () => {
     await waitFor(() => expect(document.querySelector('[data-step-node="receive"]')).toHaveFocus());
 
     await user.keyboard("{Enter}");
-    await waitFor(() => expect(useObservatoryStore.getState().selectedStepId).toBe("receive"));
+    await waitFor(() => expect(useHQStore.getState().selectedStepId).toBe("receive"));
 
     await user.keyboard("{Escape}");
-    await waitFor(() => expect(useObservatoryStore.getState().selectedStepId).toBeNull());
+    await waitFor(() => expect(useHQStore.getState().selectedStepId).toBeNull());
   });
 });

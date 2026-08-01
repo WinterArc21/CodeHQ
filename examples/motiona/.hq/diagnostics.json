@@ -4,7 +4,7 @@
   "issues": [
     {
       "severity": "warning",
-      "file": ".observatory/workflows/upload-assets.json",
+      "file": ".hq/workflows/upload-assets.json",
       "path": "steps[2].sources[0]",
       "message": "Step 'scan-for-malware' source references 'lib/malware-scan.ts', which does not exist in the repository.",
       "hint": "Update the path, or remove this reference if the file was deleted or is generated."

@@ -12,7 +12,7 @@ export type Theme = "dark" | "light";
 /** Persist schema version — bump when migrating stored UI preferences. */
 const PERSIST_VERSION = 1;
 
-interface ObservatoryUiState {
+interface HQUiState {
   selectedWorkflowId: string | null;
   selectedStepId: string | null;
   depth: Depth;
@@ -24,7 +24,7 @@ interface ObservatoryUiState {
   theme: Theme;
 }
 
-interface ObservatoryUiActions {
+interface HQUiActions {
   selectWorkflow: (workflowId: string | null) => void;
   selectStep: (stepId: string | null) => void;
   setDepth: (depth: Depth) => void;
@@ -38,9 +38,9 @@ interface ObservatoryUiActions {
   setTheme: (theme: Theme) => void;
 }
 
-export type ObservatoryStore = ObservatoryUiState & ObservatoryUiActions;
+export type HQStore = HQUiState & HQUiActions;
 
-const STORAGE_KEY = "code-observatory.ui";
+const STORAGE_KEY = "hq.ui";
 
 /**
  * Wraps `window.localStorage` so a failure (quota exceeded, private browsing, storage
@@ -71,7 +71,7 @@ const safeStorage: StateStorage = {
   },
 };
 
-const INITIAL_STATE: ObservatoryUiState = {
+const INITIAL_STATE: HQUiState = {
   selectedWorkflowId: null,
   selectedStepId: null,
   depth: "workflow",
@@ -82,7 +82,7 @@ const INITIAL_STATE: ObservatoryUiState = {
   theme: "dark",
 };
 
-export const useObservatoryStore = create<ObservatoryStore>()(
+export const useHQStore = create<HQStore>()(
   persist(
     (set) => ({
       ...INITIAL_STATE,
@@ -142,19 +142,19 @@ export const useObservatoryStore = create<ObservatoryStore>()(
        */
       migrate: (persisted) => {
         if (persisted === undefined || persisted === null || typeof persisted !== "object") {
-          return persisted as ObservatoryUiState;
+          return persisted as HQUiState;
         }
-        const state = persisted as Partial<ObservatoryUiState>;
+        const state = persisted as Partial<HQUiState>;
         if (state.depth === "symbols") {
           return { ...state, depth: "modules" };
         }
-        return state as ObservatoryUiState;
+        return state as HQUiState;
       },
     },
   ),
 );
 
 /** Test-only helper (and handy for "reset" affordances) to restore the initial UI state. */
-export function resetObservatoryStore(): void {
-  useObservatoryStore.setState({ ...INITIAL_STATE });
+export function resetHQStore(): void {
+  useHQStore.setState({ ...INITIAL_STATE });
 }

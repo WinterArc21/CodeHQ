@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useId, useRef, useState, type KeyboardEvent as ReactKeyboardEvent } from "react";
 import { MagnifyingGlass } from "@phosphor-icons/react";
-import type { ObservatorySnapshot } from "../../api/types";
-import { useObservatoryStore } from "../../store/useObservatoryStore";
+import type { HQSnapshot } from "../../api/types";
+import { useHQStore } from "../../store/useHQStore";
 import { useFocusTrap } from "../../lib/useFocusTrap";
 import { useBackdropDismiss } from "../../lib/useBackdropDismiss";
 import { Kbd } from "../primitives";
@@ -11,7 +11,7 @@ import type { SearchResult } from "./searchIndex";
 import styles from "./CommandPalette.module.css";
 
 export interface CommandPaletteProps {
-  snapshot: ObservatorySnapshot | null;
+  snapshot: HQSnapshot | null;
   onRecheck: () => Promise<void>;
 }
 
@@ -20,13 +20,13 @@ export interface CommandPaletteProps {
  * works regardless of whether the dialog is currently open; renders nothing until it is.
  */
 export function CommandPalette({ snapshot, onRecheck }: CommandPaletteProps) {
-  const searchOpen = useObservatoryStore((state) => state.searchOpen);
-  const openSearch = useObservatoryStore((state) => state.openSearch);
-  const closeSearch = useObservatoryStore((state) => state.closeSearch);
-  const searchQuery = useObservatoryStore((state) => state.searchQuery);
-  const setSearchQuery = useObservatoryStore((state) => state.setSearchQuery);
-  const selectWorkflow = useObservatoryStore((state) => state.selectWorkflow);
-  const selectStep = useObservatoryStore((state) => state.selectStep);
+  const searchOpen = useHQStore((state) => state.searchOpen);
+  const openSearch = useHQStore((state) => state.openSearch);
+  const closeSearch = useHQStore((state) => state.closeSearch);
+  const searchQuery = useHQStore((state) => state.searchQuery);
+  const setSearchQuery = useHQStore((state) => state.setSearchQuery);
+  const selectWorkflow = useHQStore((state) => state.selectWorkflow);
+  const selectStep = useHQStore((state) => state.selectStep);
 
   const containerRef = useRef<HTMLDivElement>(null);
   const [activeIndex, setActiveIndex] = useState(0);
@@ -42,7 +42,7 @@ export function CommandPalette({ snapshot, onRecheck }: CommandPaletteProps) {
         return;
       }
       event.preventDefault();
-      if (useObservatoryStore.getState().searchOpen) {
+      if (useHQStore.getState().searchOpen) {
         closeSearch();
       } else {
         openSearch();
@@ -107,7 +107,7 @@ export function CommandPalette({ snapshot, onRecheck }: CommandPaletteProps) {
 
   return (
     <div className={styles.backdrop} {...backdropDismiss}>
-      <div ref={containerRef} className={styles.palette} role="dialog" aria-modal="true" aria-label="Search Code Observatory">
+      <div ref={containerRef} className={styles.palette} role="dialog" aria-modal="true" aria-label="Search HQ">
         <div className={styles.inputRow}>
           <MagnifyingGlass size={16} aria-hidden="true" />
           <input

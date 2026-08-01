@@ -3,18 +3,18 @@ import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import path from "node:path";
 import { afterAll, afterEach, beforeAll, describe, expect, it } from "vitest";
-import { createObservatoryServer, findAvailablePort, type ObservatoryServer } from "@server/app";
+import { createHQServer, findAvailablePort, type HQServer } from "@server/app";
 
 let root: string;
-let server: ObservatoryServer | null = null;
+let server: HQServer | null = null;
 
 beforeAll(() => {
-  root = mkdtempSync(path.join(tmpdir(), "observatory-server-"));
-  const workflowsDir = path.join(root, ".observatory", "workflows");
+  root = mkdtempSync(path.join(tmpdir(), "hq-server-"));
+  const workflowsDir = path.join(root, ".hq", "workflows");
   mkdirSync(workflowsDir, { recursive: true });
   writeFileSync(path.join(root, "real-source.ts"), "export function realFunction() {}\n");
   writeFileSync(
-    path.join(root, ".observatory", "project.json"),
+    path.join(root, ".hq", "project.json"),
     JSON.stringify({
       schemaVersion: "0.1",
       project: { id: "fixture", name: "Fixture Project" },
@@ -54,8 +54,8 @@ afterEach(async () => {
   }
 });
 
-async function startServer(): Promise<ObservatoryServer> {
-  server = await createObservatoryServer({
+async function startServer(): Promise<HQServer> {
+  server = await createHQServer({
     root,
     port: 0,
     serveWeb: false,
@@ -63,7 +63,7 @@ async function startServer(): Promise<ObservatoryServer> {
   return server;
 }
 
-describe("createObservatoryServer — endpoint shapes", () => {
+describe("createHQServer — endpoint shapes", () => {
   it("GET /api/state returns the full snapshot", async () => {
     const running = await startServer();
     const response = await fetch(`${running.url}/api/state`);
@@ -121,7 +121,7 @@ describe("createObservatoryServer — endpoint shapes", () => {
   });
 });
 
-describe("createObservatoryServer — /api/source", () => {
+describe("createHQServer — /api/source", () => {
   it("returns metadata only, and never file contents, for a real file", async () => {
     const running = await startServer();
     const response = await fetch(`${running.url}/api/source?file=real-source.ts&line=1`);
@@ -170,7 +170,7 @@ describe("findAvailablePort", () => {
   });
 });
 
-describe("createObservatoryServer — lifecycle", () => {
+describe("createHQServer — lifecycle", () => {
   it("closes cleanly", async () => {
     const running = await startServer();
     await expect(running.close()).resolves.toBeUndefined();
@@ -178,6 +178,6 @@ describe("createObservatoryServer — lifecycle", () => {
   });
 
   it("never binds 0.0.0.0", async () => {
-    await expect(createObservatoryServer({ root, host: "0.0.0.0" })).rejects.toThrow(/0\.0\.0\.0/);
+    await expect(createHQServer({ root, host: "0.0.0.0" })).rejects.toThrow(/0\.0\.0\.0/);
   });
 });

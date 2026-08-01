@@ -6,14 +6,14 @@
  */
 
 import type { FastifyInstance } from "fastify";
-import type { ObservatorySnapshot } from "@core/types";
-import type { ObservatoryStore } from "@core/store";
+import type { HQSnapshot } from "@core/types";
+import type { HQStore } from "@core/store";
 
 const PING_INTERVAL_MS = 25_000;
 
-type SseFrame = { type: "snapshot"; payload: ObservatorySnapshot } | { type: "ping" };
+type SseFrame = { type: "snapshot"; payload: HQSnapshot } | { type: "ping" };
 
-export function registerEventsRoute(app: FastifyInstance, store: ObservatoryStore): void {
+export function registerEventsRoute(app: FastifyInstance, store: HQStore): void {
   const activeCleanups = new Set<() => void>();
 
   app.addHook("onClose", (_instance, done) => {

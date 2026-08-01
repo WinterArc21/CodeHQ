@@ -1,4 +1,4 @@
-import type { ObservatorySnapshot, SourceLookup } from "./types";
+import type { HQSnapshot, SourceLookup } from "./types";
 
 /** Base URL is empty: Vite proxies `/api` to the local server (contract §8). */
 const BASE_URL = "";
@@ -18,7 +18,7 @@ async function safeFetch(path: string, init?: RequestInit): Promise<Response> {
     return await fetch(`${BASE_URL}${path}`, init);
   } catch (error) {
     const detail = error instanceof Error ? error.message : String(error);
-    throw new ApiError(0, `Could not reach the Code Observatory server: ${detail}`);
+    throw new ApiError(0, `Could not reach the HQ server: ${detail}`);
   }
 }
 
@@ -63,13 +63,13 @@ export async function fetchWorkflowExport(workflowId: string, hideFilePaths: boo
   await ensureOk(path, response);
   return {
     blob: await response.blob(),
-    filename: exportFilename(response.headers.get("content-disposition"), "workflow-code-observatory.html"),
+    filename: exportFilename(response.headers.get("content-disposition"), "workflow-hq.html"),
   };
 }
 
 /** `GET /api/state` — the primary full snapshot. */
-export function getState(): Promise<ObservatorySnapshot> {
-  return requestJson<ObservatorySnapshot>("/api/state");
+export function getState(): Promise<HQSnapshot> {
+  return requestJson<HQSnapshot>("/api/state");
 }
 
 /** `GET /api/source` — metadata only, never file contents (contract §8). */
@@ -82,11 +82,11 @@ export function getSource(file: string, line?: number): Promise<SourceLookup> {
 }
 
 /** `POST /api/recheck` — forces a full reload and returns the new snapshot. */
-export function recheck(): Promise<ObservatorySnapshot> {
-  return requestJson<ObservatorySnapshot>("/api/recheck", { method: "POST" });
+export function recheck(): Promise<HQSnapshot> {
+  return requestJson<HQSnapshot>("/api/recheck", { method: "POST" });
 }
 
 /** `DELETE /api/workflows/:id` — removes a verified workflow and returns the refreshed snapshot. */
-export function deleteWorkflow(id: string): Promise<ObservatorySnapshot> {
-  return requestJson<ObservatorySnapshot>(`/api/workflows/${encodeURIComponent(id)}`, { method: "DELETE" });
+export function deleteWorkflow(id: string): Promise<HQSnapshot> {
+  return requestJson<HQSnapshot>(`/api/workflows/${encodeURIComponent(id)}`, { method: "DELETE" });
 }

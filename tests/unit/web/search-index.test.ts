@@ -1,12 +1,12 @@
 import { describe, expect, it } from "vitest";
 import { defaultResults, groupResults, search } from "@web/components/search/searchIndex";
-import type { ObservatorySnapshot, WorkflowRecord } from "@web/api/types";
+import type { HQSnapshot, WorkflowRecord } from "@web/api/types";
 import type { Workflow } from "@schema/workflow";
 
 function makeRecord(workflow: Workflow): WorkflowRecord {
   return {
     id: workflow.id,
-    file: `.observatory/workflows/${workflow.id}.json`,
+    file: `.hq/workflows/${workflow.id}.json`,
     workflow,
     modifiedAt: new Date().toISOString(),
     state: "valid",
@@ -14,11 +14,11 @@ function makeRecord(workflow: Workflow): WorkflowRecord {
   };
 }
 
-function makeSnapshot(workflows: Workflow[]): ObservatorySnapshot {
+function makeSnapshot(workflows: Workflow[]): HQSnapshot {
   return {
     generatedAt: new Date().toISOString(),
     status: "ready",
-    repository: { name: "demo", root: "/demo", observatoryDir: "/demo/.observatory" },
+    repository: { name: "demo", root: "/demo", hqDir: "/demo/.hq" },
     project: null,
     workflows: workflows.map(makeRecord),
     diagnostics: { generatedAt: new Date().toISOString(), valid: true, issues: [] },

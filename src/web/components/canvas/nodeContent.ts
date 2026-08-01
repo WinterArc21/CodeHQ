@@ -6,7 +6,7 @@
  */
 import type { DataReference, SourceReference, WorkflowStep } from "@schema/workflow";
 import type { SourceStatus } from "../../api/types";
-import type { Depth } from "../../store/useObservatoryStore";
+import type { Depth } from "../../store/useHQStore";
 
 /** Fixed node width across every depth — only height grows with content (contract §10/§11).
  * Wider than the original 300/340px: the spine layout (see layout.ts) no longer needs dagre's

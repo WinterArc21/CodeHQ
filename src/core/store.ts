@@ -7,12 +7,12 @@
 import type { Issue } from "@schema/diagnostics";
 import type { Workflow } from "@schema/workflow";
 import { buildDiagnostics, writeDiagnostics } from "./diagnostics";
-import { loadObservatory, type WorkflowFileOutcome } from "./load";
-import { observatoryPaths, repositoryName, type ObservatoryPaths } from "./repository";
+import { loadHQ, type WorkflowFileOutcome } from "./load";
+import { hqPaths, repositoryName, type HQPaths } from "./repository";
 import { toRepoRelativePosix } from "./fs-utils";
-import type { ObservatorySnapshot, WorkflowRecord } from "./types";
+import type { HQSnapshot, WorkflowRecord } from "./types";
 import type { SourceStatus } from "./source-check";
-import { watchObservatory, type ObservatoryWatcher } from "./watcher";
+import { watchHQ, type HQWatcher } from "./watcher";
 
 interface CachedWorkflow {
   id: string;
@@ -23,19 +23,19 @@ interface CachedWorkflow {
   staleSince?: string;
 }
 
-export interface ObservatoryStore {
-  getSnapshot(): ObservatorySnapshot;
-  reload(): Promise<ObservatorySnapshot>;
-  subscribe(listener: (snapshot: ObservatorySnapshot) => void): () => void;
+export interface HQStore {
+  getSnapshot(): HQSnapshot;
+  reload(): Promise<HQSnapshot>;
+  subscribe(listener: (snapshot: HQSnapshot) => void): () => void;
   start(): void;
   stop(): Promise<void>;
 }
 
-function buildEmptySnapshot(root: string, paths: ObservatoryPaths): ObservatorySnapshot {
+function buildEmptySnapshot(root: string, paths: HQPaths): HQSnapshot {
   return {
     generatedAt: new Date().toISOString(),
     status: "uninitialized",
-    repository: { name: repositoryName(root), root, observatoryDir: paths.dir },
+    repository: { name: repositoryName(root), root, hqDir: paths.dir },
     project: null,
     workflows: [],
     diagnostics: { generatedAt: new Date().toISOString(), valid: true, issues: [] },
@@ -78,15 +78,15 @@ function toValidRecord(loaded: Extract<WorkflowFileOutcome, { status: "valid" }>
 }
 
 /** Creates a store for the repository at `root`. Call `start()` to begin watching. */
-export function createObservatoryStore(root: string): ObservatoryStore {
-  const paths = observatoryPaths(root);
+export function createHQStore(root: string): HQStore {
+  const paths = hqPaths(root);
   const cacheByFile = new Map<string, CachedWorkflow>();
-  const listeners = new Set<(snapshot: ObservatorySnapshot) => void>();
+  const listeners = new Set<(snapshot: HQSnapshot) => void>();
 
-  let snapshot: ObservatorySnapshot = buildEmptySnapshot(root, paths);
-  let watcher: ObservatoryWatcher | null = null;
+  let snapshot: HQSnapshot = buildEmptySnapshot(root, paths);
+  let watcher: HQWatcher | null = null;
   let watcherIssue: Issue | null = null;
-  let reloadInFlight: Promise<ObservatorySnapshot> | null = null;
+  let reloadInFlight: Promise<HQSnapshot> | null = null;
   let reloadQueued = false;
 
   function notify(): void {
@@ -116,8 +116,8 @@ export function createObservatoryStore(root: string): ObservatoryStore {
     return toStaleRecord(cached, staleSince);
   }
 
-  async function performReload(): Promise<ObservatorySnapshot> {
-    const result = await loadObservatory(root);
+  async function performReload(): Promise<HQSnapshot> {
+    const result = await loadHQ(root);
 
     const presentFiles = new Set(result.files.map((outcome) => outcome.file));
     for (const cachedFile of [...cacheByFile.keys()]) {
@@ -144,7 +144,7 @@ export function createObservatoryStore(root: string): ObservatoryStore {
     snapshot = {
       generatedAt: new Date().toISOString(),
       status: result.status,
-      repository: { name: repositoryName(root), root, observatoryDir: paths.dir },
+      repository: { name: repositoryName(root), root, hqDir: paths.dir },
       project: result.project,
       workflows: records,
       diagnostics,
@@ -154,7 +154,7 @@ export function createObservatoryStore(root: string): ObservatoryStore {
     return snapshot;
   }
 
-  function runGuardedReload(): Promise<ObservatorySnapshot> {
+  function runGuardedReload(): Promise<HQSnapshot> {
     if (reloadInFlight === null) {
       reloadInFlight = performReload().finally(() => {
         reloadInFlight = null;
@@ -170,12 +170,12 @@ export function createObservatoryStore(root: string): ObservatoryStore {
   }
 
   function handleWatcherError(error: Error): void {
-    process.stderr.write(`[code-observatory] file watcher error: ${error.message}\n`);
+    process.stderr.write(`[hq] file watcher error: ${error.message}\n`);
     watcherIssue = {
       severity: "warning",
       file: toRepoRelativePosix(root, paths.dir),
       message: `The file watcher reported an error: ${error.message}`,
-      hint: "Changes to .observatory may not be picked up automatically until Code Observatory is restarted.",
+      hint: "Changes to .hq may not be picked up automatically until HQ is restarted.",
     };
     void runGuardedReload();
   }
@@ -193,7 +193,7 @@ export function createObservatoryStore(root: string): ObservatoryStore {
       if (watcher !== null) {
         return;
       }
-      watcher = watchObservatory(paths.dir, {
+      watcher = watchHQ(paths.dir, {
         onChange: () => {
           void runGuardedReload();
         },

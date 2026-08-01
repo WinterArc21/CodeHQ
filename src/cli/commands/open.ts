@@ -1,5 +1,5 @@
 /**
- * `code-observatory open` — starts the server, opens a browser, and stays alive until the
+ * `hq open` — starts the server, opens a browser, and stays alive until the
  * user stops it (contract §9, product brief §D). Unlike `init`/`validate`, this command's
  * returned promise does not resolve until the server is stopped, since "open" is inherently
  * long-running; `index.ts` simply awaits it and exits with the resolved code.
@@ -10,8 +10,8 @@ import { spawn } from "node:child_process";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { pathExists } from "@core/fs-utils";
-import { observatoryPaths, repositoryName } from "@core/repository";
-import { createObservatoryServer, type ObservatoryServer } from "@server/app";
+import { hqPaths, repositoryName } from "@core/repository";
+import { createHQServer, type HQServer } from "@server/app";
 import { resolveCliRoot } from "../resolve-root";
 
 export interface OpenOptions {
@@ -75,7 +75,7 @@ function isWebBuilt(): boolean {
   return false;
 }
 
-function waitForStopSignal(server: ObservatoryServer): Promise<OpenResult> {
+function waitForStopSignal(server: HQServer): Promise<OpenResult> {
   return new Promise((resolve) => {
     let settled = false;
     const shutdown = (): void => {
@@ -98,33 +98,33 @@ function waitForStopSignal(server: ObservatoryServer): Promise<OpenResult> {
 /** Starts the server and browser, then blocks until SIGINT/SIGTERM stops it cleanly. */
 export async function runOpen(options: OpenOptions): Promise<OpenResult> {
   const root = resolveCliRoot(options.root);
-  const paths = observatoryPaths(root);
+  const paths = hqPaths(root);
   const shouldOpenBrowser = options.open ?? true;
   const requestedPort = options.port ?? DEFAULT_PORT;
 
   if (!(await pathExists(paths.dir))) {
-    console.warn(`No .observatory/ found at '${root}' — showing the uninitialized state. Run \`code-observatory init\` to scaffold it.`);
+    console.warn(`No .hq/ found at '${root}' — showing the uninitialized state. Run \`hq init\` to scaffold it.`);
   }
   if (!isWebBuilt()) {
     console.warn("dist/web has not been built yet. Run `pnpm build` (or `pnpm build:web`), then restart.");
   }
 
-  let server: ObservatoryServer;
+  let server: HQServer;
   try {
-    server = await createObservatoryServer({ root, port: requestedPort, serveWeb: true });
+    server = await createHQServer({ root, port: requestedPort, serveWeb: true });
   } catch (error) {
-    console.error(`Failed to start Code Observatory: ${error instanceof Error ? error.message : String(error)}`);
+    console.error(`Failed to start HQ: ${error instanceof Error ? error.message : String(error)}`);
     return { exitCode: 1 };
   }
 
   const displayUrl = `http://localhost:${server.port}`;
   const portNote = server.port !== requestedPort ? ` (${requestedPort} was in use)` : "";
 
-  console.log("Code Observatory is running.");
+  console.log("HQ is running.");
   console.log("");
   console.log(`Repository: ${repositoryName(root)}`);
   console.log(`URL: ${displayUrl}${portNote}`);
-  console.log("Watching: .observatory/");
+  console.log("Watching: .hq/");
 
   if (shouldOpenBrowser) {
     try {

@@ -1,12 +1,12 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { ApiError, getState } from "./client";
-import { buildObservatoryFixtureSnapshot, isObservatoryFixtureEnabled } from "./fixture";
-import type { ObservatorySnapshot } from "./types";
+import { buildHQFixtureSnapshot, isHQFixtureEnabled } from "./fixture";
+import type { HQSnapshot } from "./types";
 
 export type SnapshotStatus = "loading" | "ready" | "error" | "disconnected";
 
-export interface UseObservatorySnapshotResult {
-  snapshot: ObservatorySnapshot | null;
+export interface UseHQSnapshotResult {
+  snapshot: HQSnapshot | null;
   status: SnapshotStatus;
   error: string | null;
   /** Re-fetches `/api/state` and re-opens the SSE subscription from scratch. */
@@ -15,7 +15,7 @@ export interface UseObservatorySnapshotResult {
 
 interface SnapshotFrame {
   type: "snapshot";
-  payload: ObservatorySnapshot;
+  payload: HQSnapshot;
 }
 
 interface PingFrame {
@@ -38,12 +38,12 @@ const MAX_RECONNECT_DELAY_MS = 15_000;
  * `ping` frames are ignored, `snapshot` frames replace the current state, and a dropped
  * connection reconnects with a capped exponential backoff rather than hammering the server.
  */
-export function useObservatorySnapshot(): UseObservatorySnapshotResult {
+export function useHQSnapshot(): UseHQSnapshotResult {
   // Read once per hook instance: a lazy initializer (not an effect) sets the fixture data, so
   // the fixture path never needs to call setState from inside the effect body below.
-  const [fixtureMode] = useState(isObservatoryFixtureEnabled);
-  const [snapshot, setSnapshot] = useState<ObservatorySnapshot | null>(() =>
-    fixtureMode ? buildObservatoryFixtureSnapshot() : null,
+  const [fixtureMode] = useState(isHQFixtureEnabled);
+  const [snapshot, setSnapshot] = useState<HQSnapshot | null>(() =>
+    fixtureMode ? buildHQFixtureSnapshot() : null,
   );
   const [status, setStatus] = useState<SnapshotStatus>(() => (fixtureMode ? "ready" : "loading"));
   const [error, setError] = useState<string | null>(null);
@@ -126,7 +126,7 @@ export function useObservatorySnapshot(): UseObservatorySnapshotResult {
           return;
         }
         setStatus("error");
-        setError(caught instanceof ApiError ? caught.message : "Unable to reach the Code Observatory server.");
+        setError(caught instanceof ApiError ? caught.message : "Unable to reach the HQ server.");
       });
 
     return () => {

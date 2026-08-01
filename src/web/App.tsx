@@ -1,20 +1,20 @@
 import { useEffect } from "react";
 import { deleteWorkflow, recheck } from "./api/client";
-import { useObservatorySnapshot } from "./api/events";
-import { AppShell, TopBar, type ObservatoryStatus } from "./components/shell";
+import { useHQSnapshot } from "./api/events";
+import { AppShell, TopBar, type HQStatus } from "./components/shell";
 import { WorkflowNavigator } from "./components/navigator";
 import { EmptyState, ErrorState, LoadingState, UninitializedState } from "./components/states";
 import { DiagnosticsBanner, DiagnosticsPanel } from "./components/diagnostics";
 import { WorkflowCanvas } from "./components/canvas";
 import { StepDrawer } from "./components/drawer";
 import { CommandPalette } from "./components/search";
-import { useObservatoryStore } from "./store/useObservatoryStore";
+import { useHQStore } from "./store/useHQStore";
 
 function computeConnectionStatus(
   diagnosticsValid: boolean,
   hasStaleWorkflow: boolean,
   hookStatus: "loading" | "ready" | "error" | "disconnected",
-): ObservatoryStatus {
+): HQStatus {
   if (!diagnosticsValid) {
     return "invalid";
   }
@@ -25,16 +25,16 @@ function computeConnectionStatus(
 }
 
 export function App() {
-  const { snapshot, status, error, refetch } = useObservatorySnapshot();
+  const { snapshot, status, error, refetch } = useHQSnapshot();
 
-  const selectedWorkflowId = useObservatoryStore((state) => state.selectedWorkflowId);
-  const selectWorkflow = useObservatoryStore((state) => state.selectWorkflow);
-  const selectedStepId = useObservatoryStore((state) => state.selectedStepId);
-  const selectStep = useObservatoryStore((state) => state.selectStep);
-  const openSearch = useObservatoryStore((state) => state.openSearch);
-  const diagnosticsOpen = useObservatoryStore((state) => state.diagnosticsOpen);
-  const toggleDiagnostics = useObservatoryStore((state) => state.toggleDiagnostics);
-  const closeDiagnostics = useObservatoryStore((state) => state.closeDiagnostics);
+  const selectedWorkflowId = useHQStore((state) => state.selectedWorkflowId);
+  const selectWorkflow = useHQStore((state) => state.selectWorkflow);
+  const selectedStepId = useHQStore((state) => state.selectedStepId);
+  const selectStep = useHQStore((state) => state.selectStep);
+  const openSearch = useHQStore((state) => state.openSearch);
+  const diagnosticsOpen = useHQStore((state) => state.diagnosticsOpen);
+  const toggleDiagnostics = useHQStore((state) => state.toggleDiagnostics);
+  const closeDiagnostics = useHQStore((state) => state.closeDiagnostics);
 
   useEffect(() => {
     if (snapshot === null) {
@@ -51,7 +51,7 @@ export function App() {
 
   if (snapshot === null) {
     if (status === "error") {
-      return <ErrorState message={error ?? "Unable to reach the Code Observatory server."} onRetry={refetch} />;
+      return <ErrorState message={error ?? "Unable to reach the HQ server."} onRetry={refetch} />;
     }
     return <LoadingState />;
   }

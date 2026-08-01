@@ -8,15 +8,15 @@ import path from "node:path";
 import { expect, test } from "@playwright/test";
 import { createEmptyTempDir, createTempFixtureCopy, removeTempDir } from "./helpers/fixture";
 import { PORTS } from "./helpers/paths";
-import { startObservatoryServer, type ManagedServer } from "./helpers/server";
+import { startHQServer, type ManagedServer } from "./helpers/server";
 
-test.describe("no .observatory directory at all", () => {
+test.describe("no .hq directory at all", () => {
   let root: string;
   let server: ManagedServer;
 
   test.beforeAll(async () => {
     root = await createEmptyTempDir("uninitialized");
-    server = await startObservatoryServer(root, PORTS.uninitialized);
+    server = await startHQServer(root, PORTS.uninitialized);
   });
 
   test.afterAll(async () => {
@@ -26,8 +26,8 @@ test.describe("no .observatory directory at all", () => {
 
   test("renders the uninitialized state with the init command", async ({ page }) => {
     await page.goto(server.url);
-    await expect(page.getByText("Code Observatory isn't set up in this repository yet")).toBeVisible();
-    await expect(page.locator("code").filter({ hasText: "npx code-observatory init" })).toBeVisible();
+    await expect(page.getByText("HQ isn't set up in this repository yet")).toBeVisible();
+    await expect(page.locator("code").filter({ hasText: "npx hq init" })).toBeVisible();
   });
 });
 
@@ -37,9 +37,9 @@ test.describe("initialized but no workflow files", () => {
 
   test.beforeAll(async () => {
     root = await createTempFixtureCopy("empty");
-    await fsp.rm(path.join(root, ".observatory", "workflows", "generate-video.json"), { force: true });
-    await fsp.rm(path.join(root, ".observatory", "workflows", "upload-assets.json"), { force: true });
-    server = await startObservatoryServer(root, PORTS.empty);
+    await fsp.rm(path.join(root, ".hq", "workflows", "generate-video.json"), { force: true });
+    await fsp.rm(path.join(root, ".hq", "workflows", "upload-assets.json"), { force: true });
+    server = await startHQServer(root, PORTS.empty);
   });
 
   test.afterAll(async () => {

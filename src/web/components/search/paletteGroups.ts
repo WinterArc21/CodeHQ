@@ -1,4 +1,4 @@
-import type { ObservatorySnapshot } from "../../api/types";
+import type { HQSnapshot } from "../../api/types";
 import type { PaletteAction } from "./paletteActions";
 import { defaultResults, groupResults, search, type SearchResult } from "./searchIndex";
 
@@ -31,7 +31,7 @@ function resultToRow(result: SearchResult, onActivate: (result: SearchResult) =>
  */
 export function buildPaletteGroups(
   query: string,
-  snapshot: ObservatorySnapshot,
+  snapshot: HQSnapshot,
   actions: PaletteAction[],
   onActivateResult: (result: SearchResult) => void,
 ): PaletteGroup[] {

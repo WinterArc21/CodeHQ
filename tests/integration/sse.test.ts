@@ -2,10 +2,10 @@ import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import path from "node:path";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
-import { createObservatoryServer, type ObservatoryServer } from "@server/app";
+import { createHQServer, type HQServer } from "@server/app";
 
 let root: string;
-let server: ObservatoryServer | null = null;
+let server: HQServer | null = null;
 
 function validWorkflowJson(name: string): string {
   return JSON.stringify({
@@ -19,14 +19,14 @@ function validWorkflowJson(name: string): string {
 }
 
 beforeEach(async () => {
-  root = mkdtempSync(path.join(tmpdir(), "observatory-sse-"));
-  mkdirSync(path.join(root, ".observatory", "workflows"), { recursive: true });
+  root = mkdtempSync(path.join(tmpdir(), "hq-sse-"));
+  mkdirSync(path.join(root, ".hq", "workflows"), { recursive: true });
   writeFileSync(
-    path.join(root, ".observatory", "project.json"),
+    path.join(root, ".hq", "project.json"),
     JSON.stringify({ schemaVersion: "0.1", project: { id: "test", name: "Test" } }),
   );
-  writeFileSync(path.join(root, ".observatory", "workflows", "wf.json"), validWorkflowJson("Original Name"));
-  server = await createObservatoryServer({ root, port: 0, serveWeb: false });
+  writeFileSync(path.join(root, ".hq", "workflows", "wf.json"), validWorkflowJson("Original Name"));
+  server = await createHQServer({ root, port: 0, serveWeb: false });
 });
 
 afterEach(async () => {
@@ -106,7 +106,7 @@ describe("GET /api/events", () => {
     // handles; writing before that would race a well-known filesystem-watcher testing
     // gotcha. The frame read below still uses bounded polling for the real outcome.
     await new Promise((resolve) => setTimeout(resolve, 400));
-    writeFileSync(path.join(root, ".observatory", "workflows", "wf.json"), validWorkflowJson("Updated Name"));
+    writeFileSync(path.join(root, ".hq", "workflows", "wf.json"), validWorkflowJson("Updated Name"));
 
     const updated = await frames.nextSnapshot(8000);
     expect(updated.payload?.workflows?.[0]?.workflow.name).toBe("Updated Name");

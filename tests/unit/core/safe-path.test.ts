@@ -9,7 +9,7 @@ let siblingDir: string;
 let canSymlink = false;
 
 beforeAll(() => {
-  root = mkdtempSync(path.join(tmpdir(), "observatory-safe-path-"));
+  root = mkdtempSync(path.join(tmpdir(), "hq-safe-path-"));
   mkdirSync(path.join(root, "src"), { recursive: true });
   mkdirSync(path.join(root, "a", "b"), { recursive: true });
   writeFileSync(path.join(root, "src", "index.ts"), "export {};\n");

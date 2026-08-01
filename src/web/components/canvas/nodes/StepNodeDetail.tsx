@@ -1,5 +1,5 @@
 import type { WorkflowStep } from "@schema/workflow";
-import type { Depth } from "../../../store/useObservatoryStore";
+import type { Depth } from "../../../store/useHQStore";
 import { useExportMode } from "../../../export-viewer/ExportModeContext";
 import { MAX_MODULE_ROWS, MAX_SYMBOL_ROWS, splitPath, stepModuleFiles, stepSymbolRows } from "../nodeContent";
 import styles from "./StepNode.module.css";

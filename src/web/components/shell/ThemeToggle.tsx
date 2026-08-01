@@ -1,12 +1,12 @@
 import { Moon, Sun } from "@phosphor-icons/react";
 import { useEffect } from "react";
 import { IconButton } from "../primitives";
-import { useObservatoryStore } from "../../store/useObservatoryStore";
+import { useHQStore } from "../../store/useHQStore";
 
 /** Keeps `document.documentElement[data-theme]` in sync with the store's `theme`. */
 export function ThemeToggle() {
-  const theme = useObservatoryStore((state) => state.theme);
-  const setTheme = useObservatoryStore((state) => state.setTheme);
+  const theme = useHQStore((state) => state.theme);
+  const setTheme = useHQStore((state) => state.setTheme);
 
   useEffect(() => {
     document.documentElement.setAttribute("data-theme", theme);

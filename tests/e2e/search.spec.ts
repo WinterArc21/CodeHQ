@@ -12,7 +12,7 @@ test("Ctrl+K opens the palette, typing filters results, and Enter opens the matc
   page,
 }) => {
   await page.keyboard.press("Control+k");
-  const dialog = page.getByRole("dialog", { name: "Search Code Observatory" });
+  const dialog = page.getByRole("dialog", { name: "Search HQ" });
   await expect(dialog).toBeVisible();
 
   const input = dialog.getByRole("combobox");
@@ -50,7 +50,7 @@ test("Ctrl+K opens the palette, typing filters results, and Enter opens the matc
 
 test("Escape dismisses the palette, including when opened after the initial page load", async ({ page }) => {
   await page.keyboard.press("Control+k");
-  const dialog = page.getByRole("dialog", { name: "Search Code Observatory" });
+  const dialog = page.getByRole("dialog", { name: "Search HQ" });
   await expect(dialog).toBeVisible();
 
   await page.keyboard.press("Escape");
@@ -67,7 +67,7 @@ test("Escape dismisses the palette, including when opened after the initial page
 
 test("clicking outside the palette dismisses it, but clicking inside does not", async ({ page }) => {
   await page.keyboard.press("Control+k");
-  const dialog = page.getByRole("dialog", { name: "Search Code Observatory" });
+  const dialog = page.getByRole("dialog", { name: "Search HQ" });
   await expect(dialog).toBeVisible();
 
   // Click inside the dialog (on its own chrome, not a result row) must not close it.

@@ -15,6 +15,6 @@ export interface ExportPayload {
   workflowId: string;
   /** ISO timestamp of when the export was generated. */
   exportedAt: string;
-  /** Repository display name only — never the root path or observatory directory. */
+  /** Repository display name only — never the root path or hq directory. */
   repositoryName: string;
 }

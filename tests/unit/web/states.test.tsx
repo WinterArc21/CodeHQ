@@ -58,7 +58,7 @@ describe("EmptyState", () => {
 describe("UninitializedState", () => {
   it("renders the exact init command", () => {
     render(<UninitializedState />);
-    expect(screen.getByText("npx code-observatory init")).toBeInTheDocument();
+    expect(screen.getByText("npx hq init")).toBeInTheDocument();
   });
 
   it("renders a copy control for the command", () => {
