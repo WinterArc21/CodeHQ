@@ -166,6 +166,7 @@ export function buildFlowEdges(
     const isRetryLoop = backEdgeIds.has(edge.id) && edge.source === edge.target;
     const sourceNode = nodeById.get(edge.source);
     const dimmed = traceEdgeIds !== null && !traceEdgeIds.has(edge.id);
+    const traced = traceEdgeIds !== null && !dimmed;
 
     return {
       id: edge.id,
@@ -176,6 +177,7 @@ export function buildFlowEdges(
       data: {
         connection: edge.connection,
         dimmed,
+        traced,
         ...(route !== undefined ? { route } : {}),
         ...(isRetryLoop && sourceNode !== undefined
           ? { retryLoop: { x: sourceNode.x, y: sourceNode.y, width: sourceNode.width, height: sourceNode.height } }

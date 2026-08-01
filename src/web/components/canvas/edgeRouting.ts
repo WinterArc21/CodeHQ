@@ -317,8 +317,11 @@ export function buildOrthogonalPath(rawPoints: Point[], radius: number): string 
   return d;
 }
 
-/** How far right of the node's own edge the retry loop bulges out. */
-const RETRY_LOOP_OUTSET = 46;
+/** How far right of the node's own edge the retry loop bulges out. Sized to read as a
+ * meaningful loop rather than card-border noise: a 46px outset sat so close to the node's own
+ * right border that the curl merged with it at fit-view zoom. ~80 keeps the loop's outer curve
+ * clear of the card edge while still leaving the label legible on that outer curve. */
+const RETRY_LOOP_OUTSET = 80;
 /** How far below the node's top edge the loop re-enters — kept well clear of the header row
  * (`StepNode.module.css`'s 24px `.header`) so the arrowhead doesn't land on top of the title. */
 const RETRY_LOOP_TOP_INSET = 20;

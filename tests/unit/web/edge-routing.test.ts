@@ -383,6 +383,20 @@ describe("buildRetryLoopPath", () => {
     expect(loop.labelPoint.x).toBeLessThan(rect.x + rect.width + 100);
   });
 
+  it("bulges out far enough to read as a meaningful loop, not card-border noise", () => {
+    // A ~80px outset keeps the curl clear of the node's own right border at fit-view zoom; the
+    // previous 46px outset merged with that border. The control points carry the bulge x; the
+    // label sits just inside them on the outer curve.
+    const loop = buildRetryLoopPath(rect);
+    const rightX = rect.x + rect.width;
+    const match = /^M[\d.]+,[\d.]+ C([\d.]+),[\d.]+ ([\d.]+),[\d.]+ [\d.]+,[\d.]+$/.exec(loop.d);
+    expect(match).not.toBeNull();
+    const [, c1X, c2X] = match!;
+    expect(Number(c1X)).toBe(rightX + 80);
+    expect(Number(c2X)).toBe(rightX + 80);
+    expect(loop.labelPoint.x).toBe(rightX + 78);
+  });
+
   it("re-enters above where it departs, so the loop reads as a compact upward curl", () => {
     const loop = buildRetryLoopPath(rect);
     const match = /^M[\d.]+,([\d.]+) C[\d.]+,[\d.]+ [\d.]+,[\d.]+ [\d.]+,([\d.]+)$/.exec(loop.d);

@@ -1,6 +1,6 @@
 import type { CSSProperties } from "react";
 import { BaseEdge, EdgeLabelRenderer, getSmoothStepPath, type EdgeProps } from "@xyflow/react";
-import { connectionStyle, RETRY_EDGE_VISUAL, type ConnectionVisual } from "../../../design/semantics";
+import { connectionStyle, RETRY_EDGE_VISUAL } from "../../../design/semantics";
 import { connectionLabelText, LABEL_X_BLEND_TOWARD_TARGET, LABEL_Y_OFFSET_FROM_SOURCE } from "../edgeLabel";
 import { buildOrthogonalPath, buildRetryLoopPath, SIDECAR_CORNER_RADIUS } from "../edgeRouting";
 import type { WorkflowFlowEdge } from "../types";
@@ -11,21 +11,44 @@ import styles from "./WorkflowEdge.module.css";
  * top-to-bottom layout without the sharp right angles of a plain step path. */
 const EDGE_BORDER_RADIUS = 10;
 
+/** Stroke width per connection type (contract §10.3 / edge-grammar table: normal sync flow is
+ * "solid, strongest weight"; every branch — conditional, failure, async, retry — reads as clearly
+ * subordinate but still legible, never invisible). Keyed by the same discriminator the marker
+ * uses (`markerVariant`: the connection `type`, or `"retry"` for a self-loop), so the line and its
+ * arrowhead always share one grammar entry. Async reads slightly heavier than the other branches
+ * because its rounded-bead dashing otherwise thins the perceived line. */
+function edgeStrokeWidth(variant: string): number {
+  switch (variant) {
+    case "success":
+      return 2.5;
+    case "async":
+      return 2.25;
+    case "failure":
+    case "conditional":
+    case "retry":
+      return 2;
+    default:
+      return 2.5;
+  }
+}
+
 const DASH_PATTERNS: Record<"dashed" | "dotted", string> = {
-  dashed: "6 4",
-  dotted: "1.5 4",
+  dashed: "7 5",
+  dotted: "1 5",
 };
 
-/** Stroke width per weight (contract §10.3 / edge-grammar table: normal sync flow is "solid,
- * strongest weight"; every branch — conditional, failure, async, retry — reads as clearly
- * subordinate but still legible, never invisible). */
-const STROKE_WIDTH: Record<ConnectionVisual["weight"], number> = {
-  primary: 2.25,
-  branch: 1.25,
-};
-/** Opacity applied on top of a dimmed edge's own weight-based opacity (contract §11 path
- * tracing) — multiplicative, so a dimmed branch edge (already 0.85) still reads as visibly
- * fainter than a dimmed primary edge, preserving the same relative hierarchy while both fade. */
+/** How much wider than the semantic stroke the background-coloured casing/halo paints — a solid
+ * underlay that carves the dashed line clear of the canvas grid and neighbouring card borders
+ * without introducing a neon outline. The halo follows the same path shape (dashes are preserved
+ * on the semantic stroke on top); only its width grows. */
+const HALO_WIDTH_PADDING = 3;
+/** How much a traced edge's stroke grows when path tracing is active (contract §11): tracing must
+ * not only dim unrelated paths, it must also strengthen the path the user is following, so the
+ * traced line reads as the figure rather than merely the ground. Kept under the next weight tier
+ * so hierarchy is reinforced, not flattened. */
+const TRACED_STROKE_BOOST = 0.6;
+/** Opacity applied to a dimmed edge during path tracing (contract §11) — a dimmed edge fades to a
+ * quiet background tone while traced edges strengthen, so the followed path reads as the figure. */
 const DIMMED_OPACITY_FACTOR = 0.3;
 
 /**
@@ -47,7 +70,7 @@ export function WorkflowEdge({ id, data, source, target, sourceX, sourceY, sourc
     return null;
   }
 
-  const { connection, route, retryLoop, dimmed } = data;
+  const { connection, route, retryLoop, dimmed, traced } = data;
   const isRetryLoop = retryLoop !== undefined;
   const visual = isRetryLoop ? RETRY_EDGE_VISUAL : connectionStyle(connection.type);
   const markerVariant = isRetryLoop ? "retry" : connection.type;
@@ -70,16 +93,38 @@ export function WorkflowEdge({ id, data, source, target, sourceX, sourceY, sourc
     labelY = sourceY + LABEL_Y_OFFSET_FROM_SOURCE;
   }
 
-  const baseOpacity = visual.weight === "branch" ? 0.85 : 1;
+  const baseStrokeWidth = edgeStrokeWidth(markerVariant ?? "success");
+  const strokeWidth = baseStrokeWidth + (traced ? TRACED_STROKE_BOOST : 0);
+  const opacity = dimmed ? DIMMED_OPACITY_FACTOR : 1;
+  const edgeTransition = "opacity var(--dur-fast) var(--ease-standard), stroke-width var(--dur-fast) var(--ease-standard)";
   const edgeStyle: CSSProperties = {
     stroke: `var(${visual.varName})`,
-    strokeWidth: STROKE_WIDTH[visual.weight],
-    opacity: dimmed ? baseOpacity * DIMMED_OPACITY_FACTOR : baseOpacity,
-    transition: "opacity var(--dur-fast) var(--ease-standard)",
+    strokeWidth,
+    opacity,
+    transition: edgeTransition,
   };
-  if (visual.dash !== "none") {
-    edgeStyle.strokeDasharray = DASH_PATTERNS[visual.dash];
+  if (visual.dash === "dotted") {
+    // Async reads as rounded beads: a 1-unit dash with round line-caps becomes a dot whose
+    // diameter is the stroke width, spaced every 5 units — a continuous-looking bead chain
+    // rather than the brittle pixel stipple a butt-capped "1 5" would render.
+    edgeStyle.strokeDasharray = DASH_PATTERNS.dotted;
+    edgeStyle.strokeLinecap = "round";
+  } else if (visual.dash === "dashed") {
+    edgeStyle.strokeDasharray = DASH_PATTERNS.dashed;
   }
+
+  // The casing/halo: a solid background-coloured underlay ~3px wider than the semantic stroke,
+  // painted beneath the dashed line so dashes and shape are preserved on top. It separates the
+  // edge from the canvas grid and card borders without a neon outline. It carries the same
+  // opacity/transition as the semantic stroke so a dimmed edge's halo fades with it, and it never
+  // captures pointer events (edges are not interactive; nodes drive path tracing).
+  const haloStyle: CSSProperties = {
+    stroke: "var(--bg-canvas)",
+    strokeWidth: strokeWidth + HALO_WIDTH_PADDING,
+    opacity,
+    transition: edgeTransition,
+    pointerEvents: "none",
+  };
 
   const labelText = isRetryLoop ? (connectionLabelText(connection) ?? "retry") : connectionLabelText(connection);
   const showLabel = labelText !== undefined;
@@ -87,6 +132,7 @@ export function WorkflowEdge({ id, data, source, target, sourceX, sourceY, sourc
   return (
     <>
       <g data-workflow-edge={id} data-edge-source={source} data-edge-target={target}>
+        <path d={path} fill="none" style={haloStyle} />
         <BaseEdge path={path} markerEnd={`url(#${edgeMarkerId(markerVariant)})`} style={edgeStyle} />
       </g>
       {showLabel ? (

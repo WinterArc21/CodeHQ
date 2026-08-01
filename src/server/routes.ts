@@ -3,12 +3,14 @@
  */
 
 import path from "node:path";
+import { fileURLToPath } from "node:url";
 import type { FastifyInstance } from "fastify";
 import { z } from "zod";
 import { pathExists } from "@core/fs-utils";
-import { observatoryPaths } from "@core/repository";
+import { observatoryPaths, repositoryName } from "@core/repository";
 import { resolveInsideRepository } from "@core/safe-path";
 import type { ObservatoryStore } from "@core/store";
+import { buildExportHtml, buildContentDisposition, sanitizeExportPayload } from "./export";
 import { defaultRevealImpl, type RevealImpl } from "./reveal";
 
 export interface RouteContext {
@@ -89,6 +91,67 @@ function registerRevealRoute(app: FastifyInstance, root: string, revealImpl: Rev
   });
 }
 
+function resolveExportViewerDir(): string {
+  const currentDir = path.dirname(fileURLToPath(import.meta.url));
+  return path.resolve(currentDir, "..", "..", "dist", "export-viewer");
+}
+
+interface ExportViewerAssets {
+  js: string;
+  css: string;
+}
+
+let cachedExportViewerAssets: ExportViewerAssets | null = null;
+
+async function loadExportViewerAssets(): Promise<ExportViewerAssets> {
+  if (cachedExportViewerAssets !== null) {
+    return cachedExportViewerAssets;
+  }
+  const { readFile } = await import("node:fs/promises");
+  const dir = resolveExportViewerDir();
+  const jsPath = path.join(dir, "export-viewer.js");
+  const cssPath = path.join(dir, "export-viewer.css");
+  const hasJs = await pathExists(jsPath);
+  const hasCss = await pathExists(cssPath);
+  if (!hasJs || !hasCss) {
+    throw new Error(
+      "Export viewer assets not found. Run `pnpm build:export` (or `pnpm build`) to generate dist/export-viewer/.",
+    );
+  }
+  const [js, css] = await Promise.all([readFile(jsPath, "utf-8"), readFile(cssPath, "utf-8")]);
+  cachedExportViewerAssets = { js, css };
+  return cachedExportViewerAssets;
+}
+
+function registerExportRoute(app: FastifyInstance, root: string, store: ObservatoryStore): void {
+  app.get<{ Params: { id: string } }>("/api/export/:id", async (request, reply) => {
+    const record = store.getSnapshot().workflows.find((workflow) => workflow.id === request.params.id);
+    if (record === undefined) {
+      await reply.code(404).send({ error: `No workflow with id '${request.params.id}'.` });
+      return;
+    }
+
+    let assets: ExportViewerAssets;
+    try {
+      assets = await loadExportViewerAssets();
+    } catch (error) {
+      await reply.code(503).send({
+        error: error instanceof Error ? error.message : String(error),
+      });
+      return;
+    }
+
+    const repoName = repositoryName(root);
+    const payload = sanitizeExportPayload(record, repoName);
+    const html = buildExportHtml({ payload, viewerJs: assets.js, viewerCss: assets.css });
+
+    await reply
+      .type("text/html; charset=utf-8")
+      .header("Content-Disposition", buildContentDisposition(payload.workflowName))
+      .send(html);
+  });
+}
+
 /** Registers every `/api/*` route except `/api/events` (SSE lives in `events.ts`). */
 export function registerRoutes(app: FastifyInstance, context: RouteContext): void {
   const { root, store } = context;
@@ -125,6 +188,8 @@ export function registerRoutes(app: FastifyInstance, context: RouteContext): voi
     const snapshot = await store.reload();
     await reply.send(snapshot);
   });
+
+  registerExportRoute(app, root, store);
 
   registerRevealRoute(app, root, revealImpl);
 }

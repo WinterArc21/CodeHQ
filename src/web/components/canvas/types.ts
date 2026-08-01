@@ -66,6 +66,11 @@ export interface WorkflowEdgeData extends Record<string, unknown> {
   /** Path tracing: true whenever a trace is active and this edge is not part of the anchor's
    * upstream/downstream path. */
   dimmed: boolean;
+  /** Path tracing: true whenever a trace is active and this edge IS part of the anchor's
+   * upstream/downstream path. Distinct from `!dimmed` (which is also true when no trace is
+   * active at all) so the renderer can strengthen the followed path only while tracing, never
+   * on the resting graph. */
+  traced: boolean;
 }
 
 export type WorkflowFlowEdge = Edge<WorkflowEdgeData, "workflow">;
