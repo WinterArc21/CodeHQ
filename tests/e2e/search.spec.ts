@@ -18,8 +18,8 @@ test("Ctrl+K opens the palette, typing filters results, and Enter opens the matc
   const input = dialog.getByRole("combobox");
   await expect(input).toBeFocused();
 
-  // Empty query: the default listing is every workflow (2) plus the fixed action list (3).
-  await expect(dialog.getByRole("option")).toHaveCount(5);
+  // Empty query: the default listing is every workflow (2) plus the fixed action list (2).
+  await expect(dialog.getByRole("option")).toHaveCount(4);
   await expect(dialog.getByRole("option").filter({ hasText: "Generate Video Prompt" })).toBeVisible();
   await expect(dialog.getByRole("option").filter({ hasText: "Upload Reference Asset" })).toBeVisible();
 

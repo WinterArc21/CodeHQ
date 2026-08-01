@@ -2,9 +2,9 @@
  * THE CORE PRODUCT PROMISE: edits to a workflow file on disk are reflected on the board over
  * SSE, with no `page.reload()` anywhere in this file.
  *
- * Isolation: owns port 4501 (helpers/paths.ts PORTS.liveUpdate) and a private temp copy of
- * examples/motiona created fresh in `beforeAll` and removed in `afterAll` — never the
- * committed fixture, so other specs' parallel workers never collide with this one.
+ * Isolation: owns port 4501 (helpers/paths.ts PORTS.liveUpdate) and uses a private temp copy of
+ * examples/motiona for every test. This file runs serially because its tests intentionally share
+ * that one port; other spec files still run in parallel on their own dedicated ports.
  */
 import { promises as fsp } from "node:fs";
 import path from "node:path";
@@ -21,6 +21,11 @@ interface MinimalWorkflowFile {
 
 let root: string;
 let server: ManagedServer;
+
+// Every test owns a fresh fixture, but this spec intentionally shares one dedicated port.
+// Override the suite-wide fullyParallel setting so concurrent workers cannot attach to the
+// wrong test's server.
+test.describe.configure({ mode: "serial" });
 
 test.beforeEach(async () => {
   root = await createTempFixtureCopy("live-update");
