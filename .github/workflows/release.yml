@@ -1,25 +1,22 @@
-name: Release package
+name: Publish release
 
 on:
+  push:
+    branches:
+      - main
+    paths:
+      - package.json
   workflow_dispatch:
-    inputs:
-      bump:
-        description: "Version increase for this release"
-        required: true
-        default: current
-        type: choice
-        options:
-          - current
-          - patch
-          - minor
-          - major
 
-# `contents: write` creates the version commit, tag, and GitHub Release.
-# `id-token: write` lets npm's Trusted Publisher authenticate without a saved
-# npm write token.
+# Keep this filename stable: npm Trusted Publishing identifies this workflow
+# when exchanging GitHub's OIDC token for publish access.
 permissions:
   contents: write
   id-token: write
+
+concurrency:
+  group: publish-code-observatory
+  cancel-in-progress: false
 
 jobs:
   release:
@@ -45,33 +42,61 @@ jobs:
           registry-url: https://registry.npmjs.org
           cache: pnpm
 
-      - name: Install dependencies
-        run: pnpm install --frozen-lockfile
-
-      - name: Set the release version
-        env:
-          BUMP: ${{ inputs.bump }}
-        run: |
-          if [ "$BUMP" != "current" ]; then
-            npm version "$BUMP" --no-git-tag-version --ignore-scripts
-          fi
-
       - name: Read the release version
         id: version
         run: |
           version=$(node -p "require('./package.json').version")
           echo "value=$version" >> "$GITHUB_OUTPUT"
 
-      - name: Check that this version has not already been published
+      - name: Inspect release state
+        id: state
         env:
-          PACKAGE_VERSION: ${{ steps.version.outputs.value }}
+          GH_TOKEN: ${{ github.token }}
+          VERSION: ${{ steps.version.outputs.value }}
         run: |
-          if npm view "hq@$PACKAGE_VERSION" version >/dev/null 2>&1; then
-            echo "hq@$PACKAGE_VERSION already exists on npm."
+          published=false
+          tagged=false
+          released=false
+
+          if npm view "code-observatory@$VERSION" version >/dev/null 2>&1; then
+            published=true
+          fi
+          if git ls-remote --exit-code --tags origin "refs/tags/v$VERSION" >/dev/null 2>&1; then
+            tagged=true
+          fi
+          if gh release view "v$VERSION" >/dev/null 2>&1; then
+            released=true
+          fi
+
+          needed=true
+          if [ "$published" = "true" ] && [ "$tagged" = "true" ] && [ "$released" = "true" ]; then
+            needed=false
+            echo "v$VERSION is already fully released; nothing to do."
+          fi
+
+          echo "published=$published" >> "$GITHUB_OUTPUT"
+          echo "tagged=$tagged" >> "$GITHUB_OUTPUT"
+          echo "released=$released" >> "$GITHUB_OUTPUT"
+          echo "needed=$needed" >> "$GITHUB_OUTPUT"
+
+      - name: Validate an existing partial-release tag
+        if: steps.state.outputs.needed == 'true' && steps.state.outputs.tagged == 'true'
+        env:
+          VERSION: ${{ steps.version.outputs.value }}
+        run: |
+          git fetch origin "refs/tags/v$VERSION:refs/tags/v$VERSION"
+          tagged_commit=$(git rev-list -n 1 "v$VERSION")
+          if [ "$tagged_commit" != "$GITHUB_SHA" ]; then
+            echo "v$VERSION points to $tagged_commit, not this main commit ($GITHUB_SHA)."
             exit 1
           fi
 
+      - name: Install dependencies
+        if: steps.state.outputs.needed == 'true'
+        run: pnpm install --frozen-lockfile
+
       - name: Run release checks
+        if: steps.state.outputs.needed == 'true'
         run: |
           pnpm run typecheck
           pnpm run lint
@@ -81,25 +106,22 @@ jobs:
           pnpm run test:e2e
 
       - name: Publish to npm
+        if: steps.state.outputs.needed == 'true' && steps.state.outputs.published != 'true'
         run: npm publish
 
-      - name: Commit and tag the release
+      - name: Create and push tag
+        if: steps.state.outputs.needed == 'true' && steps.state.outputs.tagged != 'true'
         env:
           VERSION: ${{ steps.version.outputs.value }}
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add -- package.json
-          if git diff --cached --quiet; then
-            echo "Using the version already present on main."
-          else
-            git commit -m "chore(release): v$VERSION"
-          fi
           git tag -a "v$VERSION" -m "v$VERSION"
-          git push origin HEAD:main --follow-tags
+          git push origin "refs/tags/v$VERSION"
 
       - name: Create GitHub Release
+        if: steps.state.outputs.needed == 'true' && steps.state.outputs.released != 'true'
         env:
           GH_TOKEN: ${{ github.token }}
           VERSION: ${{ steps.version.outputs.value }}
-        run: gh release create "v$VERSION" --title "v$VERSION" --generate-notes
+        run: gh release create "v$VERSION" --target "$GITHUB_SHA" --title "v$VERSION" --generate-notes

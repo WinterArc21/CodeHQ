@@ -20,6 +20,17 @@ pnpm test
 
 Direct pushes to `main` and `dev` are blocked. Maintainers merge via pull request.
 
+## Releasing (maintainers)
+
+1. Merge the release-ready changes into `main`.
+2. Run the **Prepare release** workflow on `main` and choose `patch`, `minor`, or `major`.
+3. Review the generated `Release vX.Y.Z` pull request and merge it after CI passes.
+4. The **Publish release** workflow then validates `main`, publishes the package to npm,
+   creates the matching Git tag, and creates the GitHub Release.
+
+The publish workflow is safe to rerun. If npm publishing succeeded but tagging or the GitHub
+Release did not, a rerun skips the completed work and finishes the missing steps.
+
 ## Project conventions
 
 - **No LLM inside the product.** HQ renders agent-authored `.hq` files; it never uploads repository code.
