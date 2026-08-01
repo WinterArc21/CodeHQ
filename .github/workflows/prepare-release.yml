@@ -1,0 +1,98 @@
+name: Prepare release
+
+on:
+  workflow_dispatch:
+    inputs:
+      bump:
+        description: Version increase for this release
+        required: true
+        default: patch
+        type: choice
+        options:
+          - patch
+          - minor
+          - major
+
+permissions:
+  actions: write
+  contents: write
+  pull-requests: write
+
+concurrency:
+  group: prepare-code-observatory-release
+  cancel-in-progress: false
+
+jobs:
+  prepare:
+    name: Open version pull request
+    runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/main'
+
+    steps:
+      - name: Check out main
+        uses: actions/checkout@v6
+        with:
+          ref: main
+          fetch-depth: 0
+
+      - name: Set up Node
+        uses: actions/setup-node@v6
+        with:
+          node-version: 24
+          registry-url: https://registry.npmjs.org
+
+      - name: Set release version
+        id: version
+        env:
+          BUMP: ${{ inputs.bump }}
+        run: |
+          current=$(node -p "require('./package.json').version")
+          if ! npm view "code-observatory@$current" version >/dev/null 2>&1; then
+            echo "Current version $current is not published. Run Publish release before preparing another version."
+            exit 1
+          fi
+
+          npm version "$BUMP" --no-git-tag-version --ignore-scripts
+          version=$(node -p "require('./package.json').version")
+          if npm view "code-observatory@$version" version >/dev/null 2>&1; then
+            echo "code-observatory@$version already exists on npm."
+            exit 1
+          fi
+
+          echo "value=$version" >> "$GITHUB_OUTPUT"
+          echo "branch=release/v$version" >> "$GITHUB_OUTPUT"
+
+      - name: Commit and push release branch
+        env:
+          BRANCH: ${{ steps.version.outputs.branch }}
+          VERSION: ${{ steps.version.outputs.value }}
+        run: |
+          if git ls-remote --exit-code --heads origin "refs/heads/$BRANCH" >/dev/null 2>&1; then
+            echo "Branch $BRANCH already exists. Close or merge its release PR before trying again."
+            exit 1
+          fi
+
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git switch -c "$BRANCH"
+          git add -- package.json
+          git commit -m "chore(release): v$VERSION"
+          git push origin "$BRANCH"
+
+      - name: Open release pull request
+        env:
+          GH_TOKEN: ${{ github.token }}
+          BRANCH: ${{ steps.version.outputs.branch }}
+          VERSION: ${{ steps.version.outputs.value }}
+        run: |
+          gh pr create \
+            --base main \
+            --head "$BRANCH" \
+            --title "Release v$VERSION" \
+            --body "Automated version bump for code-observatory v$VERSION. Merge this PR after CI passes; merging automatically starts the npm publish and GitHub Release workflow."
+
+      - name: Start CI for the release pull request
+        env:
+          GH_TOKEN: ${{ github.token }}
+          BRANCH: ${{ steps.version.outputs.branch }}
+        run: gh workflow run ci.yml --ref "$BRANCH"
