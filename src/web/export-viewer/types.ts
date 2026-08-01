@@ -10,6 +10,7 @@ import type { SourceStatus } from "../api/types";
 export interface ExportPayload {
   workflow: Workflow;
   sourceChecks: Record<string, SourceStatus>;
+  hideFilePaths: boolean;
   workflowName: string;
   workflowId: string;
   /** ISO timestamp of when the export was generated. */

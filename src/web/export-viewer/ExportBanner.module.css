@@ -66,7 +66,7 @@
   flex-shrink: 0;
 }
 
-.toggle {
+.privacy {
   display: inline-flex;
   align-items: center;
   gap: var(--space-1);
@@ -77,24 +77,15 @@
   color: var(--text-secondary);
   font-family: var(--font-ui);
   font-size: var(--fs-micro);
-  cursor: pointer;
-  transition: border-color var(--dur-fast) var(--ease-standard), color var(--dur-fast) var(--ease-standard);
+  cursor: default;
 }
 
-.toggle:hover {
-  border-color: var(--border-strong);
-  color: var(--text-primary);
-}
-
-.toggleActive {
+.privacyHidden {
   border-color: var(--accent-blue);
   color: var(--text-primary);
   background-color: var(--bg-inset);
 }
 
-.checkbox {
-  width: 14px;
-  height: 14px;
-  margin: 0;
-  accent-color: var(--accent-blue);
+.privacyIncluded {
+  color: var(--text-secondary);
 }

@@ -1,5 +1,4 @@
-import { reveal } from "../../api/client";
-import { AGENT_ONBOARDING_PROMPT } from "../shell/CopyAgentPrompt";
+import { AGENT_PROMPT, AGENT_PROMPT_EXAMPLES } from "../shell/CopyAgentPrompt";
 import { useAsyncAction } from "../../lib/useAsyncAction";
 import { Button, CopyButton } from "../primitives";
 import { StateLayout } from "./StateLayout";
@@ -14,29 +13,29 @@ export interface EmptyStateProps {
  * (contract §12: no fake buttons).
  */
 export function EmptyState({ onRecheck }: EmptyStateProps) {
-  const revealSkill = useAsyncAction(() => reveal("skill"));
   const recheck = useAsyncAction(onRecheck);
 
   return (
     <StateLayout title="No workflows mapped yet">
       <p>
-        Ask your coding agent: &ldquo;Read <code>.observatory/SKILL.md</code> and map the main product
-        workflow into Observatory.&rdquo;
+        Ask your coding agent to read <code>.observatory/SKILL.md</code> and map any product workflow
+        into Observatory.
       </p>
       <div className={styles.actionRow}>
-        <CopyButton value={AGENT_ONBOARDING_PROMPT} label="Copy prompt" />
-        <Button variant="secondary" size="sm" onClick={revealSkill.run}>
-          Reveal skill file
-        </Button>
+        <CopyButton value={AGENT_PROMPT} label="Copy prompt" />
         <Button variant="secondary" size="sm" onClick={recheck.run}>
           Recheck files
         </Button>
       </div>
-      {revealSkill.status === "error" && revealSkill.message !== null ? (
-        <p className={styles.actionError} role="alert">
-          {revealSkill.message}
-        </p>
-      ) : null}
+      <div className={styles.examples}>
+        <p className={styles.examplesTitle}>Try prompts like</p>
+        {AGENT_PROMPT_EXAMPLES.map((prompt) => (
+          <div className={styles.example} key={prompt}>
+            <code>{prompt}</code>
+            <CopyButton value={prompt} label="Copy example" size="sm" />
+          </div>
+        ))}
+      </div>
       {recheck.status === "error" && recheck.message !== null ? (
         <p className={styles.actionError} role="alert">
           {recheck.message}

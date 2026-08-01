@@ -220,7 +220,6 @@ partial JSON, schema error), the previously valid `workflow` stays in the snapsh
 | GET | `/api/diagnostics` | `DiagnosticsReport` |
 | GET | `/api/source?file=<rel>&line=<n>` | Metadata only: `{ file, absolutePath, exists, editorUrl, lines? }`. **Never returns file contents.** |
 | POST | `/api/recheck` | Force a full reload; returns the new snapshot |
-| POST | `/api/reveal` | Body `{ target: "observatory" \| "skill" }`. Opens the OS file manager. No arbitrary paths. |
 | GET | `/api/events` | SSE |
 
 SSE frames: `data: {"type":"snapshot","payload":ObservatorySnapshot}` on connect and on every
@@ -228,8 +227,8 @@ change; `data: {"type":"ping"}` every 25s to keep proxies alive.
 
 ### Security (mandatory, tested)
 
-`/api/source` and `/api/reveal` resolve the path against the repository root with
-`path.resolve` + `fs.realpath`, then verify the result is inside the root using a
+`/api/source` resolves the path against the repository root with `path.resolve` + `fs.realpath`,
+then verifies the result is inside the root using a
 separator-aware prefix check (`resolved === root || resolved.startsWith(root + path.sep)`).
 Reject `..`, absolute paths, drive letters, and symlink escapes with **400**. There is no
 endpoint that returns arbitrary file contents. Ever.
@@ -375,7 +374,7 @@ src/web/
   components/
     shell/      AppShell, TopBar, StatusIndicator, ThemeToggle, LocalOnlyBadge
     navigator/  WorkflowNavigator, WorkflowListItem
-    canvas/     WorkflowCanvas, nodes/StepNode, edges/WorkflowEdge, layout.ts, DepthControl, CanvasToolbar
+    canvas/     WorkflowCanvas, nodes/StepNode, edges/WorkflowEdge, layout.ts, CanvasToolbar
     drawer/     StepDrawer + section components
     search/     CommandPalette
     diagnostics/ DiagnosticsPanel, DiagnosticsBanner

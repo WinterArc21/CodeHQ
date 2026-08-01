@@ -16,6 +16,8 @@ import type { WorkflowRecord } from "@core/types";
 export interface ExportPayload {
   workflow: Workflow;
   sourceChecks: Record<string, SourceStatus>;
+  /** Whether structured file references were redacted before this payload was created. */
+  hideFilePaths: boolean;
   workflowName: string;
   workflowId: string;
   /** ISO timestamp of when the export was generated. */
@@ -24,19 +26,145 @@ export interface ExportPayload {
   repositoryName: string;
 }
 
+export interface SanitizeExportPayloadOptions {
+  exportedAt?: string;
+  hideFilePaths?: boolean;
+}
+
+const REDACTED_FILE_PREFIX = "redacted-file-";
+
+function redactedFileLabel(index: number): string {
+  return `${REDACTED_FILE_PREFIX}${index}`;
+}
+
+function collectWorkflowFiles(workflow: Workflow): string[] {
+  const files: string[] = [];
+  const seen = new Set<string>();
+  const collect = (file: string): void => {
+    if (!seen.has(file)) {
+      seen.add(file);
+      files.push(file);
+    }
+  };
+
+  if (workflow.entryPoint !== undefined) {
+    collect(workflow.entryPoint.file);
+  }
+  for (const step of workflow.steps) {
+    for (const source of step.sources ?? []) {
+      collect(source.file);
+    }
+    for (const test of step.tests ?? []) {
+      collect(test.file);
+    }
+    for (const edgeCase of step.edgeCases ?? []) {
+      for (const source of edgeCase.sources ?? []) {
+        collect(source.file);
+      }
+    }
+  }
+  return files;
+}
+
+function redactWorkflow(workflow: Workflow, redactFile: (file: string) => string): Workflow {
+  const redactSource = <T extends { file: string }>(source: T): T => ({
+    ...source,
+    file: redactFile(source.file),
+  });
+
+  return {
+    ...workflow,
+    ...(workflow.entryPoint !== undefined ? { entryPoint: redactSource(workflow.entryPoint) } : {}),
+    steps: workflow.steps.map((step) => ({
+      ...step,
+      ...(step.sources !== undefined ? { sources: step.sources.map(redactSource) } : {}),
+      ...(step.tests !== undefined ? { tests: step.tests.map(redactSource) } : {}),
+      ...(step.edgeCases !== undefined
+        ? {
+            edgeCases: step.edgeCases.map((edgeCase) => ({
+              ...edgeCase,
+              ...(edgeCase.sources !== undefined ? { sources: edgeCase.sources.map(redactSource) } : {}),
+            })),
+          }
+        : {}),
+    })),
+  };
+}
+
+function redactSourceCheckKey(key: string, knownFiles: string[], redactFile: (file: string) => string): string {
+  const matchingFile = [...knownFiles]
+    .sort((left, right) => right.length - left.length)
+    .find((file) => key === file || key.startsWith(`${file}#`));
+  if (matchingFile !== undefined) {
+    return `${redactFile(matchingFile)}${key.slice(matchingFile.length)}`;
+  }
+
+  const separator = key.indexOf("#");
+  const file = separator === -1 ? key : key.slice(0, separator);
+  return `${redactFile(file)}${separator === -1 ? "" : key.slice(separator)}`;
+}
+
+function redactSourceChecks(
+  sourceChecks: Record<string, SourceStatus>,
+  knownFiles: string[],
+  redactFile: (file: string) => string,
+): Record<string, SourceStatus> {
+  return Object.fromEntries(
+    Object.entries(sourceChecks).map(([key, status]) => [redactSourceCheckKey(key, knownFiles, redactFile), status]),
+  );
+}
+
+function normalizeSanitizeOptions(
+  exportedAtOrOptions: string | boolean | SanitizeExportPayloadOptions | undefined,
+  hideFilePaths: boolean,
+): SanitizeExportPayloadOptions {
+  if (typeof exportedAtOrOptions === "string") {
+    return { exportedAt: exportedAtOrOptions, hideFilePaths };
+  }
+  if (typeof exportedAtOrOptions === "boolean") {
+    return { hideFilePaths: exportedAtOrOptions };
+  }
+  return { ...exportedAtOrOptions, hideFilePaths: exportedAtOrOptions?.hideFilePaths ?? hideFilePaths };
+}
+
 /**
  * Strips machine-local data from a `WorkflowRecord` and its repository context, producing
  * the minimal payload the export viewer needs. `record.file` (the workflow JSON's own path,
- * which reveals the `.observatory` directory layout) is intentionally dropped — only the
+ * which would expose the `.observatory` directory layout) is intentionally dropped — only the
  * workflow's internal source references (already validated as repository-relative) survive.
  */
-export function sanitizeExportPayload(record: WorkflowRecord, repositoryName: string, exportedAt?: string): ExportPayload {
+export function sanitizeExportPayload(
+  record: WorkflowRecord,
+  repositoryName: string,
+  exportedAtOrOptions?: string | boolean | SanitizeExportPayloadOptions,
+  hideFilePaths = false,
+): ExportPayload {
+  const options = normalizeSanitizeOptions(exportedAtOrOptions, hideFilePaths);
+  const shouldHideFilePaths = options.hideFilePaths === true;
+  const knownFiles = collectWorkflowFiles(record.workflow);
+  const redactedFiles = new Map<string, string>();
+  const redactFile = (file: string): string => {
+    const existing = redactedFiles.get(file);
+    if (existing !== undefined) {
+      return existing;
+    }
+    const label = redactedFileLabel(redactedFiles.size + 1);
+    redactedFiles.set(file, label);
+    return label;
+  };
+
+  const workflow = shouldHideFilePaths ? redactWorkflow(record.workflow, redactFile) : record.workflow;
+  const sourceChecks = shouldHideFilePaths
+    ? redactSourceChecks(record.sourceChecks, knownFiles, redactFile)
+    : record.sourceChecks;
+
   return {
-    workflow: record.workflow,
-    sourceChecks: record.sourceChecks,
+    workflow,
+    sourceChecks,
+    hideFilePaths: shouldHideFilePaths,
     workflowName: record.workflow.name,
     workflowId: record.id,
-    exportedAt: exportedAt ?? new Date().toISOString(),
+    exportedAt: options.exportedAt ?? new Date().toISOString(),
     repositoryName,
   };
 }

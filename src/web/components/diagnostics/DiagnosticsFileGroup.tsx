@@ -25,7 +25,7 @@ function countLabel(group: DiagnosticsFileGroupData): string {
  * All issues for one file, grouped under a header that offers the same real, working actions as
  * a step drawer's source references (contract §12: no fake buttons) — `/api/source` resolves any
  * repository-relative path, including the invalid workflow file itself, so "Open in editor"
- * jumps straight to it rather than only opening the `.observatory` folder.
+ * jumps straight to the file.
  */
 export function DiagnosticsFileGroup({ group }: DiagnosticsFileGroupProps) {
   const [openError, setOpenError] = useState<string | null>(null);

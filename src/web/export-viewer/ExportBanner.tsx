@@ -8,7 +8,6 @@ export interface ExportBannerProps {
   exportedAt: string;
   repositoryName: string;
   hideFilePaths: boolean;
-  onToggleHideFilePaths: () => void;
   theme: Theme;
   onToggleTheme: () => void;
 }
@@ -30,16 +29,14 @@ function formatTimestamp(iso: string): string {
 
 /**
  * The thin top bar of an exported snapshot: identifies the file as a Code Observatory export,
- * shows the workflow name and generation timestamp, displays the privacy notice, and provides
- * the "Hide file paths" toggle and theme switcher — the two interactive controls the snapshot
- * itself offers beyond the canvas.
+ * shows the workflow name and generation timestamp, displays the privacy choice, and provides
+ * the theme switcher as the snapshot's only extra control beyond the canvas.
  */
 export function ExportBanner({
   workflowName,
   exportedAt,
   repositoryName,
   hideFilePaths,
-  onToggleHideFilePaths,
   theme,
   onToggleTheme,
 }: ExportBannerProps) {
@@ -54,18 +51,12 @@ export function ExportBanner({
         <span className={styles.timestamp}>{repositoryName} · {formatTimestamp(exportedAt)}</span>
       </div>
       <p className={styles.notice}>
-        Snapshot of the agent-authored workflow description and relative file paths — not source code.
+        Snapshot of the agent-authored workflow description — not source code.
       </p>
       <div className={styles.actions}>
-        <label className={`${styles.toggle} ${hideFilePaths ? styles.toggleActive : ""}`}>
-          <input
-            type="checkbox"
-            className={styles.checkbox}
-            checked={hideFilePaths}
-            onChange={onToggleHideFilePaths}
-          />
-          Hide file paths in view
-        </label>
+        <span className={`${styles.privacy} ${hideFilePaths ? styles.privacyHidden : styles.privacyIncluded}`}>
+          {hideFilePaths ? "File paths hidden" : "File paths included"}
+        </span>
         <IconButton
           label={`Switch to ${nextTheme} theme`}
           icon={theme === "dark" ? <Sun size={16} /> : <Moon size={16} />}

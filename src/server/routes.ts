@@ -3,6 +3,7 @@
  */
 
 import path from "node:path";
+import { unlink } from "node:fs/promises";
 import { fileURLToPath } from "node:url";
 import type { FastifyInstance } from "fastify";
 import { z } from "zod";
@@ -11,12 +12,10 @@ import { observatoryPaths, repositoryName } from "@core/repository";
 import { resolveInsideRepository } from "@core/safe-path";
 import type { ObservatoryStore } from "@core/store";
 import { buildExportHtml, buildContentDisposition, sanitizeExportPayload } from "./export";
-import { defaultRevealImpl, type RevealImpl } from "./reveal";
 
 export interface RouteContext {
   root: string;
   store: ObservatoryStore;
-  revealImpl?: RevealImpl;
 }
 
 const sourceQuerySchema = z
@@ -29,9 +28,9 @@ const sourceQuerySchema = z
   })
   .strict();
 
-const revealBodySchema = z
+const exportQuerySchema = z
   .object({
-    target: z.enum(["observatory", "skill"], { message: "target must be 'observatory' or 'skill'." }),
+    hideFilePaths: z.enum(["true", "false"]).default("false"),
   })
   .strict();
 
@@ -68,27 +67,30 @@ function registerSourceRoute(app: FastifyInstance, root: string): void {
   });
 }
 
-function registerRevealRoute(app: FastifyInstance, root: string, revealImpl: RevealImpl): void {
-  app.post("/api/reveal", async (request, reply) => {
-    const parsed = revealBodySchema.safeParse(request.body);
-    if (!parsed.success) {
-      await reply.code(400).send({ error: "Invalid request body.", details: parsed.error.issues });
-      return;
-    }
+function resolveWorkflowFileForDeletion(root: string, relativeFile: string): { ok: true; absolutePath: string } | { ok: false; reason: string } {
+  const resolved = resolveInsideRepository(root, relativeFile);
+  if (!resolved.ok) {
+    return resolved;
+  }
 
-    const paths = observatoryPaths(root);
-    const targetPath = parsed.data.target === "observatory" ? paths.dir : paths.skillFile;
+  const paths = observatoryPaths(root);
+  const workflowsDir = resolveInsideRepository(root, path.relative(root, paths.workflowsDir));
+  if (!workflowsDir.ok) {
+    return { ok: false, reason: workflowsDir.reason };
+  }
 
-    try {
-      await revealImpl(targetPath);
-      await reply.send({ revealed: true });
-    } catch (error) {
-      await reply.code(500).send({
-        revealed: false,
-        reason: error instanceof Error ? error.message : String(error),
-      });
-    }
-  });
+  const relativeToWorkflows = path.relative(workflowsDir.absolutePath, resolved.absolutePath);
+  const isDirectChild =
+    relativeToWorkflows.length > 0 &&
+    relativeToWorkflows !== ".." &&
+    !relativeToWorkflows.startsWith(`..${path.sep}`) &&
+    !path.isAbsolute(relativeToWorkflows) &&
+    path.dirname(relativeToWorkflows) === ".";
+  if (!isDirectChild || path.extname(relativeToWorkflows).toLowerCase() !== ".json") {
+    return { ok: false, reason: "Workflow file path is not an exact workflow file." };
+  }
+
+  return { ok: true, absolutePath: resolved.absolutePath };
 }
 
 function resolveExportViewerDir(): string {
@@ -125,6 +127,12 @@ async function loadExportViewerAssets(): Promise<ExportViewerAssets> {
 
 function registerExportRoute(app: FastifyInstance, root: string, store: ObservatoryStore): void {
   app.get<{ Params: { id: string } }>("/api/export/:id", async (request, reply) => {
+    const parsedQuery = exportQuerySchema.safeParse(request.query);
+    if (!parsedQuery.success) {
+      await reply.code(400).send({ error: "Invalid export query parameters.", details: parsedQuery.error.issues });
+      return;
+    }
+
     const record = store.getSnapshot().workflows.find((workflow) => workflow.id === request.params.id);
     if (record === undefined) {
       await reply.code(404).send({ error: `No workflow with id '${request.params.id}'.` });
@@ -142,7 +150,7 @@ function registerExportRoute(app: FastifyInstance, root: string, store: Observat
     }
 
     const repoName = repositoryName(root);
-    const payload = sanitizeExportPayload(record, repoName);
+    const payload = sanitizeExportPayload(record, repoName, { hideFilePaths: parsedQuery.data.hideFilePaths === "true" });
     const html = buildExportHtml({ payload, viewerJs: assets.js, viewerCss: assets.css });
 
     await reply
@@ -155,7 +163,6 @@ function registerExportRoute(app: FastifyInstance, root: string, store: Observat
 /** Registers every `/api/*` route except `/api/events` (SSE lives in `events.ts`). */
 export function registerRoutes(app: FastifyInstance, context: RouteContext): void {
   const { root, store } = context;
-  const revealImpl = context.revealImpl ?? defaultRevealImpl;
 
   app.get("/api/state", async (_request, reply) => {
     await reply.send(store.getSnapshot());
@@ -178,6 +185,39 @@ export function registerRoutes(app: FastifyInstance, context: RouteContext): voi
     await reply.send(record);
   });
 
+  app.delete<{ Params: { id: string } }>("/api/workflows/:id", async (request, reply) => {
+    const record = store.getSnapshot().workflows.find((workflow) => workflow.id === request.params.id);
+    if (record === undefined) {
+      await reply.code(404).send({ error: `No workflow with id '${request.params.id}'.` });
+      return;
+    }
+
+    if (record.state !== "valid" || record.workflow.status !== "verified") {
+      await reply.code(409).send({ error: "Only verified workflows can be deleted." });
+      return;
+    }
+
+    const resolved = resolveWorkflowFileForDeletion(root, record.file);
+    if (!resolved.ok) {
+      await reply.code(400).send({ error: resolved.reason });
+      return;
+    }
+
+    try {
+      await unlink(resolved.absolutePath);
+    } catch (error) {
+      if (error instanceof Error && "code" in error && error.code === "ENOENT") {
+        await store.reload();
+        await reply.code(404).send({ error: "The workflow file no longer exists." });
+        return;
+      }
+      await reply.code(500).send({ error: error instanceof Error ? error.message : String(error) });
+      return;
+    }
+
+    await reply.send(await store.reload());
+  });
+
   app.get("/api/diagnostics", async (_request, reply) => {
     await reply.send(store.getSnapshot().diagnostics);
   });
@@ -190,6 +230,4 @@ export function registerRoutes(app: FastifyInstance, context: RouteContext): voi
   });
 
   registerExportRoute(app, root, store);
-
-  registerRevealRoute(app, root, revealImpl);
 }

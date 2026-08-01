@@ -19,6 +19,9 @@ import { StepNode } from "./nodes/StepNode";
 import { ZoneLabel } from "./nodes/ZoneLabel";
 import type { CanvasFlowNode, WorkflowFlowEdge } from "./types";
 import { useExportMode } from "../../export-viewer/ExportModeContext";
+import { fetchWorkflowExport } from "../../api/client";
+import { DeleteWorkflowDialog } from "./DeleteWorkflowDialog";
+import { ExportDialog } from "./ExportDialog";
 import { useCanvasFit } from "./useCanvasFit";
 import { useCanvasKeyboardNav } from "./useCanvasKeyboardNav";
 import styles from "./WorkflowCanvas.module.css";
@@ -38,6 +41,7 @@ const EDGE_TYPES = { workflow: WorkflowEdge };
 export interface WorkflowCanvasProps {
   workflow: Workflow;
   sourceChecks: Record<string, SourceStatus>;
+  onDeleteWorkflow?: () => Promise<void>;
 }
 
 /** Public entry point: owns the `ReactFlowProvider` so `useReactFlow` is available below it. */
@@ -49,7 +53,7 @@ export function WorkflowCanvas(props: WorkflowCanvasProps) {
   );
 }
 
-function WorkflowCanvasInner({ workflow, sourceChecks }: WorkflowCanvasProps) {
+function WorkflowCanvasInner({ workflow, sourceChecks, onDeleteWorkflow }: WorkflowCanvasProps) {
   const reactFlowInstance = useReactFlow<CanvasFlowNode, WorkflowFlowEdge>();
   const reducedMotion = usePrefersReducedMotion();
   const exportMode = useExportMode();
@@ -60,7 +64,6 @@ function WorkflowCanvasInner({ workflow, sourceChecks }: WorkflowCanvasProps) {
 
   const theme = useObservatoryStore((state) => state.theme);
   const depth = useObservatoryStore((state) => state.depth);
-  const setDepth = useObservatoryStore((state) => state.setDepth);
   const expandedStepIds = useObservatoryStore((state) => state.expandedStepIds);
   const toggleStepExpanded = useObservatoryStore((state) => state.toggleStepExpanded);
   const collapseAllSteps = useObservatoryStore((state) => state.collapseAllSteps);
@@ -79,6 +82,8 @@ function WorkflowCanvasInner({ workflow, sourceChecks }: WorkflowCanvasProps) {
   // momentary/explicit signal, selection the most passive/lingering one.
   const [hoveredStepId, setHoveredStepId] = useState<string | null>(null);
   const [focusedStepId, setFocusedStepId] = useState<string | null>(null);
+  const [exportDialogOpen, setExportDialogOpen] = useState(false);
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const realStepIds = useMemo(() => new Set(workflow.steps.map((step) => step.id)), [workflow]);
   const candidateTraceAnchorId = hoveredStepId ?? focusedStepId ?? selectedStepId;
   const traceAnchorId = candidateTraceAnchorId !== null && realStepIds.has(candidateTraceAnchorId) ? candidateTraceAnchorId : null;
@@ -91,7 +96,7 @@ function WorkflowCanvasInner({ workflow, sourceChecks }: WorkflowCanvasProps) {
   const onFocusStep = useCallback((stepId: string) => setFocusedStepId(stepId), []);
   const onBlurStep = useCallback(() => setFocusedStepId(null), []);
 
-  const { containerRef, overflowsBottom, fitToViewport } = useCanvasFit({
+  const { containerRef, overflowsBottom } = useCanvasFit({
     layoutNodes: layout.nodes,
     edgeRoutes,
     workflowId: workflow.id,
@@ -130,7 +135,7 @@ function WorkflowCanvasInner({ workflow, sourceChecks }: WorkflowCanvasProps) {
         onFocusStep,
         onBlurStep,
       }),
-      ...buildZoneLabelNodes(layout),
+      ...buildZoneLabelNodes(layout, tracePath !== null),
     ],
     [
       workflow,
@@ -162,20 +167,29 @@ function WorkflowCanvasInner({ workflow, sourceChecks }: WorkflowCanvasProps) {
     setRovingId(node.id);
   };
 
-  const handleExport = useCallback(() => {
-    const confirmed = window.confirm(
-      "This snapshot contains the agent-authored workflow description and repository-relative file paths. It does not contain source code. Export canvas?",
-    );
-    if (!confirmed) {
-      return;
-    }
+  const handleExport = useCallback(() => setExportDialogOpen(true), []);
+  const downloadExport = useCallback(async (hideFilePaths: boolean): Promise<void> => {
+    const artifact = await fetchWorkflowExport(workflow.id, hideFilePaths);
+    const url = URL.createObjectURL(artifact.blob);
     const link = document.createElement("a");
-    link.href = `/api/export/${workflow.id}`;
+    link.href = url;
+    link.download = artifact.filename;
     link.rel = "noopener";
     document.body.appendChild(link);
     link.click();
     link.remove();
+    URL.revokeObjectURL(url);
   }, [workflow.id]);
+  const shareExport = useCallback(async (hideFilePaths: boolean): Promise<void> => {
+    const artifact = await fetchWorkflowExport(workflow.id, hideFilePaths);
+    const file = new File([artifact.blob], artifact.filename, { type: "text/html" });
+    const shareData = { files: [file], title: workflow.name, text: "Code Observatory workflow export" };
+    if (typeof navigator.share === "function" && (typeof navigator.canShare !== "function" || navigator.canShare(shareData))) {
+      await navigator.share(shareData);
+      return;
+    }
+    await downloadExport(hideFilePaths);
+  }, [downloadExport, workflow.id, workflow.name]);
 
   const hasExpandedSteps = Object.keys(expandedStepIds).length > 0;
   const stepNodeCount = nodes.filter((node) => node.type === "step").length;
@@ -185,14 +199,14 @@ function WorkflowCanvasInner({ workflow, sourceChecks }: WorkflowCanvasProps) {
     <div className={styles.wrapper}>
       <CanvasHeader
         workflow={workflow}
-        depth={depth}
-        onDepthChange={setDepth}
-        onFitView={() => fitToViewport(reducedMotion ? 0 : 300)}
         onZoomIn={() => void reactFlowInstance.zoomIn({ duration: reducedMotion ? 0 : 150 })}
         onZoomOut={() => void reactFlowInstance.zoomOut({ duration: reducedMotion ? 0 : 150 })}
         onCollapseAll={collapseAllSteps}
         collapseDisabled={!hasExpandedSteps}
         {...(exportMode === null ? { onExport: handleExport } : {})}
+        {...(exportMode === null && onDeleteWorkflow !== undefined && workflow.status === "verified"
+          ? { onDelete: () => setDeleteDialogOpen(true) }
+          : {})}
       />
       <div className={styles.stage} ref={containerRef}>
         <EdgeMarkers />
@@ -216,9 +230,27 @@ function WorkflowCanvasInner({ workflow, sourceChecks }: WorkflowCanvasProps) {
         >
           {showMinimap ? <MiniMap pannable zoomable={false} ariaLabel={`${workflow.name} overview map`} /> : null}
         </ReactFlow>
-        <CanvasLegend workflow={workflow} />
+        <CanvasLegend workflow={workflow} dimmed={tracePath !== null} />
         {overflowsBottom ? <CanvasOverflowIndicator /> : null}
       </div>
+      {exportDialogOpen ? (
+        <ExportDialog
+          workflowName={workflow.name}
+          onClose={() => setExportDialogOpen(false)}
+          onDownload={downloadExport}
+          onShare={shareExport}
+        />
+      ) : null}
+      {deleteDialogOpen && onDeleteWorkflow !== undefined ? (
+        <DeleteWorkflowDialog
+          workflowName={workflow.name}
+          onClose={() => setDeleteDialogOpen(false)}
+          onConfirm={async () => {
+            await onDeleteWorkflow();
+            setDeleteDialogOpen(false);
+          }}
+        />
+      ) : null}
     </div>
   );
 }

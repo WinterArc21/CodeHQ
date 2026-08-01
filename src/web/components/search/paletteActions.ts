@@ -1,6 +1,5 @@
-import { reveal } from "../../api/client";
 import { copyToClipboard } from "../primitives/clipboard";
-import { AGENT_ONBOARDING_PROMPT } from "../shell/CopyAgentPrompt";
+import { AGENT_PROMPT } from "../shell/CopyAgentPrompt";
 
 export interface PaletteAction {
   id: string;
@@ -19,16 +18,10 @@ export function buildPaletteActions(onRecheck: () => Promise<void>): PaletteActi
     {
       id: "action:copy-prompt",
       label: "Copy agent prompt",
-      detail: "Copies the onboarding instruction for your coding agent.",
+      detail: "Copies an instruction for your coding agent.",
       run: async () => {
-        await copyToClipboard(AGENT_ONBOARDING_PROMPT);
+        await copyToClipboard(AGENT_PROMPT);
       },
-    },
-    {
-      id: "action:reveal-observatory",
-      label: "Reveal .observatory",
-      detail: "Opens the .observatory folder in your file manager.",
-      run: () => reveal("observatory"),
     },
     {
       id: "action:recheck",

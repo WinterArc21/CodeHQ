@@ -24,7 +24,6 @@ export interface WorkflowRecord {
   /** Keyed by `${file}` or `${file}#${symbol}`. */
   sourceChecks: Record<string, SourceStatus>;
 }
-
 export interface ObservatorySnapshot {
   generatedAt: string;
   status: "uninitialized" | "empty" | "ready";
@@ -42,6 +41,3 @@ export interface SourceLookup {
   editorUrl?: string;
   lines?: string[];
 }
-
-/** `POST /api/reveal` request body. */
-export type RevealTarget = "observatory" | "skill";

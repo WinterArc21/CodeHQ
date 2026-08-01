@@ -15,11 +15,12 @@ test.describe("Export canvas", () => {
     await page.goto(SHARED_BASE_URL);
     await page.locator("[data-step-node]").first().waitFor({ state: "visible", timeout: 15_000 });
 
-    // 2. Set up a download listener and accept the export confirmation dialog, then click
-    //    the "Export canvas" button.
+    // 2. Choose the privacy setting in the export dialog, then download the artifact.
     const downloadPromise = page.waitForEvent("download", { timeout: 15_000 });
-    page.once("dialog", (dialog) => dialog.accept());
     await page.getByRole("button", { name: "Export canvas" }).click();
+    await expect(page.getByRole("dialog", { name: /Export/ })).toBeVisible();
+    await page.getByRole("radio", { name: /Yes, hide them/i }).check();
+    await page.getByRole("button", { name: "Download HTML" }).click();
     const download = await downloadPromise;
 
     // 3. Save the downloaded file to a temp path.
@@ -40,6 +41,8 @@ test.describe("Export canvas", () => {
 
     // 5. Assert: contains the export banner and payload.
     expect(html).toContain("observatory-export-payload");
+    expect(html).toContain('"hideFilePaths":true');
+    expect(html).not.toContain("real-source.ts");
 
     // 6. Open the exported file in a fresh browser context via file:// — no server.
     const offlineContext = await browser.newContext();
@@ -53,9 +56,9 @@ test.describe("Export canvas", () => {
     await expect(offlinePage.getByText("Code Observatory Export")).toBeVisible();
     await expect(offlinePage.getByText("not source code")).toBeVisible();
 
-    // 9. "Hide file paths" toggle should be present.
-    const hideToggle = offlinePage.getByRole("checkbox", { name: /Hide file paths/i });
-    await expect(hideToggle).toBeVisible();
+    // 9. The export viewer reflects the choice made before download and has no post-export toggle.
+    await expect(offlinePage.getByText("File paths hidden")).toBeVisible();
+    await expect(offlinePage.getByRole("checkbox", { name: /Hide file paths/i })).toHaveCount(0);
 
     // 10. Click a step node to open the drawer, then verify no "Open in editor" button.
     await offlinePage.locator("[data-step-node]").first().click();

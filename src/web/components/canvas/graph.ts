@@ -269,20 +269,20 @@ export function computeBackEdgeIds(workflow: Workflow): Set<string> {
 }
 
 export interface TracePath {
-  /** Every step id on the anchor's complete upstream-or-downstream path, including the anchor
-   * itself. */
+  /** The anchor plus every step reachable by one valid connection into or out of it. */
   stepIds: Set<string>;
-  /** Every connection id (same id scheme as above) linking two steps in `stepIds` along that
-   * path. */
+  /** Every valid outgoing connection id from the anchor. Upstream connections remain dimmed so
+   * the highlighted edges always show what happens next from the hovered/focused step. */
   edgeIds: Set<string>;
 }
 
 /**
- * A step's complete upstream (every ancestor, transitively) and downstream (every descendant,
- * transitively) trace — "what feeds this, what depends on this" (contract §11's path-tracing
- * mandate), computed as two independent breadth-first walks so a cycle anywhere in the graph
- * still terminates instead of looping forever. Pure: same `Workflow` and `stepId` always produce
- * the same result, no DOM, no randomness — kept that way so it stays unit-testable on its own.
+ * A step's local upstream/downstream trace — the anchor, its immediate predecessors, and its
+ * immediate successors. Edges are intentionally narrower than nodes: only the anchor's outgoing
+ * connections are highlighted. This keeps a hover local and makes the highlighted arrows answer
+ * the directional question "what happens next from here?" Pure: same `Workflow` and `stepId`
+ * always produce the same result, no DOM, no randomness — kept that way so it stays unit-testable
+ * on its own.
  */
 export function computeTracePath(workflow: Workflow, stepId: string): TracePath {
   const stepIds = validStepIds(workflow);
@@ -290,51 +290,21 @@ export function computeTracePath(workflow: Workflow, stepId: string): TracePath 
     return { stepIds: new Set(), edgeIds: new Set() };
   }
 
-  const forward = new Map<string, Array<{ to: string; edgeId: string }>>();
-  const backward = new Map<string, Array<{ from: string; edgeId: string }>>();
+  const resultSteps = new Set<string>([stepId]);
+  for (const predecessorId of predecessorIds(workflow, stepId)) {
+    resultSteps.add(predecessorId);
+  }
+  for (const successorId of successorIds(workflow, stepId)) {
+    resultSteps.add(successorId);
+  }
+
+  const resultEdges = new Set<string>();
   workflow.connections.forEach((connection, index) => {
-    if (!stepIds.has(connection.from) || !stepIds.has(connection.to)) {
+    if (connection.from !== stepId || !stepIds.has(connection.to)) {
       return;
     }
-    const edgeId = connectionEdgeId(connection, index);
-    const forwardList = forward.get(connection.from) ?? [];
-    forwardList.push({ to: connection.to, edgeId });
-    forward.set(connection.from, forwardList);
-    const backwardList = backward.get(connection.to) ?? [];
-    backwardList.push({ from: connection.from, edgeId });
-    backward.set(connection.to, backwardList);
+    resultEdges.add(connectionEdgeId(connection, index));
   });
-
-  const resultSteps = new Set<string>([stepId]);
-  const resultEdges = new Set<string>();
-
-  const downstreamQueue = [stepId];
-  const downstreamSeen = new Set([stepId]);
-  while (downstreamQueue.length > 0) {
-    const current = downstreamQueue.shift()!;
-    for (const { to, edgeId } of forward.get(current) ?? []) {
-      resultEdges.add(edgeId);
-      resultSteps.add(to);
-      if (!downstreamSeen.has(to)) {
-        downstreamSeen.add(to);
-        downstreamQueue.push(to);
-      }
-    }
-  }
-
-  const upstreamQueue = [stepId];
-  const upstreamSeen = new Set([stepId]);
-  while (upstreamQueue.length > 0) {
-    const current = upstreamQueue.shift()!;
-    for (const { from, edgeId } of backward.get(current) ?? []) {
-      resultEdges.add(edgeId);
-      resultSteps.add(from);
-      if (!upstreamSeen.has(from)) {
-        upstreamSeen.add(from);
-        upstreamQueue.push(from);
-      }
-    }
-  }
 
   return { stepIds: resultSteps, edgeIds: resultEdges };
 }
