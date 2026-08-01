@@ -6,9 +6,10 @@ on:
       bump:
         description: "Version increase for this release"
         required: true
-        default: patch
+        default: current
         type: choice
         options:
+          - current
           - patch
           - minor
           - major
@@ -48,7 +49,12 @@ jobs:
         run: pnpm install --frozen-lockfile
 
       - name: Set the release version
-        run: npm version "${{ inputs.bump }}" --no-git-tag-version --ignore-scripts
+        env:
+          BUMP: ${{ inputs.bump }}
+        run: |
+          if [ "$BUMP" != "current" ]; then
+            npm version "$BUMP" --no-git-tag-version --ignore-scripts
+          fi
 
       - name: Read the release version
         id: version
@@ -82,7 +88,11 @@ jobs:
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git add -- package.json
-          git commit -m "chore(release): v$VERSION"
+          if git diff --cached --quiet; then
+            echo "Using the version already present on main."
+          else
+            git commit -m "chore(release): v$VERSION"
+          fi
           git tag -a "v$VERSION" -m "v$VERSION"
           git push origin HEAD:main --follow-tags
 
