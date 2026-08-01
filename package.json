@@ -1,6 +1,6 @@
 {
   "name": "code-observatory",
-  "version": "0.1.1",
+  "version": "0.1.2",
   "type": "module",
   "description": "Local-first workflow observatory that renders coding-agent-authored .observatory workflow files as an interactive canvas.",
   "license": "MIT",
