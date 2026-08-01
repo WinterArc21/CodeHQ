@@ -357,6 +357,6 @@ export const EXAMPLE_WORKFLOW: Workflow = {
     }
   ],
   notes: [
-    "Reference implementation shipped as CodeHQ's example project; see examples/motiona."
+    "Reference implementation shipped as HQFlow's example project; see examples/motiona."
   ]
 };

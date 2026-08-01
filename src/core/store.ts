@@ -175,7 +175,7 @@ export function createCodeHQStore(root: string): CodeHQStore {
       severity: "warning",
       file: toRepoRelativePosix(root, paths.dir),
       message: `The file watcher reported an error: ${error.message}`,
-      hint: "Changes to .codehq may not be picked up automatically until CodeHQ is restarted.",
+      hint: "Changes to .codehq may not be picked up automatically until HQFlow is restarted.",
     };
     void runGuardedReload();
   }

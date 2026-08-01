@@ -87,7 +87,7 @@ async function registerWebStatic(app: FastifyInstance): Promise<void> {
         .code(200)
         .type("text/plain")
         .send(
-          "CodeHQ web UI has not been built yet.\n\n" +
+          "HQFlow web UI has not been built yet.\n\n" +
             "Run `pnpm build` (or `pnpm build:web`) to generate dist/web, then restart the server.\n",
         );
     });
@@ -108,7 +108,7 @@ async function registerWebStatic(app: FastifyInstance): Promise<void> {
 export async function createCodeHQServer(options: CodeHQServerOptions): Promise<CodeHQServer> {
   const host = options.host ?? DEFAULT_HOST;
   if (host === "0.0.0.0") {
-    throw new Error("Refusing to bind 0.0.0.0 — CodeHQ is a local-only tool.");
+    throw new Error("Refusing to bind 0.0.0.0 — HQFlow is a local-only tool.");
   }
 
   const port = await findAvailablePort(options.port ?? DEFAULT_PORT, host);

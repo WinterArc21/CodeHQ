@@ -12,7 +12,7 @@ export interface ErrorStateProps {
 export function ErrorState({ message, onRetry }: ErrorStateProps) {
   return (
     <StateLayout
-      title="Couldn't reach CodeHQ"
+      title="Couldn't reach HQFlow"
       icon={<WarningCircle size={20} />}
       actions={<Button onClick={onRetry}>Retry</Button>}
     >

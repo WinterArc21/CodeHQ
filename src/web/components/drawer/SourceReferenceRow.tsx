@@ -50,7 +50,7 @@ export function SourceReferenceRow({ source, sourceChecks }: SourceReferenceRowP
       }
       window.location.href = lookup.editorUrl;
     } catch (error) {
-      setOpenError(error instanceof ApiError ? error.message : "Could not reach the CodeHQ server.");
+      setOpenError(error instanceof ApiError ? error.message : "Could not reach the HQFlow server.");
     } finally {
       setOpening(false);
     }

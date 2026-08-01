@@ -28,7 +28,7 @@ export const VISUAL_KEYS = new Set([
 ]);
 
 export const VISUAL_PROPERTY_MESSAGE =
-  "Visual properties are owned by CodeHQ and must not appear in workflow files.";
+  "Visual properties are owned by HQFlow and must not appear in workflow files.";
 
 /**
  * Formats a Zod-style path array as `connections[3].to`, not Zod's raw array form.
@@ -70,7 +70,7 @@ export function findVisualPropertyIssues(value: unknown, file: string, path = ""
           file,
           path: keyPath,
           message: VISUAL_PROPERTY_MESSAGE,
-          hint: "Remove this property. CodeHQ computes layout, color, and styling automatically.",
+          hint: "Remove this property. HQFlow computes layout, color, and styling automatically.",
         });
         continue;
       }

@@ -52,7 +52,7 @@ export function zodErrorToIssues(error: ZodError, file: string): Issue[] {
             file,
             path: keyPath,
             message: VISUAL_PROPERTY_MESSAGE,
-            hint: "Remove this property. CodeHQ computes layout, color, and styling automatically.",
+            hint: "Remove this property. HQFlow computes layout, color, and styling automatically.",
           });
         } else {
           issues.push({

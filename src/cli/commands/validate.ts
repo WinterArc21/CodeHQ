@@ -30,7 +30,7 @@ export async function runValidate(options: ValidateOptions): Promise<ValidateRes
       exitCode: 1,
       root,
       kind: "missing-codehq",
-      message: `No .codehq/ directory found at '${root}'. Run \`codehq init\` first.`,
+      message: `No .codehq/ directory found at '${root}'. Run \`hqflow init\` first.`,
     };
   }
 

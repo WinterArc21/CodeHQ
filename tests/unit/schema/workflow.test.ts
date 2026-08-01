@@ -155,7 +155,7 @@ describe("parseWorkflow — shape and semantic rules", () => {
     }
     expect(
       result.issues.some(
-        (issue) => issue.message === "Visual properties are owned by CodeHQ and must not appear in workflow files.",
+        (issue) => issue.message === "Visual properties are owned by HQFlow and must not appear in workflow files.",
       ),
     ).toBe(true);
   });
@@ -172,7 +172,7 @@ describe("parseWorkflow — shape and semantic rules", () => {
     }
     expect(
       result.issues.some(
-        (issue) => issue.message === "Visual properties are owned by CodeHQ and must not appear in workflow files.",
+        (issue) => issue.message === "Visual properties are owned by HQFlow and must not appear in workflow files.",
       ),
     ).toBe(true);
   });

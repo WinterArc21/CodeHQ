@@ -1,4 +1,4 @@
-# CodeHQ — Engineering Contract
+# HQFlow — Engineering Contract
 
 This document is the **binding technical contract** for every agent working on this repository.
 Read it fully before writing code. Do not deviate. If something here is genuinely wrong,
@@ -8,11 +8,11 @@ say so in your final report instead of silently changing it.
 
 ## 1. Product in one paragraph
 
-CodeHQ is an open-source, local-first web app. A developer runs it inside their own
+HQFlow is an open-source, local-first web app. A developer runs it inside their own
 repository. Their existing coding agent (Cursor / Claude Code / Codex) reads `.codehq/SKILL.md`,
 inspects the real source code, and writes structured workflow JSON into `.codehq/`.
-CodeHQ validates those files, watches them, and renders them as an interactive
-workflow canvas in the browser. **CodeHQ contains no LLM and never uploads code.**
+HQFlow validates those files, watches them, and renders them as an interactive
+workflow canvas in the browser. **HQFlow contains no LLM and never uploads code.**
 
 ---
 
@@ -95,7 +95,7 @@ tests/
 .codehq/
 ├── project.json
 ├── SKILL.md
-├── diagnostics.json        # written by CodeHQ, read by agents
+├── diagnostics.json        # written by HQFlow, read by agents
 ├── workflows/
 │   └── <id>.json
 └── .runtime/               # gitignored, runtime scratch only
@@ -148,7 +148,7 @@ Semantic validation returns `Issue[]`, never throws.
 
 The schema must reject visual/layout keys anywhere (`x`, `y`, `position`, `color`, `colour`,
 `style`, `width`, `height`, `font`, `css`, `layout`, `icon`) with the message
-`"Visual properties are owned by CodeHQ and must not appear in workflow files."`
+`"Visual properties are owned by HQFlow and must not appear in workflow files."`
 `.strict()` gets most of this; add an explicit check so the error message is actionable.
 
 ---
@@ -238,9 +238,9 @@ endpoint that returns arbitrary file contents. Ever.
 ## 9. CLI
 
 ```
-codehq init       # scaffold .codehq
-codehq open       # start server + open browser
-codehq validate   # validate, print, exit non-zero on error
+hqflow init       # scaffold .codehq
+hqflow open       # start server + open browser
+hqflow validate   # validate, print, exit non-zero on error
 ```
 
 Also `--help`, `--version`, and `open --port <n>`, `open --no-open`.
@@ -417,10 +417,10 @@ drag-only interactions, works down to 1024px width.
 
 ## 13. Definition of done for the whole product
 
-A developer can `npx codehq init`, then `open`, see the local app, copy the agent
+A developer can `npx hqflow init`, then `open`, see the local app, copy the agent
 prompt, have their agent write a workflow JSON, watch the board update live without refreshing,
 click a step, understand its purpose/sources/data/edge cases/tests, open the referenced file in
 their editor, and see honest diagnostics when the agent writes something invalid — all with
 nothing leaving their machine.
 
-> Your coding agent can read the code. CodeHQ lets you see what it understands.
+> Your coding agent can read the code. HQFlow lets you see what it understands.

@@ -13,7 +13,7 @@ import { red } from "./output";
 import { resolveCliVersion } from "./version";
 
 function isDebugMode(program: Command): boolean {
-  return program.opts<{ debug?: boolean }>().debug === true || process.env.CODEHQ_DEBUG === "1";
+  return program.opts<{ debug?: boolean }>().debug === true || process.env.HQFLOW_DEBUG === "1";
 }
 
 /** Prints a clean one-line error unless debug mode is on, in which case it prints the stack. */
@@ -38,10 +38,10 @@ function buildProgram(): Command {
   const program = new Command();
 
   program
-    .name("codehq")
+    .name("hqflow")
     .description("Local-first workflow mapping for coding agents, rendered as an interactive canvas.")
     .version(resolveCliVersion(), "-v, --version", "Print the installed version")
-    .option("--debug", "Print full stack traces on error (also CODEHQ_DEBUG=1)");
+    .option("--debug", "Print full stack traces on error (also HQFLOW_DEBUG=1)");
 
   program
     .command("init")
@@ -102,6 +102,6 @@ async function main(): Promise<void> {
 main().catch((error: unknown) => {
   // Should be unreachable (main() already catches command errors), but guarantees no raw
   // stack trace ever reaches the terminal even if something above it is wrong.
-  reportFatalError(error, process.env.CODEHQ_DEBUG === "1");
+  reportFatalError(error, process.env.HQFLOW_DEBUG === "1");
   process.exitCode = 1;
 });

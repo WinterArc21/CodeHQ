@@ -217,7 +217,7 @@ export interface BuildExportHtmlOptions {
  */
 export function buildExportHtml({ payload, viewerJs, viewerCss }: BuildExportHtmlOptions): string {
   const payloadJson = escapeJsonForScript(JSON.stringify(payload));
-  const title = `${payload.workflowName} — CodeHQ Export`;
+  const title = `${payload.workflowName} — HQFlow Export`;
 
   return `<!doctype html>
 <html lang="en" data-theme="dark">

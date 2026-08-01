@@ -103,7 +103,7 @@ export async function runOpen(options: OpenOptions): Promise<OpenResult> {
   const requestedPort = options.port ?? DEFAULT_PORT;
 
   if (!(await pathExists(paths.dir))) {
-    console.warn(`No .codehq/ found at '${root}' — showing the uninitialized state. Run \`codehq init\` to scaffold it.`);
+    console.warn(`No .codehq/ found at '${root}' — showing the uninitialized state. Run \`hqflow init\` to scaffold it.`);
   }
   if (!isWebBuilt()) {
     console.warn("dist/web has not been built yet. Run `pnpm build` (or `pnpm build:web`), then restart.");
@@ -113,14 +113,14 @@ export async function runOpen(options: OpenOptions): Promise<OpenResult> {
   try {
     server = await createCodeHQServer({ root, port: requestedPort, serveWeb: true });
   } catch (error) {
-    console.error(`Failed to start CodeHQ: ${error instanceof Error ? error.message : String(error)}`);
+    console.error(`Failed to start HQFlow: ${error instanceof Error ? error.message : String(error)}`);
     return { exitCode: 1 };
   }
 
   const displayUrl = `http://localhost:${server.port}`;
   const portNote = server.port !== requestedPort ? ` (${requestedPort} was in use)` : "";
 
-  console.log("CodeHQ is running.");
+  console.log("HQFlow is running.");
   console.log("");
   console.log(`Repository: ${repositoryName(root)}`);
   console.log(`URL: ${displayUrl}${portNote}`);

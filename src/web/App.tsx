@@ -51,7 +51,7 @@ export function App() {
 
   if (snapshot === null) {
     if (status === "error") {
-      return <ErrorState message={error ?? "Unable to reach the CodeHQ server."} onRetry={refetch} />;
+      return <ErrorState message={error ?? "Unable to reach the HQFlow server."} onRetry={refetch} />;
     }
     return <LoadingState />;
   }

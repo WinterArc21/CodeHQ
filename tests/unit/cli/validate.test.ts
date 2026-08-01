@@ -172,6 +172,6 @@ describe("runValidate — missing .codehq", () => {
     const capture = captureConsole();
     printValidateResult(result, false);
     capture.restore();
-    expect(capture.errors.join("\n")).toContain("codehq init");
+    expect(capture.errors.join("\n")).toContain("hqflow init");
   });
 });

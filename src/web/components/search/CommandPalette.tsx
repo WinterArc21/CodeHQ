@@ -107,7 +107,7 @@ export function CommandPalette({ snapshot, onRecheck }: CommandPaletteProps) {
 
   return (
     <div className={styles.backdrop} {...backdropDismiss}>
-      <div ref={containerRef} className={styles.palette} role="dialog" aria-modal="true" aria-label="Search CodeHQ">
+      <div ref={containerRef} className={styles.palette} role="dialog" aria-modal="true" aria-label="Search HQFlow">
         <div className={styles.inputRow}>
           <MagnifyingGlass size={16} aria-hidden="true" />
           <input

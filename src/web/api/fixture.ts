@@ -172,8 +172,8 @@ export function buildCodeHQFixtureSnapshot(): CodeHQSnapshot {
           severity: "error",
           file: ".codehq/workflows/checkout.json",
           path: "steps[2].colour",
-          message: "Visual properties are owned by CodeHQ and must not appear in workflow files.",
-          hint: "Remove this property. CodeHQ computes layout, color, and styling automatically.",
+          message: "Visual properties are owned by HQFlow and must not appear in workflow files.",
+          hint: "Remove this property. HQFlow computes layout, color, and styling automatically.",
         },
         {
           severity: "warning",
