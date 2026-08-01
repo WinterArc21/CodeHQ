@@ -58,7 +58,9 @@ jobs:
 
       - name: Read the release version
         id: version
-        run: echo "value=$(node -p \"require('./package.json').version\")" >> "$GITHUB_OUTPUT"
+        run: |
+          version=$(node -p "require('./package.json').version")
+          echo "value=$version" >> "$GITHUB_OUTPUT"
 
       - name: Check that this version has not already been published
         env:
