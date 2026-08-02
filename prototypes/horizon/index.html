@@ -202,9 +202,14 @@
         font-size: 10px;
       }
 
-      .node-step,
+      .node-step {
+        filter:
+          drop-shadow(0 2px 4px color-mix(in srgb, var(--bg-inset) 58%, transparent))
+          drop-shadow(0 14px 28px color-mix(in srgb, var(--bg-inset) 42%, transparent));
+      }
+
       .node-outcome {
-        filter: drop-shadow(0 8px 18px color-mix(in srgb, var(--bg-inset) 55%, transparent));
+        filter: drop-shadow(0 5px 14px color-mix(in srgb, var(--bg-inset) 38%, transparent));
       }
 
       .node-step .node-bg {
@@ -217,6 +222,11 @@
         fill: currentColor;
       }
 
+      .node-step .top-highlight {
+        stroke: color-mix(in srgb, var(--text-primary) 7%, transparent);
+        stroke-width: 1;
+      }
+
       .node-step.inferred .category-marker {
         stroke: var(--bg-raised);
         stroke-width: 2;
@@ -224,7 +234,7 @@
       }
 
       .index-box {
-        fill: none;
+        fill: var(--bg-inset);
         stroke: var(--border-subtle);
         stroke-width: 1;
       }
@@ -257,17 +267,17 @@
       }
 
       .node-outcome .node-bg {
-        stroke-width: 1.5;
+        stroke-width: 1;
       }
 
       .node-outcome.failure .node-bg {
-        fill: color-mix(in srgb, var(--accent-red) 8%, var(--bg-surface));
-        stroke: var(--accent-red);
+        fill: color-mix(in srgb, var(--accent-red) 6%, var(--bg-surface));
+        stroke: color-mix(in srgb, var(--accent-red) 50%, var(--border-strong));
       }
 
       .node-outcome.success .node-bg {
-        fill: color-mix(in srgb, var(--accent-output) 8%, var(--bg-surface));
-        stroke: var(--accent-output);
+        fill: color-mix(in srgb, var(--accent-output) 6%, var(--bg-surface));
+        stroke: color-mix(in srgb, var(--accent-output) 50%, var(--border-strong));
       }
 
       .node-outcome.neutral .node-bg {
@@ -345,6 +355,23 @@
         fill: var(--bg-surface);
         stroke: var(--border-subtle);
         stroke-width: 1;
+      }
+
+      .label-bg.failure {
+        stroke: color-mix(in srgb, var(--accent-red) 25%, var(--border-subtle));
+      }
+
+      .label-bg.success,
+      .label-bg.primary {
+        stroke: color-mix(in srgb, var(--accent-neutral) 25%, var(--border-subtle));
+      }
+
+      .label-bg.conditional {
+        stroke: color-mix(in srgb, var(--accent-amber) 25%, var(--border-subtle));
+      }
+
+      .label-bg.async {
+        stroke: color-mix(in srgb, var(--accent-blue) 25%, var(--border-subtle));
       }
 
       .edge-label {
@@ -774,7 +801,7 @@
             const width = edgeLabelWidth(label);
             labelLayer.append(
               svgElement("rect", {
-                class: "label-bg",
+                class: `label-bg ${semanticClass}`,
                 x: geometry.labelX - width / 2,
                 y: geometry.labelY - 10,
                 width,
@@ -816,7 +843,8 @@
         });
         group.style.color = `var(${categoryToken})`;
         group.append(
-          svgElement("rect", { class: "node-bg", width: node.width, height: node.height, rx: 5 }),
+          svgElement("rect", { class: "node-bg", width: node.width, height: node.height, rx: 8 }),
+          svgElement("line", { class: "top-highlight", x1: 9, y1: 1, x2: node.width - 9, y2: 1 }),
           svgElement("rect", { class: "category-marker", width: 4, height: node.height, rx: 2 }),
           svgElement("rect", { class: "index-box", x: 16, y: 10, width: 24, height: 18, rx: 2 }),
           svgElement("text", { class: "index-text", x: 28, y: 22.5, "text-anchor": "middle" }, String(node.index + 1).padStart(2, "0")),

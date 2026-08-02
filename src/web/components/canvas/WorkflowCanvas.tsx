@@ -1,6 +1,6 @@
 import "@xyflow/react/dist/style.css";
-import { useCallback, useMemo, useState } from "react";
-import { MiniMap, ReactFlow, ReactFlowProvider, useReactFlow, type NodeMouseHandler } from "@xyflow/react";
+import { useCallback, useLayoutEffect, useMemo, useRef, useState } from "react";
+import { MiniMap, ReactFlow, ReactFlowProvider, useNodesState, useReactFlow, type NodeMouseHandler } from "@xyflow/react";
 import type { Workflow } from "@schema/workflow";
 import type { SourceStatus } from "../../api/types";
 import { usePrefersReducedMotion } from "../../lib/usePrefersReducedMotion";
@@ -9,7 +9,6 @@ import { buildFlowEdges, buildFlowNodes, buildZoneLabelNodes } from "./buildFlow
 import { CanvasLegend } from "./CanvasLegend";
 import { CanvasHeader } from "./CanvasHeader";
 import { CanvasOverflowIndicator } from "./CanvasOverflowIndicator";
-import { computeEdgeRoutes } from "./edgeRouting";
 import { EdgeMarkers } from "./edges/EdgeMarkers";
 import { WorkflowEdge } from "./edges/WorkflowEdge";
 import { computeBackEdgeIds, computeTracePath } from "./graph";
@@ -71,11 +70,7 @@ function WorkflowCanvasInner({ workflow, sourceChecks, onDeleteWorkflow }: Workf
   const selectStep = useCodeHQStore((state) => state.selectStep);
 
   const layout = useMemo(() => computeLayout(workflow, { depth, expandedStepIds }), [workflow, depth, expandedStepIds]);
-  // Sidecar routes for branch edges whose direct path would clip an intervening spine card
-  // (edgeRouting.ts) — computed once here so both edge rendering and viewport fitting agree on
-  // exactly the same routed geometry.
   const backEdgeIds = useMemo(() => computeBackEdgeIds(workflow), [workflow]);
-  const edgeRoutes = useMemo(() => computeEdgeRoutes(layout.nodes, layout.edges, backEdgeIds), [layout, backEdgeIds]);
 
   // Path tracing (contract §11): hover wins over keyboard focus, which wins over the persisted
   // selection, matching how each one takes over the user's attention — a hover is the most
@@ -95,10 +90,10 @@ function WorkflowCanvasInner({ workflow, sourceChecks, onDeleteWorkflow }: Workf
   const onHoverEnd = useCallback(() => setHoveredStepId(null), []);
   const onFocusStep = useCallback((stepId: string) => setFocusedStepId(stepId), []);
   const onBlurStep = useCallback(() => setFocusedStepId(null), []);
+  const handleClearSelection = useCallback(() => selectStep(null), [selectStep]);
 
   const { containerRef, overflowsBottom } = useCanvasFit({
     layoutNodes: layout.nodes,
-    edgeRoutes,
     workflowId: workflow.id,
     workflowRevision,
     depth,
@@ -113,15 +108,16 @@ function WorkflowCanvasInner({ workflow, sourceChecks, onDeleteWorkflow }: Workf
     reactFlowInstance,
     selectedStepId,
     onSelect: selectStep,
-    onClear: () => selectStep(null),
+    onClear: handleClearSelection,
     reducedMotion,
   });
 
-  const nodes = useMemo(
+  const generatedNodes = useMemo(
     () => [
       ...buildFlowNodes({
         workflow,
         layout,
+        backEdgeIds,
         depth,
         expandedStepIds,
         sourceChecks,
@@ -140,6 +136,7 @@ function WorkflowCanvasInner({ workflow, sourceChecks, onDeleteWorkflow }: Workf
     [
       workflow,
       layout,
+      backEdgeIds,
       depth,
       expandedStepIds,
       sourceChecks,
@@ -154,9 +151,19 @@ function WorkflowCanvasInner({ workflow, sourceChecks, onDeleteWorkflow }: Workf
       onBlurStep,
     ],
   );
+  const [nodes, setNodes, onNodesChange] = useNodesState<CanvasFlowNode>(generatedNodes);
+  const previousWorkflowId = useRef(workflow.id);
+  useLayoutEffect(() => {
+    const reset = previousWorkflowId.current !== workflow.id;
+    previousWorkflowId.current = workflow.id;
+    setNodes((current) => {
+      const positions = new Map(current.filter((node) => node.type !== "zoneLabel").map((node) => [node.id, node.position]));
+      return generatedNodes.map((node) => reset || node.type === "zoneLabel" ? node : { ...node, position: positions.get(node.id) ?? node.position });
+    });
+  }, [generatedNodes, setNodes, workflow.id]);
   const edges = useMemo(
-    () => buildFlowEdges(layout, edgeRoutes, backEdgeIds, tracePath?.edgeIds ?? null),
-    [layout, edgeRoutes, backEdgeIds, tracePath],
+    () => buildFlowEdges(layout, backEdgeIds, tracePath?.edgeIds ?? null),
+    [layout, backEdgeIds, tracePath],
   );
 
   const handleNodeClick: NodeMouseHandler<CanvasFlowNode> = (_event, node) => {
@@ -217,7 +224,7 @@ function WorkflowCanvasInner({ workflow, sourceChecks, onDeleteWorkflow }: Workf
           edges={edges}
           nodeTypes={NODE_TYPES}
           edgeTypes={EDGE_TYPES}
-          nodesDraggable={false}
+          nodesDraggable
           nodesConnectable={false}
           nodesFocusable={false}
           elementsSelectable={false}
@@ -225,7 +232,8 @@ function WorkflowCanvasInner({ workflow, sourceChecks, onDeleteWorkflow }: Workf
           minZoom={0.2}
           maxZoom={2}
           onNodeClick={handleNodeClick}
-          onPaneClick={() => selectStep(null)}
+          onNodesChange={onNodesChange}
+          onPaneClick={handleClearSelection}
           aria-label={`${workflow.name} workflow canvas`}
         >
           {showMinimap ? <MiniMap pannable zoomable={false} ariaLabel={`${workflow.name} overview map`} /> : null}

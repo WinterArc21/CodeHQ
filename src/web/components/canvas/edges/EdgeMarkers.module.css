@@ -4,16 +4,33 @@
   height: 0;
 }
 
-.markerSuccess,
+.markerSuccess {
+  fill: none;
+  stroke: var(--accent-neutral);
+}
+
 .markerAsync {
-  fill: var(--accent-neutral);
+  fill: none;
+  stroke: var(--accent-blue);
 }
 
 .markerFailure {
-  fill: var(--accent-red);
+  fill: none;
+  stroke: var(--accent-red);
 }
 
 .markerConditional,
 .markerRetry {
-  fill: var(--accent-amber);
+  fill: none;
+  stroke: var(--accent-amber);
+}
+
+.markerSuccess,
+.markerAsync,
+.markerFailure,
+.markerConditional,
+.markerRetry {
+  stroke-width: 1.8;
+  stroke-linecap: round;
+  stroke-linejoin: round;
 }

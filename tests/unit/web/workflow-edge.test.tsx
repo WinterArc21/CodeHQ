@@ -60,68 +60,68 @@ function edgePaths(container: HTMLElement): { semantic: SVGPathElement; halo: SV
 
 describe("WorkflowEdge visual grammar", () => {
   describe("stroke width per connection type", () => {
-    it("renders the primary (success/default) path at 2.25px", () => {
+    it("renders the primary (success/default) path at 2.75px", () => {
       const { semantic } = edgePaths(renderEdge(makeData({ connection: makeConnection({ type: "success" }) })));
-      expect(semantic.style.strokeWidth).toBe("2.25");
+      expect(semantic.style.strokeWidth).toBe("2.75");
     });
 
     it("renders an untyped (default) connection at the primary width", () => {
       const { semantic } = edgePaths(renderEdge(makeData({ connection: makeConnection() })));
-      expect(semantic.style.strokeWidth).toBe("2.25");
+      expect(semantic.style.strokeWidth).toBe("2.75");
     });
 
-    it("renders failure and conditional at 1.5px", () => {
+    it("renders failure and conditional at 2px", () => {
       for (const type of ["failure", "conditional"] as const) {
         const { semantic } = edgePaths(renderEdge(makeData({ connection: makeConnection({ type }) })));
-        expect(semantic.style.strokeWidth, type).toBe("1.5");
+        expect(semantic.style.strokeWidth, type).toBe("2");
       }
     });
 
-    it("renders async at 1.75px", () => {
+    it("renders async at 2px", () => {
       const { semantic } = edgePaths(renderEdge(makeData({ connection: makeConnection({ type: "async" }) })));
-      expect(semantic.style.strokeWidth).toBe("1.75");
+      expect(semantic.style.strokeWidth).toBe("2");
     });
 
-    it("renders a retry self-loop at 1.5px", () => {
+    it("renders a retry self-loop at 2px", () => {
       const { semantic } = edgePaths(
         renderEdge(
           makeData({
             connection: makeConnection({ from: "a", to: "a", type: "conditional", label: "retry" }),
-            retryLoop: { x: 0, y: 0, width: 200, height: 80 },
+            retry: true,
           }),
         ),
       );
-      expect(semantic.style.strokeWidth).toBe("1.5");
+      expect(semantic.style.strokeWidth).toBe("2");
     });
   });
 
   describe("dash patterns", () => {
-    it("uses 7 5 dashes for failure/conditional/retry", () => {
+    it("uses 8 6 dashes for failure/conditional/retry", () => {
       for (const type of ["failure", "conditional"] as const) {
         const { semantic } = edgePaths(renderEdge(makeData({ connection: makeConnection({ type }) })));
-        expect(semantic.style.strokeDasharray, type).toBe("7 5");
+        expect(semantic.style.strokeDasharray, type).toBe("8 6");
       }
       const { semantic: retry } = edgePaths(
         renderEdge(
           makeData({
             connection: makeConnection({ from: "a", to: "a", type: "conditional", label: "retry" }),
-            retryLoop: { x: 0, y: 0, width: 200, height: 80 },
+            retry: true,
           }),
         ),
       );
-      expect(retry.style.strokeDasharray).toBe("7 5");
+      expect(retry.style.strokeDasharray).toBe("8 6");
     });
 
-    it("renders async as rounded beads: 1 5 dashes with round line-caps", () => {
+    it("renders async as rounded beads: 1 6 dashes with round line-caps", () => {
       const { semantic } = edgePaths(renderEdge(makeData({ connection: makeConnection({ type: "async" }) })));
-      expect(semantic.style.strokeDasharray).toBe("1 5");
+      expect(semantic.style.strokeDasharray).toBe("1 6");
       expect(semantic.style.strokeLinecap).toBe("round");
     });
 
-    it("leaves solid (success) edges undashed with default line-caps", () => {
+    it("leaves solid (success) edges undashed with rounded line-caps", () => {
       const { semantic } = edgePaths(renderEdge(makeData({ connection: makeConnection({ type: "success" }) })));
       expect(semantic.style.strokeDasharray).toBe("");
-      expect(semantic.style.strokeLinecap).toBe("");
+      expect(semantic.style.strokeLinecap).toBe("round");
     });
   });
 
@@ -135,32 +135,32 @@ describe("WorkflowEdge visual grammar", () => {
 
     it("dims an unrelated edge to the dimmed factor while tracing", () => {
       const { semantic, halo } = edgePaths(renderEdge(makeData({ connection: makeConnection({ type: "failure" }), dimmed: true })));
-      expect(semantic.style.opacity).toBe("0.3");
-      expect(halo.style.opacity).toBe("0.3");
+      expect(semantic.style.opacity).toBe("0.25");
+      expect(halo.style.opacity).toBe("0.25");
     });
 
-    it("strengthens a traced edge's stroke by 0.75px without dimming it", () => {
+    it("strengthens a traced edge's stroke by 1px without dimming it", () => {
       const { semantic, halo } = edgePaths(
         renderEdge(makeData({ connection: makeConnection({ type: "success" }), traced: true })),
       );
-      expect(semantic.style.strokeWidth).toBe("3");
+      expect(semantic.style.strokeWidth).toBe("3.75");
       expect(semantic.style.opacity).toBe("1");
       // The halo grows with the semantic stroke so the casing stays proportionate.
-      expect(halo.style.strokeWidth).toBe("5");
+      expect(halo.style.strokeWidth).toBe("7.75");
     });
 
     it("does not strengthen an untraced edge", () => {
       const { semantic } = edgePaths(renderEdge(makeData({ connection: makeConnection({ type: "failure" }) })));
-      expect(semantic.style.strokeWidth).toBe("1.5");
+      expect(semantic.style.strokeWidth).toBe("2");
     });
   });
 
   describe("edge casing / halo", () => {
-    it("paints a background-coloured underlay 2px wider than the semantic stroke", () => {
+    it("paints a background-coloured underlay 4px wider than the semantic stroke", () => {
       const { semantic, halo } = edgePaths(renderEdge(makeData({ connection: makeConnection({ type: "failure" }) })));
       expect(halo.getAttribute("fill")).toBe("none");
       expect(halo.style.stroke).toBe("var(--bg-canvas)");
-      expect(Number(halo.style.strokeWidth)).toBe(Number(semantic.style.strokeWidth) + 2);
+      expect(Number(halo.style.strokeWidth)).toBe(Number(semantic.style.strokeWidth) + 4);
     });
 
     it("never captures pointer events", () => {

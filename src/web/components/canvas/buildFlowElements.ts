@@ -6,7 +6,6 @@ import type { Workflow } from "@schema/workflow";
 import type { SourceStatus } from "../../api/types";
 import type { Depth } from "../../store/useCodeHQStore";
 import { outcomeTone } from "../../design/semantics";
-import type { RoutedEdge } from "./edgeRouting";
 import { computeIncomingTypes } from "./graph";
 import type { LayoutResult } from "./layout";
 import { effectiveDepthForStep, stepHasMissingSource } from "./nodeContent";
@@ -16,10 +15,10 @@ function isStepExpanded(expandedStepIds: Record<string, true>, stepId: string): 
   return expandedStepIds[stepId] === true;
 }
 
-/** Rendered size of a `.react-flow__handle` (React Flow's own default handle CSS — the node
- * stylesheets here only make them invisible, never resize them). Handles are pure geometric
- * anchors: `nodesConnectable` is false, so nothing ever sees or interacts with them. */
-const HANDLE_SIZE = 6;
+/** Rendered size of the visible geometric ports in both node stylesheets. */
+const HANDLE_SIZE = 10;
+const RETRY_IN_FRACTION = 0.28;
+const RETRY_OUT_FRACTION = 0.72;
 
 /**
  * The connection anchors, stated up front instead of left to be measured.
@@ -42,18 +41,26 @@ const HANDLE_SIZE = 6;
  * elements stay in the node components, and React Flow may still overwrite these from the DOM
  * whenever a measurement does land, with both sources agreeing.
  */
-function nodeHandles(width: number, height: number): NodeHandle[] {
-  const centeredX = width / 2 - HANDLE_SIZE / 2;
+function stepHandles(
+  width: number,
+  height: number,
+  failure: boolean,
+  success: boolean,
+  retry: boolean,
+  returnIn: boolean,
+  returnOut: boolean,
+): NodeHandle[] {
   return [
-    { type: "target", position: Position.Top, x: centeredX, y: -HANDLE_SIZE / 2, width: HANDLE_SIZE, height: HANDLE_SIZE },
-    {
-      type: "source",
-      position: Position.Bottom,
-      x: centeredX,
-      y: height - HANDLE_SIZE / 2,
-      width: HANDLE_SIZE,
-      height: HANDLE_SIZE,
-    },
+    { id: "in", type: "target", position: Position.Left, x: -HANDLE_SIZE / 2, y: height / 2 - HANDLE_SIZE / 2, width: HANDLE_SIZE, height: HANDLE_SIZE },
+    { id: "out", type: "source", position: Position.Right, x: width - HANDLE_SIZE / 2, y: height / 2 - HANDLE_SIZE / 2, width: HANDLE_SIZE, height: HANDLE_SIZE },
+    ...(failure ? [{ id: "failure", type: "source" as const, position: Position.Top, x: width / 2 - HANDLE_SIZE / 2, y: -HANDLE_SIZE / 2, width: HANDLE_SIZE, height: HANDLE_SIZE }] : []),
+    ...(success ? [{ id: "success", type: "source" as const, position: Position.Bottom, x: width / 2 - HANDLE_SIZE / 2, y: height - HANDLE_SIZE / 2, width: HANDLE_SIZE, height: HANDLE_SIZE }] : []),
+    ...(returnIn ? [{ id: "return-in", type: "target" as const, position: Position.Top, x: width * 0.3 - HANDLE_SIZE / 2, y: -HANDLE_SIZE / 2, width: HANDLE_SIZE, height: HANDLE_SIZE }] : []),
+    ...(returnOut ? [{ id: "return-out", type: "source" as const, position: Position.Top, x: width * 0.7 - HANDLE_SIZE / 2, y: -HANDLE_SIZE / 2, width: HANDLE_SIZE, height: HANDLE_SIZE }] : []),
+    ...(retry ? [
+      { id: "retry-in", type: "target" as const, position: Position.Right, x: width - HANDLE_SIZE / 2, y: height * RETRY_IN_FRACTION - HANDLE_SIZE / 2, width: HANDLE_SIZE, height: HANDLE_SIZE },
+      { id: "retry-out", type: "source" as const, position: Position.Right, x: width - HANDLE_SIZE / 2, y: height * RETRY_OUT_FRACTION - HANDLE_SIZE / 2, width: HANDLE_SIZE, height: HANDLE_SIZE },
+    ] : []),
   ];
 }
 
@@ -69,6 +76,7 @@ export interface TraceHandlers {
 export interface BuildFlowNodesParams extends TraceHandlers {
   workflow: Workflow;
   layout: LayoutResult;
+  backEdgeIds: ReadonlySet<string>;
   depth: Depth;
   expandedStepIds: Record<string, true>;
   sourceChecks: Record<string, SourceStatus>;
@@ -104,18 +112,29 @@ export function buildFlowNodes(params: BuildFlowNodesParams): Array<StepFlowNode
     };
 
     if (layoutNode.isOutcome) {
+      const tone = outcomeTone(incomingTypesByStep.get(step.id) ?? []);
+      const band = layoutNode.outcomeBand ?? "success";
+      const position = band === "failure" ? Position.Bottom : Position.Top;
       return {
         id: layoutNode.id,
         type: "outcome",
         position: { x: layoutNode.x, y: layoutNode.y },
         width: layoutNode.width,
         height: layoutNode.height,
-        handles: nodeHandles(layoutNode.width, layoutNode.height),
-        sourcePosition: Position.Bottom,
-        targetPosition: Position.Top,
+        handles: [{
+          id: "in",
+          type: "target",
+          position,
+          x: layoutNode.width / 2 - HANDLE_SIZE / 2,
+          y: position === Position.Top ? -HANDLE_SIZE / 2 : layoutNode.height - HANDLE_SIZE / 2,
+          width: HANDLE_SIZE,
+          height: HANDLE_SIZE,
+        }],
+        targetPosition: position,
         data: {
           step,
-          tone: outcomeTone(incomingTypesByStep.get(step.id) ?? []),
+          tone,
+          band,
           dimmed,
           tabIndex: params.getTabIndex(step.id),
           onKeyDown: (event: ReactKeyboardEvent<HTMLElement>) => params.onNodeKeyDown(event, step.id),
@@ -124,17 +143,36 @@ export function buildFlowNodes(params: BuildFlowNodesParams): Array<StepFlowNode
       };
     }
 
+    const outcomeNodeById = new Map(params.layout.nodes.filter((node) => node.isOutcome).map((node) => [node.id, node] as const));
+    const outcomeEdges = params.workflow.connections.filter((edge) => edge.from === step.id && outcomeNodeById.has(edge.to));
+    const hasFailureOutcome = outcomeEdges.some((edge) => outcomeNodeById.get(edge.to)?.outcomeBand === "failure");
+    const hasSuccessOutcome = outcomeEdges.some((edge) => outcomeNodeById.get(edge.to)?.outcomeBand === "success");
+    const hasRetry = params.workflow.connections.some((edge) => edge.from === step.id && edge.to === step.id);
+    const hasReturnIn = params.workflow.connections.some((edge, index) => {
+      const id = edge.id ?? `${edge.from}->${edge.to}#${index}`;
+      return edge.to === step.id && edge.from !== edge.to && params.backEdgeIds.has(id);
+    });
+    const hasReturnOut = params.workflow.connections.some((edge, index) => {
+      const id = edge.id ?? `${edge.from}->${edge.to}#${index}`;
+      return edge.from === step.id && edge.from !== edge.to && params.backEdgeIds.has(id);
+    });
     return {
       id: layoutNode.id,
       type: "step",
       position: { x: layoutNode.x, y: layoutNode.y },
       width: layoutNode.width,
       height: layoutNode.height,
-      handles: nodeHandles(layoutNode.width, layoutNode.height),
-      // Matches the top-to-bottom layout: connections flow in on the top, out on the bottom,
-      // so edges route cleanly downward instead of doubling back on themselves.
-      sourcePosition: Position.Bottom,
-      targetPosition: Position.Top,
+      handles: stepHandles(
+        layoutNode.width,
+        layoutNode.height,
+        hasFailureOutcome,
+        hasSuccessOutcome,
+        hasRetry,
+        hasReturnIn,
+        hasReturnOut,
+      ),
+      sourcePosition: Position.Right,
+      targetPosition: Position.Left,
       data: {
         step,
         index: layoutNode.index,
@@ -142,6 +180,11 @@ export function buildFlowNodes(params: BuildFlowNodesParams): Array<StepFlowNode
         expanded: isStepExpanded(params.expandedStepIds, step.id),
         selected: step.id === params.selectedStepId,
         hasMissingSource: stepHasMissingSource(step, params.sourceChecks),
+        hasFailureOutcome,
+        hasSuccessOutcome,
+        hasRetry,
+        hasReturnIn,
+        hasReturnOut,
         dimmed,
         tabIndex: params.getTabIndex(step.id),
         onToggleExpand: () => params.onToggleExpand(step.id),
@@ -154,18 +197,16 @@ export function buildFlowNodes(params: BuildFlowNodesParams): Array<StepFlowNode
 
 export function buildFlowEdges(
   layout: LayoutResult,
-  routes: ReadonlyMap<string, RoutedEdge>,
   backEdgeIds: ReadonlySet<string>,
   traceEdgeIds: ReadonlySet<string> | null,
 ): WorkflowFlowEdge[] {
   const nodeById = new Map(layout.nodes.map((node) => [node.id, node] as const));
 
   return layout.edges.map((edge) => {
-    const route = routes.get(edge.id);
-    // Only a literal self-loop means retry. Other DFS back edges retain their declared
-    // connection semantics and use the sidecar route computed by edgeRouting.
+    // Only a literal self-loop means retry. Other DFS back edges retain their declared semantics.
     const isRetryLoop = backEdgeIds.has(edge.id) && edge.source === edge.target;
-    const sourceNode = nodeById.get(edge.source);
+    const isReturnEdge = backEdgeIds.has(edge.id) && edge.source !== edge.target;
+    const targetNode = nodeById.get(edge.target);
     // `computeTracePath` supplies only the anchor's outgoing edge ids. All other edges remain in
     // the canvas as context but dim while a trace is active.
     const dimmed = traceEdgeIds !== null && !traceEdgeIds.has(edge.id);
@@ -176,15 +217,21 @@ export function buildFlowEdges(
       type: "workflow",
       source: edge.source,
       target: edge.target,
+      sourceHandle: isRetryLoop
+        ? "retry-out"
+        : isReturnEdge
+          ? "return-out"
+        : targetNode?.isOutcome
+          ? targetNode.outcomeBand === "failure" ? "failure" : "success"
+          : "out",
+      targetHandle: isRetryLoop ? "retry-in" : isReturnEdge ? "return-in" : "in",
       focusable: false,
       data: {
         connection: edge.connection,
+        retry: isRetryLoop,
+        returnEdge: isReturnEdge,
         dimmed,
         traced,
-        ...(route !== undefined ? { route } : {}),
-        ...(isRetryLoop && sourceNode !== undefined
-          ? { retryLoop: { x: sourceNode.x, y: sourceNode.y, width: sourceNode.width, height: sourceNode.height } }
-          : {}),
       },
     };
   });
@@ -211,15 +258,25 @@ export function buildZoneLabelNodes(layout: LayoutResult, traceActive = false): 
   const usedIds = new Set(layout.nodes.map((node) => node.id));
   const mainLineNodes = layout.nodes.filter((node) => !node.isOutcome);
   const outcomeNodes = layout.nodes.filter((node) => node.isOutcome);
-  const topY = Math.min(...layout.nodes.map((node) => node.y)) - ZONE_LABEL_GAP_ABOVE;
-
-  const specs: Array<{ id: string; text: string; x: number }> = [];
-  const isTrueSingleColumn = mainLineNodes.length > 0 && mainLineNodes.every((node) => node.x === mainLineNodes[0]?.x);
-  if (isTrueSingleColumn) {
-    specs.push({ id: "__zone-label-main-line", text: "Main line", x: Math.min(...mainLineNodes.map((node) => node.x)) });
+  const specs: Array<{ id: string; text: string; x: number; y: number }> = [];
+  if (mainLineNodes.length > 0) {
+    specs.push({
+      id: "__zone-label-main-line",
+      text: "Main flow",
+      x: Math.min(...mainLineNodes.map((node) => node.x)),
+      y: Math.min(...mainLineNodes.map((node) => node.y)) - ZONE_LABEL_GAP_ABOVE,
+    });
   }
-  if (outcomeNodes.length > 0) {
-    specs.push({ id: "__zone-label-outcomes", text: "Outcomes", x: Math.min(...outcomeNodes.map((node) => node.x)) });
+  for (const band of ["failure", "success"] as const) {
+    const nodes = outcomeNodes.filter((node) => node.outcomeBand === band);
+    if (nodes.length > 0) {
+      specs.push({
+        id: `__zone-label-${band}`,
+        text: band === "failure" ? "Failure outcomes" : "Success / completion",
+        x: Math.min(...nodes.map((node) => node.x)),
+        y: Math.min(...nodes.map((node) => node.y)) - ZONE_LABEL_GAP_ABOVE,
+      });
+    }
   }
 
   return specs
@@ -227,7 +284,7 @@ export function buildZoneLabelNodes(layout: LayoutResult, traceActive = false): 
     .map((spec) => ({
       id: spec.id,
       type: "zoneLabel",
-      position: { x: spec.x, y: topY },
+      position: { x: spec.x, y: spec.y },
       draggable: false,
       selectable: false,
       focusable: false,

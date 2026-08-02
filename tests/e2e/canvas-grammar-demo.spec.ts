@@ -114,9 +114,9 @@ test("renders the synthetic retry, return, async, fan-out/fan-in, and outcomes w
   const retry = page.locator('.react-flow__edge[data-id="retry-encode"] path.react-flow__edge-path');
   const returned = page.locator('.react-flow__edge[data-id="review-reencode"] path.react-flow__edge-path');
   const asyncHandoff = page.locator('.react-flow__edge[data-id="review-notify"] path.react-flow__edge-path');
-  await expect(retry).toHaveCSS("stroke-dasharray", /7px, 5px/);
-  await expect(returned).toHaveCSS("stroke-dasharray", /7px, 5px/);
-  await expect(asyncHandoff).toHaveCSS("stroke-dasharray", /1px, 5px/);
+  await expect(retry).toHaveCSS("stroke-dasharray", /8px, 6px/);
+  await expect(returned).toHaveCSS("stroke-dasharray", /8px, 6px/);
+  await expect(asyncHandoff).toHaveCSS("stroke-dasharray", /1px, 6px/);
   expect(await retry.getAttribute("d")).not.toBe(await returned.getAttribute("d"));
 
   await expect(page.locator('[data-step-node="outcome-created"]')).toHaveAttribute("aria-label", /^Success outcome:/);
@@ -144,6 +144,35 @@ test("keeps every example-workflow edge clear of card interiors", async ({ page 
     await waitForBoot(page);
     expect(await renderedEdgeNodeOcclusions(page), workflow).toEqual([]);
   }
+});
+
+test("keeps a connection attached while its card is freely dragged", async ({ page }) => {
+  await page.goto(server.url);
+  await waitForBoot(page);
+  await selectWorkflowByName(page, "Generate Video Prompt");
+
+  const node = page.locator('[data-step-node="validate-request"]');
+  const edge = page.locator('.react-flow__edge[data-id^="receive-request->validate-request"] path.react-flow__edge-path');
+  const before = await edge.getAttribute("d");
+  const box = await node.boundingBox();
+  expect(box).not.toBeNull();
+
+  await page.mouse.move(box!.x + box!.width / 2, box!.y + box!.height / 2);
+  await page.mouse.down();
+  await page.mouse.move(box!.x + box!.width / 2 + 120, box!.y + box!.height / 2 + 70, { steps: 12 });
+  await page.mouse.up();
+
+  await expect.poll(() => edge.getAttribute("d")).not.toBe(before);
+  const endpointDistance = await edge.evaluate((path) => {
+    const svgPath = path as SVGPathElement;
+    const endpoint = svgPath.getPointAtLength(svgPath.getTotalLength());
+    const screenEndpoint = new DOMPoint(endpoint.x, endpoint.y).matrixTransform(svgPath.getScreenCTM() ?? new DOMMatrix());
+    const handle = document.querySelector<HTMLElement>('[data-nodeid="validate-request"][data-handleid="in"]');
+    if (handle === null) return Number.POSITIVE_INFINITY;
+    const rect = handle.getBoundingClientRect();
+    return Math.hypot(screenEndpoint.x - (rect.left + rect.width / 2), screenEndpoint.y - (rect.top + rect.height / 2));
+  });
+  expect(endpointDistance).toBeLessThan(5);
 });
 
 test("captures deterministic dark and light review screenshots", async ({ page }) => {

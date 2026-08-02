@@ -54,7 +54,7 @@ export function computeFitViewport(input: FitViewportInput): Viewport | null {
   const contentWidth = boundsWidth * zoom;
   const contentHeight = boundsHeight * zoom;
 
-  const x = (containerWidth - contentWidth) / 2 - bounds.minX * zoom;
+  const x = contentWidth <= availableWidth ? (containerWidth - contentWidth) / 2 - bounds.minX * zoom : paddingX - bounds.minX * zoom;
   const y =
     contentHeight <= availableHeight
       ? (containerHeight - contentHeight) / 2 - bounds.minY * zoom

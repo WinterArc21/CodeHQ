@@ -199,6 +199,7 @@ describe("canvas outcome and legend semantics", () => {
     const data: OutcomeNodeData = {
       step: makeStep({ id: "done", name: "Done", purpose: "Processing ended." }),
       tone: "neutral",
+      band: "success",
       dimmed: false,
       tabIndex: -1,
       onKeyDown: () => {},

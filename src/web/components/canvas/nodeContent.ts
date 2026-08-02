@@ -22,10 +22,10 @@ export const MAX_SYMBOL_ROWS = 8;
 // Mirrors `--space-1` (4px) — see `.body`'s padding in `StepNode.module.css`. Tighter than the
 // original 8px: the two-line purpose reservation below (needed to stop hard-truncating purpose
 // text) has to be paid for somewhere, and slack padding is cheaper to spend than row content.
-const NODE_PADDING_Y = 4;
+const BODY_PADDING_Y = 12;
 // Matches the 24px `IconButton` "sm" square that now lives inline in the header (the per-step
 // expand toggle moved there from its own row, see StepNode.tsx) so the row never clips it.
-const HEADER_ROW_HEIGHT = 24;
+const HEADER_ROW_HEIGHT = 40;
 /** Height of one purpose line. `purposeLineCount` decides whether a card reserves one or two of
  * these — see its own doc comment for why that's a character count, not a DOM measurement. */
 export const PURPOSE_LINE_HEIGHT = 16;
@@ -36,8 +36,8 @@ export const PURPOSE_LINE_HEIGHT = 16;
  * DOM-free (contract §11), so it can only approximate what will wrap, not know it exactly — an
  * approximation is an acceptable trade for a layout that never needs the browser to compute. */
 export const PURPOSE_SINGLE_LINE_MAX_CHARS = 52;
-const META_ROW_HEIGHT = 18;
-const FACTS_ROW_HEIGHT = 16;
+const FOOTER_ROW_HEIGHT = 30;
+const DETAIL_SEPARATOR_PADDING = 5;
 const SECTION_LABEL_HEIGHT = 14;
 const FILE_ROW_HEIGHT = 14;
 // Slightly taller than a file row: a symbol row carries more content (file + arrow + symbol()),
@@ -73,29 +73,6 @@ const OUTCOME_NAME_CHAR_WIDTH = 8;
 export function computeOutcomeNodeWidth(step: WorkflowStep): number {
   const estimated = OUTCOME_NODE_CHROME_WIDTH + step.name.length * OUTCOME_NAME_CHAR_WIDTH;
   return Math.min(OUTCOME_NODE_MAX_WIDTH, Math.max(OUTCOME_NODE_MIN_WIDTH, estimated));
-}
-
-/** Estimated rendered height of a connection label chip (`WorkflowEdge.module.css`'s `.label`):
- * `--fs-micro` (11px) at a system sans's typical ~1.4 line-height ≈ 15px, plus 1px padding and
- * 1px border on both the top and bottom ≈ 4px more. A DOM-free estimate, like every other size in
- * this file (contract: "Do not measure the DOM") — deliberately rounds up a little so a rank gap
- * sized from it always has a pixel or two to spare rather than exactly touching the chip. Shared
- * by `layout.ts` (sizes the rank gap around it) and tests that assert a label chip never overlaps
- * a node box, so both reason about the same estimate the renderer's own CSS actually produces. */
-export const EDGE_LABEL_CHIP_HEIGHT = 20;
-/** Approximate px-per-character for a label chip's mono text at `--fs-micro` — calibrated from a
- * real measurement already on record in this codebase (`edgeRouting.ts`'s `LANE_GAP`: the
- * rendered "unreachable" chip, 11 characters, measured ~78 flow units wide via a real
- * `getBoundingClientRect()`, not estimated): `(78 - EDGE_LABEL_CHROME_WIDTH) / 11 ≈ 5.45`. */
-const EDGE_LABEL_CHAR_WIDTH = 5.5;
-/** Fixed chrome a label chip reserves regardless of text: `--space-2` (8px) horizontal padding on
- * each side plus a 1px border on each side. */
-const EDGE_LABEL_CHROME_WIDTH = 18;
-
-/** Estimated rendered width of a connection label chip for a given label string — same
- * DOM-free-estimate approach as `EDGE_LABEL_CHIP_HEIGHT`. */
-export function estimateLabelChipWidth(text: string): number {
-  return EDGE_LABEL_CHROME_WIDTH + text.length * EDGE_LABEL_CHAR_WIDTH;
 }
 
 export interface StepIoSummary {
@@ -248,20 +225,12 @@ export function stepHasMissingSource(step: WorkflowStep, sourceChecks: Record<st
  * so it is identical in a Node test and in the browser (contract §11: "Do not measure the DOM").
  */
 export function computeNodeHeight(step: WorkflowStep, effectiveDepth: Depth): number {
-  let height =
-    NODE_PADDING_Y * 2 +
-    HEADER_ROW_HEIGHT +
-    PURPOSE_LINE_HEIGHT * purposeLineCount(step.purpose) +
-    META_ROW_HEIGHT;
-
-  if (showsIoOnCard(effectiveDepth) && stepHasFacts(step)) {
-    height += FACTS_ROW_HEIGHT;
-  }
+  let height = HEADER_ROW_HEIGHT + BODY_PADDING_Y * 2 + PURPOSE_LINE_HEIGHT * purposeLineCount(step.purpose) + FOOTER_ROW_HEIGHT;
 
   if (effectiveDepth === "modules") {
     const files = stepModuleFiles(step);
     if (files.length > 0) {
-      height += SECTION_LABEL_HEIGHT + Math.min(files.length, MAX_MODULE_ROWS) * FILE_ROW_HEIGHT;
+      height += DETAIL_SEPARATOR_PADDING + SECTION_LABEL_HEIGHT + Math.min(files.length, MAX_MODULE_ROWS) * FILE_ROW_HEIGHT;
       if (files.length > MAX_MODULE_ROWS) {
         height += MORE_ROW_HEIGHT;
       }
@@ -271,7 +240,7 @@ export function computeNodeHeight(step: WorkflowStep, effectiveDepth: Depth): nu
   if (effectiveDepth === "symbols") {
     const rows = stepSymbolRows(step);
     if (rows.length > 0) {
-      height += SECTION_LABEL_HEIGHT + Math.min(rows.length, MAX_SYMBOL_ROWS) * SYMBOL_ROW_HEIGHT;
+      height += DETAIL_SEPARATOR_PADDING + SECTION_LABEL_HEIGHT + Math.min(rows.length, MAX_SYMBOL_ROWS) * SYMBOL_ROW_HEIGHT;
       if (rows.length > MAX_SYMBOL_ROWS) {
         height += MORE_ROW_HEIGHT;
       }

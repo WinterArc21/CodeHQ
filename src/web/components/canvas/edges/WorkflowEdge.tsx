@@ -1,97 +1,98 @@
 import type { CSSProperties } from "react";
-import { BaseEdge, EdgeLabelRenderer, getSmoothStepPath, type EdgeProps } from "@xyflow/react";
+import { BaseEdge, EdgeLabelRenderer, getBezierPath, getSmoothStepPath, Position, type EdgeProps } from "@xyflow/react";
 import { connectionStyle, RETRY_EDGE_VISUAL } from "../../../design/semantics";
-import { connectionLabelText, LABEL_X_BLEND_TOWARD_TARGET, LABEL_Y_OFFSET_FROM_SOURCE } from "../edgeLabel";
-import { buildOrthogonalPath, buildRetryLoopPath, SIDECAR_CORNER_RADIUS } from "../edgeRouting";
+import { connectionLabelText } from "../edgeLabel";
 import type { WorkflowFlowEdge } from "../types";
 import { edgeMarkerId } from "./EdgeMarkers";
 import styles from "./WorkflowEdge.module.css";
 
-/** Rounded-corner radius for the smoothstep routing — gentle enough to read cleanly in a
- * top-to-bottom layout without the sharp right angles of a plain step path. */
-const EDGE_BORDER_RADIUS = 10;
+/** Branches turn with a broad radius so they feel routed rather than mechanically elbowed. */
+const EDGE_BORDER_RADIUS = 16;
+const RETRY_LOOP_OUTSET = 80;
+const RETURN_EDGE_LIFT = 84;
 
-/** Stroke width per connection type (contract §10.3 / edge-grammar table: normal sync flow is
- * "solid, strongest weight"; every branch — conditional, failure, async, retry — reads as clearly
- * subordinate but still legible, never invisible). Kept deliberately lighter than card borders
- * at rest so a dense graph reads as nodes connected by meaning, not a web of cables. Keyed by the
- * same discriminator the marker uses (`markerVariant`: the connection `type`, or `"retry"` for a
- * self-loop), so the line and arrowhead always share one grammar entry. Async remains slightly
- * heavier than the other branches because rounded-bead dashing thins its perceived line. */
+/** Stroke width per connection type: normal sync flow is the strongest weight; every branch —
+ * conditional, failure, async, retry — reads as subordinate but still intentional and legible.
+ * The line and arrowhead use the same connection-type discriminator. */
 function edgeStrokeWidth(variant: string): number {
   switch (variant) {
     case "success":
-      return 2.25;
+      return 2.75;
     case "async":
-      return 1.75;
+      return 2;
     case "failure":
     case "conditional":
     case "retry":
-      return 1.5;
+      return 2;
     default:
-      return 2.25;
+      return 2.75;
   }
 }
 
 const DASH_PATTERNS: Record<"dashed" | "dotted", string> = {
-  dashed: "7 5",
-  dotted: "1 5",
+  dashed: "8 6",
+  dotted: "1 6",
 };
 
 /** How much wider than the semantic stroke the background-coloured casing/halo paints — a solid
  * underlay that carves the dashed line clear of the canvas grid and neighbouring card borders
  * without introducing a neon outline. The halo follows the same path shape (dashes are preserved
  * on the semantic stroke on top); only its width grows. */
-const HALO_WIDTH_PADDING = 2;
+const HALO_WIDTH_PADDING = 4;
 /** How much a traced edge's stroke grows when path tracing is active (contract §11): tracing must
  * not only dim unrelated paths, it must also strengthen the path the user is following, so the
  * traced line reads as the figure rather than merely the ground. Kept under the next weight tier
  * so hierarchy is reinforced, not flattened. */
-const TRACED_STROKE_BOOST = 0.75;
+const TRACED_STROKE_BOOST = 1;
 /** Opacity applied to a dimmed edge during path tracing (contract §11) — a dimmed edge fades to a
  * quiet background tone while traced edges strengthen, so the followed path reads as the figure. */
-const DIMMED_OPACITY_FACTOR = 0.3;
+const DIMMED_OPACITY_FACTOR = 0.25;
 
 /**
- * A thin, directional connector styled entirely from `connectionStyle` (contract §10): neutral
- * solid for success/default, muted red dashed for failure, amber dashed with its label always
- * shown for conditional, neutral dotted for async. The primary path renders bolder than a
- * branch so a reader can trace "what happens next" without consciously parsing colour.
- *
- * A branch edge whose direct path would clip an intervening spine card carries a pre-computed
- * `data.route` (`edgeRouting.ts`) — an explicit sidecar path around the graph instead of the
- * smoothstep curve every other edge uses, so "what happens when this fails" stays traceable
- * instead of running invisibly through the cards in between. The label — when either `label` or
- * `condition` is present — is a small mono chip with its own opaque background so it stays
- * legible over the canvas grid, anchored near the connection's own source point (a routed edge
- * anchors on its own lane segment instead; see `route.labelPoint`).
+ * A directional connector styled from `connectionStyle`: neutral solid for success/default,
+ * muted red dashed for failure, amber dashed for conditional, and neutral dotted for async.
+ * Geometry is derived from React Flow's live handle coordinates, so every path remains attached
+ * while a card is dragged. The primary path renders bolder than a branch so a reader can follow
+ * "what happens next" without consciously parsing colour.
  */
 export function WorkflowEdge({ id, data, source, target, sourceX, sourceY, sourcePosition, targetX, targetY, targetPosition }: EdgeProps<WorkflowFlowEdge>) {
   if (data === undefined) {
     return null;
   }
 
-  const { connection, route, retryLoop, dimmed, traced } = data;
-  const isRetryLoop = retryLoop !== undefined;
+  const { connection, retry = false, returnEdge = false, dimmed, traced } = data;
+  const isRetryLoop = retry;
   const visual = isRetryLoop ? RETRY_EDGE_VISUAL : connectionStyle(connection.type);
   const markerVariant = isRetryLoop ? "retry" : connection.type;
 
   let path: string;
   let labelX: number;
   let labelY: number;
-  if (retryLoop !== undefined) {
-    const loop = buildRetryLoopPath(retryLoop);
-    path = loop.d;
-    labelX = loop.labelPoint.x;
-    labelY = loop.labelPoint.y;
-  } else if (route !== undefined) {
-    path = buildOrthogonalPath(route.points, SIDECAR_CORNER_RADIUS);
-    labelX = route.labelPoint.x;
-    labelY = route.labelPoint.y;
+  if (isRetryLoop) {
+    const bulgeX = Math.max(sourceX, targetX) + RETRY_LOOP_OUTSET;
+    path = `M${sourceX},${sourceY} C${bulgeX},${sourceY} ${bulgeX},${targetY} ${targetX},${targetY}`;
+    labelX = bulgeX - 2;
+    labelY = (sourceY + targetY) / 2;
+  } else if (returnEdge) {
+    const liftY = Math.min(sourceY, targetY) - RETURN_EDGE_LIFT;
+    path = `M${sourceX},${sourceY} C${sourceX},${liftY} ${targetX},${liftY} ${targetX},${targetY}`;
+    labelX = (sourceX + targetX) / 2;
+    labelY = liftY;
   } else {
-    path = getSmoothStepPath({ sourceX, sourceY, sourcePosition, targetX, targetY, targetPosition, borderRadius: EDGE_BORDER_RADIUS })[0];
-    labelX = sourceX + (targetX - sourceX) * LABEL_X_BLEND_TOWARD_TARGET;
-    labelY = sourceY + LABEL_Y_OFFSET_FROM_SOURCE;
+    const isBranch = sourcePosition === Position.Top || sourcePosition === Position.Bottom;
+    const geometry = isBranch
+      ? getSmoothStepPath({
+          sourceX,
+          sourceY,
+          sourcePosition,
+          targetX,
+          targetY,
+          targetPosition,
+          borderRadius: EDGE_BORDER_RADIUS,
+          offset: 28,
+        })
+      : getBezierPath({ sourceX, sourceY, sourcePosition, targetX, targetY, targetPosition, curvature: 0.35 });
+    [path, labelX, labelY] = geometry;
   }
 
   const baseStrokeWidth = edgeStrokeWidth(markerVariant ?? "success");
@@ -103,6 +104,8 @@ export function WorkflowEdge({ id, data, source, target, sourceX, sourceY, sourc
     strokeWidth,
     opacity,
     transition: edgeTransition,
+    strokeLinecap: "round",
+    strokeLinejoin: "round",
   };
   if (visual.dash === "dotted") {
     // Async reads as rounded beads: a 1-unit dash with round line-caps becomes a dot whose
@@ -114,7 +117,7 @@ export function WorkflowEdge({ id, data, source, target, sourceX, sourceY, sourc
     edgeStyle.strokeDasharray = DASH_PATTERNS.dashed;
   }
 
-  // The casing/halo: a solid background-coloured underlay 2px wider than the semantic stroke,
+  // The casing/halo: a solid background-coloured underlay 4px wider than the semantic stroke,
   // painted beneath the dashed line so dashes and shape are preserved on top. It separates the
   // edge from the canvas grid and card borders without a neon outline. It carries the same
   // opacity/transition as the semantic stroke so a dimmed edge's halo fades with it, and it never

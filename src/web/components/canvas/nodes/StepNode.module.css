@@ -2,11 +2,48 @@
    computed from content, never measured from the DOM) — if a constant changes there, the
    matching value here must change too. */
 
-/* Geometric anchors only — connecting is not offered (nodesConnectable is false), so these are
-   never meant to be seen or interacted with. */
+/* Real edge anchors, visible for orientation but not interactive: users may move nodes, while
+   authoring connections remains outside this canvas. */
 .handle {
-  opacity: 0;
+  box-sizing: border-box;
+  width: 10px;
+  height: 10px;
+  opacity: 1;
+  background: var(--canvas-port-center);
+  border: 2px solid var(--canvas-port-ring);
   pointer-events: none;
+  z-index: 3;
+  transition:
+    border-color var(--dur-fast) var(--ease-standard),
+    box-shadow var(--dur-fast) var(--ease-standard);
+}
+
+.failureHandle {
+  border-color: color-mix(in srgb, var(--accent-red) 75%, var(--canvas-port-ring));
+}
+
+.successHandle {
+  border-color: color-mix(in srgb, var(--accent-output) 75%, var(--canvas-port-ring));
+}
+
+.returnInHandle {
+  left: 30%;
+  border-color: color-mix(in srgb, var(--accent-amber) 70%, var(--canvas-port-ring));
+}
+
+.returnOutHandle {
+  left: 70%;
+  border-color: color-mix(in srgb, var(--accent-amber) 70%, var(--canvas-port-ring));
+}
+
+.retryInHandle {
+  top: 28%;
+  border-color: color-mix(in srgb, var(--accent-amber) 70%, var(--canvas-port-ring));
+}
+
+.retryOutHandle {
+  top: 72%;
+  border-color: color-mix(in srgb, var(--accent-amber) 70%, var(--canvas-port-ring));
 }
 
 .card {
@@ -15,10 +52,10 @@
   height: 100%;
   display: flex;
   align-items: stretch;
-  background-color: var(--bg-raised);
-  border: 1px solid var(--border-subtle);
-  border-radius: var(--radius-md);
-  box-shadow: var(--shadow-node-rest);
+  background-color: var(--canvas-node-body);
+  border: 1px solid var(--canvas-node-border);
+  border-radius: 10px;
+  box-shadow: var(--canvas-node-shadow);
   cursor: pointer;
   outline-offset: 2px;
   transition:
@@ -39,8 +76,9 @@
 }
 
 .card:hover {
-  border-color: var(--border-strong);
-  box-shadow: var(--shadow-node-lifted);
+  border-color: var(--canvas-node-border-hover);
+  background-color: var(--canvas-node-body-hover);
+  box-shadow: var(--canvas-node-shadow-lifted);
 }
 
 .card:focus-visible {
@@ -48,9 +86,11 @@
 }
 
 .selected {
-  border-color: var(--border-strong);
-  background-color: color-mix(in srgb, var(--accent-blue) 6%, var(--bg-raised));
-  box-shadow: var(--shadow-node-lifted);
+  border-color: color-mix(in srgb, var(--accent-blue) 55%, var(--border-strong));
+  background-color: color-mix(in srgb, var(--accent-blue) 5%, var(--canvas-node-body));
+  box-shadow:
+    0 0 0 3px color-mix(in srgb, var(--accent-blue) 20%, transparent),
+    var(--canvas-node-shadow-lifted);
 }
 
 /* The category+confidence marker: a coloured spine along the card's leading edge. Solid for
@@ -58,10 +98,10 @@
    colour difference, so it survives colour-blindness and greyscale printing alike. */
 .marker {
   flex-shrink: 0;
-  width: 3px;
+  width: 6px;
   background-color: currentColor;
-  border-top-left-radius: var(--radius-md);
-  border-bottom-left-radius: var(--radius-md);
+  border-top-left-radius: 9px;
+  border-bottom-left-radius: 9px;
 }
 
 .markerDashed {
@@ -70,7 +110,7 @@
 }
 
 .selected .marker {
-  width: 4px;
+  width: 6px;
 }
 
 .body {
@@ -78,15 +118,20 @@
   min-width: 0;
   display: flex;
   flex-direction: column;
-  padding: var(--space-1) var(--space-3);
+  overflow: hidden;
+  border-top-right-radius: 9px;
+  border-bottom-right-radius: 9px;
 }
 
 .header {
-  height: 24px;
+  height: 40px;
   flex-shrink: 0;
   display: flex;
   align-items: center;
   gap: var(--space-2);
+  padding: 0 12px;
+  background: var(--canvas-node-header);
+  border-bottom: 1px solid var(--canvas-node-divider);
   line-height: 1;
 }
 
@@ -98,11 +143,12 @@
   min-width: 18px;
   height: 18px;
   padding: 0 3px;
-  border: 1px solid var(--border-subtle);
+  background-color: var(--node-accent);
+  border: 0;
   border-radius: var(--radius-sm);
   font-family: var(--font-mono);
   font-size: var(--fs-micro);
-  color: var(--text-tertiary);
+  color: var(--bg-canvas);
 }
 
 .name {
@@ -153,6 +199,7 @@
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+  margin: 12px 12px 0;
 }
 
 .purposeTwoLine {
@@ -164,12 +211,17 @@
   overflow: hidden;
 }
 
-.meta {
-  height: 18px;
+.footer {
+  height: 30px;
   flex-shrink: 0;
   display: flex;
   align-items: center;
+  justify-content: space-between;
   gap: var(--space-2);
+  margin-top: 12px;
+  padding: 0 12px;
+  background: var(--canvas-node-footer);
+  border-top: 1px solid var(--canvas-node-divider);
 }
 
 .categoryLabel {
@@ -178,14 +230,6 @@
   font-weight: 600;
   letter-spacing: 0.08em;
   text-transform: uppercase;
-}
-
-.facts {
-  height: 16px;
-  flex-shrink: 0;
-  display: flex;
-  align-items: center;
-  gap: var(--space-3);
 }
 
 /* Now the row's only occupant (the source/edge-case/test counts that used to sit opposite it
@@ -237,7 +281,12 @@
 
 .detail {
   flex-shrink: 0;
-  padding-top: var(--space-1);
+  margin: 0 12px;
+  padding-top: 5px;
+  background-image: linear-gradient(var(--border-subtle), var(--border-subtle));
+  background-position: top;
+  background-repeat: no-repeat;
+  background-size: 100% 1px;
 }
 
 .sectionLabel {

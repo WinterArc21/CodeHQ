@@ -35,15 +35,15 @@ export function EdgeMarkers() {
           <marker
             key={variant}
             id={edgeMarkerId(variant)}
-            viewBox="0 0 9 9"
-            refX="7.5"
-            refY="4.5"
-            markerWidth="7"
-            markerHeight="7"
+            viewBox="0 0 10 10"
+            refX="9"
+            refY="5"
+            markerWidth="10"
+            markerHeight="10"
             markerUnits="userSpaceOnUse"
             orient="auto-start-reverse"
           >
-            <path d="M0,0 L9,4.5 L0,9 z" className={MARKER_CLASS_NAMES[variant]} />
+            <path d="M1,1 L9,5 L1,9" className={MARKER_CLASS_NAMES[variant]} />
           </marker>
         ))}
       </defs>

@@ -1,6 +1,12 @@
 .handle {
-  opacity: 0;
+  box-sizing: border-box;
+  width: 10px;
+  height: 10px;
+  opacity: 1;
+  background: var(--canvas-port-center);
+  border: 2px solid var(--canvas-port-ring);
   pointer-events: none;
+  z-index: 3;
 }
 
 /* Pill shape, not a card: `border-radius: 999px` plus a two-tone border always reads as "this is
@@ -18,7 +24,7 @@
   border-radius: 999px;
   border-width: 1.5px;
   border-style: solid;
-  box-shadow: var(--shadow-node-rest);
+  box-shadow: var(--canvas-outcome-shadow);
   cursor: pointer;
   outline-offset: 2px;
   transition:
@@ -28,7 +34,7 @@
 }
 
 .card:hover {
-  box-shadow: var(--shadow-node-lifted);
+  box-shadow: var(--canvas-node-shadow);
 }
 
 .card:focus-visible {
@@ -40,13 +46,13 @@
 }
 
 .success {
-  border-color: var(--accent-output);
-  background-color: color-mix(in srgb, var(--accent-output) 8%, var(--bg-surface));
+  border-color: color-mix(in srgb, var(--accent-output) 50%, var(--border-strong));
+  background-color: color-mix(in srgb, var(--accent-output) 6%, var(--bg-surface));
 }
 
 .failure {
-  border-color: var(--accent-red);
-  background-color: color-mix(in srgb, var(--accent-red) 8%, var(--bg-surface));
+  border-color: color-mix(in srgb, var(--accent-red) 50%, var(--border-strong));
+  background-color: color-mix(in srgb, var(--accent-red) 6%, var(--bg-surface));
 }
 
 .neutral {
@@ -59,14 +65,26 @@
   display: inline-flex;
   align-items: center;
   justify-content: center;
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  background: color-mix(in srgb, currentColor 14%, var(--bg-surface));
 }
 
 .success .glyph {
   color: var(--accent-output);
 }
 
+.success .handle {
+  border-color: color-mix(in srgb, var(--accent-output) 75%, var(--canvas-port-ring));
+}
+
 .failure .glyph {
   color: var(--accent-red);
+}
+
+.failure .handle {
+  border-color: color-mix(in srgb, var(--accent-red) 75%, var(--canvas-port-ring));
 }
 
 .neutral .glyph {

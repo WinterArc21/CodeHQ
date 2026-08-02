@@ -1,3 +1,4 @@
+import type { CSSProperties } from "react";
 import { CaretDown, CaretUp, Check } from "@phosphor-icons/react";
 import { Handle, Position, type NodeProps } from "@xyflow/react";
 import { categoryToken, confidenceStyle } from "../../../design/semantics";
@@ -29,6 +30,11 @@ export function StepNode({ data }: NodeProps<StepFlowNode>) {
     expanded,
     selected,
     hasMissingSource,
+    hasFailureOutcome,
+    hasSuccessOutcome,
+    hasRetry,
+    hasReturnIn,
+    hasReturnOut,
     dimmed,
     tabIndex,
     onToggleExpand,
@@ -54,6 +60,7 @@ export function StepNode({ data }: NodeProps<StepFlowNode>) {
   const accessibleName = `${index + 1}. ${step.name}. ${category.label} category. ${confidence.label} confidence.${
     hasMissingSource ? " Missing sources." : ""
   }`;
+  const cardStyle = { "--node-accent": `var(${category.varName})` } as CSSProperties;
 
   return (
     <div
@@ -63,18 +70,27 @@ export function StepNode({ data }: NodeProps<StepFlowNode>) {
       tabIndex={tabIndex}
       aria-label={accessibleName}
       aria-current={selected ? "true" : undefined}
+      style={cardStyle}
       onKeyDown={onKeyDown}
       onMouseEnter={onHoverStart}
       onMouseLeave={onHoverEnd}
       onFocus={onFocusStep}
       onBlur={onBlurStep}
     >
-      {/* Invisible anchors React Flow needs to compute where an edge attaches (contract: no
-          interaction that requires precision dragging — connecting isn't offered, so these are
-          purely geometric, never shown or draggable). Matches the top-to-bottom layout: in on
-          top, out on the bottom. */}
-      <Handle type="target" position={Position.Top} className={styles.handle} />
-      <Handle type="source" position={Position.Bottom} className={styles.handle} />
+      {/* These visible ports are real geometric anchors. Users can move cards but cannot create
+          connections, so the ports communicate attachment without becoming precision targets. */}
+      <Handle id="in" type="target" position={Position.Left} className={styles.handle} aria-hidden="true" />
+      <Handle id="out" type="source" position={Position.Right} className={styles.handle} aria-hidden="true" />
+      {hasFailureOutcome ? <Handle id="failure" type="source" position={Position.Top} className={`${styles.handle} ${styles.failureHandle}`} aria-hidden="true" /> : null}
+      {hasSuccessOutcome ? <Handle id="success" type="source" position={Position.Bottom} className={`${styles.handle} ${styles.successHandle}`} aria-hidden="true" /> : null}
+      {hasReturnIn ? <Handle id="return-in" type="target" position={Position.Top} className={`${styles.handle} ${styles.returnInHandle}`} aria-hidden="true" /> : null}
+      {hasReturnOut ? <Handle id="return-out" type="source" position={Position.Top} className={`${styles.handle} ${styles.returnOutHandle}`} aria-hidden="true" /> : null}
+      {hasRetry ? (
+        <>
+          <Handle id="retry-in" type="target" position={Position.Right} className={`${styles.handle} ${styles.retryInHandle}`} aria-hidden="true" />
+          <Handle id="retry-out" type="source" position={Position.Right} className={`${styles.handle} ${styles.retryOutHandle}`} aria-hidden="true" />
+        </>
+      ) : null}
 
       {/* The category+confidence marker (contract §10): colour always encodes category, never
           confidence, so confidence is layered on as a *shape* difference (solid vs dashed
@@ -110,14 +126,13 @@ export function StepNode({ data }: NodeProps<StepFlowNode>) {
 
         <p className={purposeClassName}>{step.purpose}</p>
 
-        <div className={styles.meta}>
+        <StepNodeDetail step={step} depth={effectiveDepth} />
+
+        <div className={styles.footer}>
           <span className={styles.categoryLabel} style={{ color: `var(${category.varName})` }}>
             {category.label}
           </span>
-        </div>
-
-        {showIo ? (
-          <div className={styles.facts}>
+          {showIo ? (
             <span className={styles.factsIo}>
               {inSummary.length > 0 ? (
                 <span className={styles.ioTag} title={`Input: ${inSummary}`}>
@@ -132,10 +147,8 @@ export function StepNode({ data }: NodeProps<StepFlowNode>) {
                 </span>
               ) : null}
             </span>
-          </div>
-        ) : null}
-
-        <StepNodeDetail step={step} depth={effectiveDepth} />
+          ) : null}
+        </div>
       </div>
     </div>
   );
