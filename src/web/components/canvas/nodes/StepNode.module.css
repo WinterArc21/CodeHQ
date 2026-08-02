@@ -18,6 +18,17 @@
     box-shadow var(--dur-fast) var(--ease-standard);
 }
 
+/* Target-side anchors stay in the DOM for edge geometry but render invisible — the incoming
+   edge's arrowhead already marks this point, so a dot here would double up on it. */
+.handleHidden {
+  box-sizing: border-box;
+  width: 10px;
+  height: 10px;
+  opacity: 0;
+  pointer-events: none;
+  z-index: 3;
+}
+
 .failureHandle {
   border-color: color-mix(in srgb, var(--accent-red) 75%, var(--canvas-port-ring));
 }

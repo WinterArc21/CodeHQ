@@ -63,6 +63,7 @@ function WorkflowCanvasInner({ workflow, sourceChecks, onDeleteWorkflow }: Workf
 
   const theme = useCodeHQStore((state) => state.theme);
   const depth = useCodeHQStore((state) => state.depth);
+  const setDepth = useCodeHQStore((state) => state.setDepth);
   const expandedStepIds = useCodeHQStore((state) => state.expandedStepIds);
   const toggleStepExpanded = useCodeHQStore((state) => state.toggleStepExpanded);
   const collapseAllSteps = useCodeHQStore((state) => state.collapseAllSteps);
@@ -206,6 +207,8 @@ function WorkflowCanvasInner({ workflow, sourceChecks, onDeleteWorkflow }: Workf
     <div className={styles.wrapper}>
       <CanvasHeader
         workflow={workflow}
+        depth={depth}
+        onDepthChange={setDepth}
         onZoomIn={() => void reactFlowInstance.zoomIn({ duration: reducedMotion ? 0 : 150 })}
         onZoomOut={() => void reactFlowInstance.zoomOut({ duration: reducedMotion ? 0 : 150 })}
         onCollapseAll={collapseAllSteps}

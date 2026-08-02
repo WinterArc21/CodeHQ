@@ -1,10 +1,10 @@
+/* The only handle here is a target — the incoming edge's arrowhead already marks this point, so
+   the dot stays in the DOM for edge geometry but renders invisible. */
 .handle {
   box-sizing: border-box;
   width: 10px;
   height: 10px;
-  opacity: 1;
-  background: var(--canvas-port-center);
-  border: 2px solid var(--canvas-port-ring);
+  opacity: 0;
   pointer-events: none;
   z-index: 3;
 }

@@ -77,17 +77,19 @@ export function StepNode({ data }: NodeProps<StepFlowNode>) {
       onFocus={onFocusStep}
       onBlur={onBlurStep}
     >
-      {/* These visible ports are real geometric anchors. Users can move cards but cannot create
-          connections, so the ports communicate attachment without becoming precision targets. */}
-      <Handle id="in" type="target" position={Position.Left} className={styles.handle} aria-hidden="true" />
+      {/* Visible ports are real geometric anchors, but only on the source side: a target's arrival
+          is already marked by the incoming edge's arrowhead, so a target-side dot would just
+          double up on that same point. Users can move cards but cannot create connections, so
+          these communicate attachment without becoming precision targets. */}
+      <Handle id="in" type="target" position={Position.Left} className={styles.handleHidden} aria-hidden="true" />
       <Handle id="out" type="source" position={Position.Right} className={styles.handle} aria-hidden="true" />
       {hasFailureOutcome ? <Handle id="failure" type="source" position={Position.Top} className={`${styles.handle} ${styles.failureHandle}`} aria-hidden="true" /> : null}
       {hasSuccessOutcome ? <Handle id="success" type="source" position={Position.Bottom} className={`${styles.handle} ${styles.successHandle}`} aria-hidden="true" /> : null}
-      {hasReturnIn ? <Handle id="return-in" type="target" position={Position.Top} className={`${styles.handle} ${styles.returnInHandle}`} aria-hidden="true" /> : null}
+      {hasReturnIn ? <Handle id="return-in" type="target" position={Position.Top} className={styles.handleHidden} aria-hidden="true" /> : null}
       {hasReturnOut ? <Handle id="return-out" type="source" position={Position.Top} className={`${styles.handle} ${styles.returnOutHandle}`} aria-hidden="true" /> : null}
       {hasRetry ? (
         <>
-          <Handle id="retry-in" type="target" position={Position.Right} className={`${styles.handle} ${styles.retryInHandle}`} aria-hidden="true" />
+          <Handle id="retry-in" type="target" position={Position.Right} className={styles.handleHidden} aria-hidden="true" />
           <Handle id="retry-out" type="source" position={Position.Right} className={`${styles.handle} ${styles.retryOutHandle}`} aria-hidden="true" />
         </>
       ) : null}
