@@ -8,10 +8,23 @@ test.beforeEach(async ({ page }) => {
   await page.locator("[data-step-node]").first().waitFor({ state: "visible", timeout: 15_000 });
 });
 
-test("keeps the default workflow altitude without exposing an altitude control", async ({ page }) => {
-  // The workflow narrative remains the default, while depth is no longer an exposed canvas control.
+test("switches between the Story and Code map canvas views", async ({ page }) => {
+  const altitude = page.getByRole("group", { name: "Canvas altitude" });
+  const story = altitude.getByRole("button", { name: "Story" });
+  const codeMap = altitude.getByRole("button", { name: "Code map" });
+
+  await expect(story).toHaveAttribute("aria-pressed", "true");
+  await expect(codeMap).toHaveAttribute("aria-pressed", "false");
   await expect(page.getByText("Files", { exact: true })).toHaveCount(0);
-  await expect(page.getByRole("group", { name: "Canvas altitude" })).toHaveCount(0);
+
+  await codeMap.click();
+  await expect(codeMap).toHaveAttribute("aria-pressed", "true");
+  await expect(story).toHaveAttribute("aria-pressed", "false");
+  await expect(page.getByText("Files", { exact: true }).first()).toBeVisible();
+
+  await story.click();
+  await expect(story).toHaveAttribute("aria-pressed", "true");
+  await expect(page.getByText("Files", { exact: true })).toHaveCount(0);
 });
 
 test("clicking a node opens the step drawer showing that step's name and purpose", async ({ page }) => {
@@ -60,13 +73,28 @@ test("keyboard navigation reaches the invalid-request outcome and returns to its
 });
 
 test("hover traces related nodes without making zone labels interactive", async ({ page }) => {
+  // The horizontal canvas needs enough room for the third main-line card to be fully under the
+  // pointer. At the default 1280px test viewport it is clipped at the right edge, which causes
+  // Playwright to leave the card immediately after entering it.
+  await page.setViewportSize({ width: 1440, height: 900 });
+
   const anchor = page.locator('[data-step-node="check-quota"]');
-  const traced = page.locator('[data-step-node="outcome-quota-exceeded"]');
+  const upstream = page.locator('[data-step-node="validate-request"]');
+  const downstream = page.locator('[data-step-node="scrape-website"]');
+  const downstreamOutcome = page.locator('[data-step-node="outcome-quota-exceeded"]');
   const unrelated = page.locator('[data-step-node="outcome-invalid-request"]');
+  const outgoingEdges = page.locator('.react-flow__edge[data-id^="check-quota->"]');
 
   await anchor.hover();
-  await expect.poll(() => unrelated.evaluate((node) => getComputedStyle(node).opacity)).not.toBe("1");
-  await expect(traced).toHaveCSS("opacity", "1");
+  await expect(anchor).toHaveCSS("opacity", "1");
+  await expect(upstream).toHaveCSS("opacity", "1");
+  await expect(downstream).toHaveCSS("opacity", "1");
+  await expect(downstreamOutcome).toHaveCSS("opacity", "1");
+  await expect(outgoingEdges).toHaveCount(2);
+  for (const edge of await outgoingEdges.all()) {
+    await expect(edge).toHaveCSS("opacity", "1");
+  }
+  await expect.poll(() => unrelated.evaluate((node) => getComputedStyle(node).opacity)).toBe("0.35");
 
   await page.mouse.move(0, 0);
   const zone = page.locator(".react-flow__node-zoneLabel").first();

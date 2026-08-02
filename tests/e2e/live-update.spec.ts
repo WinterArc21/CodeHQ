@@ -115,20 +115,19 @@ test("new graph elements animate in without detaching existing connectors", asyn
 
   const incomingEdgeId = "save-result->outcome-generation-created#9";
   const connectorDistance = await page.evaluate((edgeId) => {
-    const target = document.querySelector<HTMLElement>('[data-step-node="outcome-generation-created"]');
+    const targetHandle = document.querySelector<HTMLElement>('[data-nodeid="outcome-generation-created"][data-handleid="in"]');
     const path = document.querySelector<SVGPathElement>(
       `.react-flow__edge[data-id="${edgeId}"] path.react-flow__edge-path`,
     );
-    if (target === null || path === null) {
+    if (targetHandle === null || path === null) {
       return Number.POSITIVE_INFINITY;
     }
-    const rect = target.getBoundingClientRect();
+    const rect = targetHandle.getBoundingClientRect();
     const endpoint = path.getPointAtLength(path.getTotalLength());
     const screenEndpoint = new DOMPoint(endpoint.x, endpoint.y).matrixTransform(path.getScreenCTM() ?? new DOMMatrix());
-    return Math.hypot(screenEndpoint.x - (rect.left + rect.width / 2), screenEndpoint.y - rect.top);
+    return Math.hypot(screenEndpoint.x - (rect.left + rect.width / 2), screenEndpoint.y - (rect.top + rect.height / 2));
   }, incomingEdgeId);
-  // The marker stops the visible path a couple of pixels before the card; anything materially
-  // larger means node and edge geometry have diverged during the update.
-  expect(connectorDistance).toBeLessThan(10);
-  await expect(page.getByText("More below", { exact: true })).toBeVisible();
+  // The horizontal canvas attaches incoming connections to the target handle, rather than the
+  // card centre. A larger gap means node and edge geometry diverged during the live update.
+  expect(connectorDistance).toBeLessThan(5);
 });
