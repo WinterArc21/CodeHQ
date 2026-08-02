@@ -60,29 +60,29 @@ function edgePaths(container: HTMLElement): { semantic: SVGPathElement; halo: SV
 
 describe("WorkflowEdge visual grammar", () => {
   describe("stroke width per connection type", () => {
-    it("renders the primary (success/default) path at 2.5px", () => {
+    it("renders the primary (success/default) path at 2.25px", () => {
       const { semantic } = edgePaths(renderEdge(makeData({ connection: makeConnection({ type: "success" }) })));
-      expect(semantic.style.strokeWidth).toBe("2.5");
+      expect(semantic.style.strokeWidth).toBe("2.25");
     });
 
     it("renders an untyped (default) connection at the primary width", () => {
       const { semantic } = edgePaths(renderEdge(makeData({ connection: makeConnection() })));
-      expect(semantic.style.strokeWidth).toBe("2.5");
-    });
-
-    it("renders failure and conditional at 2px", () => {
-      for (const type of ["failure", "conditional"] as const) {
-        const { semantic } = edgePaths(renderEdge(makeData({ connection: makeConnection({ type }) })));
-        expect(semantic.style.strokeWidth, type).toBe("2");
-      }
-    });
-
-    it("renders async at 2.25px", () => {
-      const { semantic } = edgePaths(renderEdge(makeData({ connection: makeConnection({ type: "async" }) })));
       expect(semantic.style.strokeWidth).toBe("2.25");
     });
 
-    it("renders a retry self-loop at 2px", () => {
+    it("renders failure and conditional at 1.5px", () => {
+      for (const type of ["failure", "conditional"] as const) {
+        const { semantic } = edgePaths(renderEdge(makeData({ connection: makeConnection({ type }) })));
+        expect(semantic.style.strokeWidth, type).toBe("1.5");
+      }
+    });
+
+    it("renders async at 1.75px", () => {
+      const { semantic } = edgePaths(renderEdge(makeData({ connection: makeConnection({ type: "async" }) })));
+      expect(semantic.style.strokeWidth).toBe("1.75");
+    });
+
+    it("renders a retry self-loop at 1.5px", () => {
       const { semantic } = edgePaths(
         renderEdge(
           makeData({
@@ -91,7 +91,7 @@ describe("WorkflowEdge visual grammar", () => {
           }),
         ),
       );
-      expect(semantic.style.strokeWidth).toBe("2");
+      expect(semantic.style.strokeWidth).toBe("1.5");
     });
   });
 
@@ -139,28 +139,28 @@ describe("WorkflowEdge visual grammar", () => {
       expect(halo.style.opacity).toBe("0.3");
     });
 
-    it("strengthens a traced edge's stroke by 0.6px without dimming it", () => {
+    it("strengthens a traced edge's stroke by 0.75px without dimming it", () => {
       const { semantic, halo } = edgePaths(
         renderEdge(makeData({ connection: makeConnection({ type: "success" }), traced: true })),
       );
-      expect(semantic.style.strokeWidth).toBe("3.1");
+      expect(semantic.style.strokeWidth).toBe("3");
       expect(semantic.style.opacity).toBe("1");
       // The halo grows with the semantic stroke so the casing stays proportionate.
-      expect(halo.style.strokeWidth).toBe("6.1");
+      expect(halo.style.strokeWidth).toBe("5");
     });
 
     it("does not strengthen an untraced edge", () => {
       const { semantic } = edgePaths(renderEdge(makeData({ connection: makeConnection({ type: "failure" }) })));
-      expect(semantic.style.strokeWidth).toBe("2");
+      expect(semantic.style.strokeWidth).toBe("1.5");
     });
   });
 
   describe("edge casing / halo", () => {
-    it("paints a background-coloured underlay 3px wider than the semantic stroke", () => {
+    it("paints a background-coloured underlay 2px wider than the semantic stroke", () => {
       const { semantic, halo } = edgePaths(renderEdge(makeData({ connection: makeConnection({ type: "failure" }) })));
       expect(halo.getAttribute("fill")).toBe("none");
       expect(halo.style.stroke).toBe("var(--bg-canvas)");
-      expect(Number(halo.style.strokeWidth)).toBe(Number(semantic.style.strokeWidth) + 3);
+      expect(Number(halo.style.strokeWidth)).toBe(Number(semantic.style.strokeWidth) + 2);
     });
 
     it("never captures pointer events", () => {

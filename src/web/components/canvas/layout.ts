@@ -80,14 +80,15 @@ import {
   OUTCOME_NODE_HEIGHT,
 } from "./nodeContent";
 
-/** Vertical gap between ranks — small relative to `LAYOUT_NODE_SEP` because the node itself is
- * now wide and short: most of the workflow's readable footprint should come from row height, not
- * air between rows, or a 6-9 step workflow cannot fit a 900px-tall viewport without panning. */
-export const LAYOUT_RANK_SEP = 18;
+/** Vertical gap between ordinary ranks. Twenty-eight units leaves a visible band around the
+ * connector and arrowhead, so adjacent cards read as individual steps rather than one dense
+ * list, while remaining compact enough for the fitted 1440x900 canvas. Structural fan-out/in
+ * still earns the larger minimum below. */
+export const LAYOUT_RANK_SEP = 28;
 /**
  * Minimum vertical gap around a structural fan-out or fan-in. React Flow puts a smooth-step
  * edge's horizontal run halfway through that gap; 44px leaves 22px on either side, enough for
- * the 10px rounded corner plus a straight, visible arrowhead approach. The ordinary 18px gap is
+ * the 10px rounded corner plus a straight, visible arrowhead approach. The ordinary 28px gap is
  * intentionally retained everywhere else so linear workflows stay compact.
  */
 export const MIN_FAN_RANK_GAP = 44;

@@ -6,16 +6,19 @@
   min-height: 0;
 }
 
-/* Layers a coarser "major" grid (every 4th minor line, 128px) on top of the app shell's ambient
- * 32px grid (`styles/base.css`), scoped to the canvas stage only — the rest of the shell keeps
- * the plain minor grid. Reads as ruled drafting paper rather than a texture. */
+/* The graph gets a quiet point field instead of inheriting the app shell's ruled 32px grid.
+ * Cards, labels, and semantic edge dashes already create plenty of linear detail; dots provide
+ * enough spatial reference for panning without competing with those elements or making the
+ * canvas read as drafting paper. The opaque canvas colour masks `base.css`'s body grid only
+ * inside this stage, leaving the surrounding shell unchanged. */
 .stage {
   position: relative;
   flex: 1;
   min-height: 0;
-  background-image:
-    repeating-linear-gradient(to right, var(--grid-line-strong) 0, var(--grid-line-strong) 1px, transparent 1px, transparent 128px),
-    repeating-linear-gradient(to bottom, var(--grid-line-strong) 0, var(--grid-line-strong) 1px, transparent 1px, transparent 128px);
+  background-color: var(--bg-canvas);
+  background-image: radial-gradient(circle, var(--grid-dot) 1px, transparent 1px);
+  background-position: 0 0;
+  background-size: 28px 28px;
 }
 
 /* React Flow ships light, generic defaults (white pane, grey attribution, plain black

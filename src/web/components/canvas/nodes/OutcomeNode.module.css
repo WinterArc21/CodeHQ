@@ -16,13 +16,19 @@
   gap: var(--space-2);
   padding: 0 var(--space-4);
   border-radius: 999px;
-  border-width: 2px;
+  border-width: 1.5px;
   border-style: solid;
+  box-shadow: var(--shadow-node-rest);
   cursor: pointer;
   outline-offset: 2px;
   transition:
     opacity var(--dur-fast) var(--ease-standard),
-    border-color var(--dur-fast) var(--ease-standard);
+    border-color var(--dur-fast) var(--ease-standard),
+    box-shadow var(--dur-fast) var(--ease-standard);
+}
+
+.card:hover {
+  box-shadow: var(--shadow-node-lifted);
 }
 
 .card:focus-visible {
@@ -35,12 +41,12 @@
 
 .success {
   border-color: var(--accent-output);
-  background-color: color-mix(in srgb, var(--accent-output) 14%, var(--bg-surface));
+  background-color: color-mix(in srgb, var(--accent-output) 8%, var(--bg-surface));
 }
 
 .failure {
   border-color: var(--accent-red);
-  background-color: color-mix(in srgb, var(--accent-red) 14%, var(--bg-surface));
+  background-color: color-mix(in srgb, var(--accent-red) 8%, var(--bg-surface));
 }
 
 .neutral {
@@ -83,14 +89,8 @@
   text-overflow: ellipsis;
 }
 
-.success .name {
-  color: var(--accent-output);
-}
-
-.failure .name {
-  color: var(--accent-red);
-}
-
+.success .name,
+.failure .name,
 .neutral .name {
   color: var(--text-primary);
 }

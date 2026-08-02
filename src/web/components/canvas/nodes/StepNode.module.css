@@ -18,11 +18,13 @@
   background-color: var(--bg-raised);
   border: 1px solid var(--border-subtle);
   border-radius: var(--radius-md);
+  box-shadow: var(--shadow-node-rest);
   cursor: pointer;
   outline-offset: 2px;
   transition:
     border-color var(--dur-fast) var(--ease-standard),
     background-color var(--dur-fast) var(--ease-standard),
+    box-shadow var(--dur-fast) var(--ease-standard),
     opacity var(--dur-fast) var(--ease-standard);
 }
 
@@ -38,6 +40,7 @@
 
 .card:hover {
   border-color: var(--border-strong);
+  box-shadow: var(--shadow-node-lifted);
 }
 
 .card:focus-visible {
@@ -47,6 +50,7 @@
 .selected {
   border-color: var(--border-strong);
   background-color: color-mix(in srgb, var(--accent-blue) 6%, var(--bg-raised));
+  box-shadow: var(--shadow-node-lifted);
 }
 
 /* The category+confidence marker: a coloured spine along the card's leading edge. Solid for

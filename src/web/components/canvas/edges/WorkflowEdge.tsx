@@ -13,22 +13,23 @@ const EDGE_BORDER_RADIUS = 10;
 
 /** Stroke width per connection type (contract §10.3 / edge-grammar table: normal sync flow is
  * "solid, strongest weight"; every branch — conditional, failure, async, retry — reads as clearly
- * subordinate but still legible, never invisible). Keyed by the same discriminator the marker
- * uses (`markerVariant`: the connection `type`, or `"retry"` for a self-loop), so the line and its
- * arrowhead always share one grammar entry. Async reads slightly heavier than the other branches
- * because its rounded-bead dashing otherwise thins the perceived line. */
+ * subordinate but still legible, never invisible). Kept deliberately lighter than card borders
+ * at rest so a dense graph reads as nodes connected by meaning, not a web of cables. Keyed by the
+ * same discriminator the marker uses (`markerVariant`: the connection `type`, or `"retry"` for a
+ * self-loop), so the line and arrowhead always share one grammar entry. Async remains slightly
+ * heavier than the other branches because rounded-bead dashing thins its perceived line. */
 function edgeStrokeWidth(variant: string): number {
   switch (variant) {
     case "success":
-      return 2.5;
-    case "async":
       return 2.25;
+    case "async":
+      return 1.75;
     case "failure":
     case "conditional":
     case "retry":
-      return 2;
+      return 1.5;
     default:
-      return 2.5;
+      return 2.25;
   }
 }
 
@@ -41,12 +42,12 @@ const DASH_PATTERNS: Record<"dashed" | "dotted", string> = {
  * underlay that carves the dashed line clear of the canvas grid and neighbouring card borders
  * without introducing a neon outline. The halo follows the same path shape (dashes are preserved
  * on the semantic stroke on top); only its width grows. */
-const HALO_WIDTH_PADDING = 3;
+const HALO_WIDTH_PADDING = 2;
 /** How much a traced edge's stroke grows when path tracing is active (contract §11): tracing must
  * not only dim unrelated paths, it must also strengthen the path the user is following, so the
  * traced line reads as the figure rather than merely the ground. Kept under the next weight tier
  * so hierarchy is reinforced, not flattened. */
-const TRACED_STROKE_BOOST = 0.6;
+const TRACED_STROKE_BOOST = 0.75;
 /** Opacity applied to a dimmed edge during path tracing (contract §11) — a dimmed edge fades to a
  * quiet background tone while traced edges strengthen, so the followed path reads as the figure. */
 const DIMMED_OPACITY_FACTOR = 0.3;
@@ -113,7 +114,7 @@ export function WorkflowEdge({ id, data, source, target, sourceX, sourceY, sourc
     edgeStyle.strokeDasharray = DASH_PATTERNS.dashed;
   }
 
-  // The casing/halo: a solid background-coloured underlay ~3px wider than the semantic stroke,
+  // The casing/halo: a solid background-coloured underlay 2px wider than the semantic stroke,
   // painted beneath the dashed line so dashes and shape are preserved on top. It separates the
   // edge from the canvas grid and card borders without a neon outline. It carries the same
   // opacity/transition as the semantic stroke so a dimmed edge's halo fades with it, and it never

@@ -73,7 +73,7 @@ describe("edge label / node overlap", () => {
   it("never overlaps a node box for a labelled primary edge between adjacent ranks (the upload-assets 'clean' shape)", () => {
     // Mirrors `examples/motiona/.codehq/workflows/upload-assets.json`'s exact shape: a
     // labelled *success* connection ("clean") straight from one spine step to the very next —
-    // the case `LAYOUT_RANK_SEP` alone (18px) was too narrow to hold the label chip for.
+    // the case `LAYOUT_RANK_SEP` alone was too narrow to hold the label chip for.
     const workflow = makeWorkflow(
       [
         makeStep("receive-upload", { category: "entry" }),
@@ -116,15 +116,15 @@ describe("edge label / node overlap", () => {
     assertNoLabelOverlapsAnyNode(workflow);
   });
 
-  it("widens only the affected rank gap, leaving an unlabelled gap at the default LAYOUT_RANK_SEP", () => {
+  it("keeps labelled and unlabelled gaps equal when the default rank spacing already clears the chip", () => {
     // "b" needs its own outgoing connection, or a zero-out-degree step is a terminal outcome
     // (anchored beside its source, not below it) rather than the next spine rank this test means
     // to measure the gap above.
     const workflow = makeWorkflow(
       [makeStep("entry", { category: "entry" }), makeStep("a"), makeStep("b"), makeStep("c")],
       [
-        { from: "entry", to: "a" }, // unlabelled — should stay at the default gap
-        { from: "a", to: "b", type: "success", label: "clean" }, // labelled — should widen
+        { from: "entry", to: "a" }, // unlabelled — stays at the default gap
+        { from: "a", to: "b", type: "success", label: "clean" }, // labelled — already has room
         { from: "b", to: "c" },
       ],
     );
@@ -136,6 +136,6 @@ describe("edge label / node overlap", () => {
 
     const unlabelledGap = a.y - (entry.y + entry.height);
     const labelledGap = b.y - (a.y + a.height);
-    expect(labelledGap).toBeGreaterThan(unlabelledGap);
+    expect(labelledGap).toBe(unlabelledGap);
   });
 });

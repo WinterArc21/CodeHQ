@@ -24,8 +24,8 @@ export const LABEL_X_BLEND_TOWARD_TARGET = 0.5;
  * enough that the chip never pokes back up into the source it's labelling. */
 const LABEL_TOP_MARGIN = 3;
 /** Breathing room between a label chip's own bottom edge and the next rank's top edge — small,
- * like every other clearance margin in this module (`layout.ts`'s own `LAYOUT_RANK_SEP` is only
- * 18px). */
+ * like every other clearance margin in this module. `layout.ts` may already provide enough room
+ * in its ordinary rank gap; this formula remains the source of truth if those values diverge. */
 const LABEL_BOTTOM_MARGIN = 4;
 
 /**

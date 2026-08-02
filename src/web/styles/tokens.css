@@ -42,11 +42,14 @@
   --accent-output: #7fbf9a; /* output / completion */
   --focus-ring: #5b8def;
 
-  /* ---- technical canvas grid (very low opacity, theme-tuned) ---- */
+  /* ---- technical canvas texture (very low opacity, theme-tuned) ---- */
   --grid-line: rgba(255, 255, 255, 0.035);
-  /* A second, slightly more present line every 4th minor line (128px) reads as ruled/graph
-   * paper instead of noise — the same "major/minor" convention as real drafting paper. */
   --grid-line-strong: rgba(255, 255, 255, 0.07);
+  --grid-dot: rgba(255, 255, 255, 0.085);
+
+  /* ---- elevation ---- */
+  --shadow-node-rest: 0 1px 2px rgba(0, 0, 0, 0.32), 0 8px 24px rgba(0, 0, 0, 0.16);
+  --shadow-node-lifted: 0 2px 5px rgba(0, 0, 0, 0.38), 0 14px 34px rgba(0, 0, 0, 0.22);
 
   /* ---- spacing (4px base) ---- */
   --space-1: 4px;
@@ -112,6 +115,9 @@
 
   --grid-line: rgba(0, 0, 0, 0.035);
   --grid-line-strong: rgba(0, 0, 0, 0.07);
+  --grid-dot: rgba(0, 0, 0, 0.085);
+  --shadow-node-rest: 0 1px 2px rgba(22, 24, 27, 0.08), 0 8px 24px rgba(22, 24, 27, 0.06);
+  --shadow-node-lifted: 0 2px 5px rgba(22, 24, 27, 0.12), 0 14px 34px rgba(22, 24, 27, 0.1);
 }
 
 @media (prefers-reduced-motion: reduce) {
