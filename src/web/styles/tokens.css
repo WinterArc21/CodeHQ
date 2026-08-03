@@ -18,6 +18,22 @@
  *   --accent-output  #1F7A4C  ~5.33:1 (kept visibly more saturated/emerald than --accent-green
  *                                      so "output" still reads as a distinct, brighter green)
  * --focus-ring reuses the themed blue so focus always matches the primary interactive colour.
+ *
+ * ---- category accents (--accent-rose / --accent-orange / --accent-orchid) ----
+ * Added when the step-card categories moved off amber and grey. These are *card* colours, so the
+ * bar they clear is not "readable as text on the page background" but "readable on the card as it
+ * actually renders" — the 15% accent leading edge of the gradient, the category label (accent
+ * mixed 85% toward the text colour), and the index chip (background-colour text on solid accent).
+ * All three were checked against both themes; the weakest pairing in the set is 4.73:1.
+ *
+ * Hue placement is the other half of the job, since colour is what encodes category:
+ *   --accent-orange   h24/26   the only slot between failure red (h6) and conditional/retry amber
+ *                              (h36); see the note in semantics.ts about that corridor
+ *   --accent-rose     h329     37deg clear of failure red, the widest gap available on that side
+ *   --accent-orchid   h289/292 40deg clear of rose. Deliberately not the h305 orchid first drafted
+ *                              as a decision colour: against rose that left only 24deg on dark and
+ *                              14deg on paper, and two large fills that close together stop being
+ *                              two categories.
  */
 
 :root {
@@ -33,13 +49,16 @@
   --text-tertiary: #6b7178;
 
   /* ---- accents (dark) ---- */
-  --accent-blue: #5b8def; /* entry */
-  --accent-green: #4fa97a; /* data, verified */
-  --accent-amber: #d19a45; /* decision, needs-review */
+  --accent-blue: #5b8def; /* focus + selection rings, async connections — not a category */
+  --accent-green: #4fa97a; /* verified badges — not a category */
+  --accent-amber: #d19a45; /* conditional + retry connections, needs-review — not a category */
   --accent-red: #c4665c; /* failure */
-  --accent-violet: #8b7bc7; /* external */
-  --accent-neutral: #7e858d; /* logic */
-  --accent-output: #7fbf9a; /* output / completion */
+  --accent-violet: #8b7bc7; /* connection/badge violet — no longer a category colour */
+  --accent-neutral: #7e858d; /* logic, normal connections */
+  --accent-output: #7fbf9a; /* entry + output: the two ends of a workflow share one colour */
+  --accent-rose: #d98cb4; /* decision */
+  --accent-orange: #e08d55; /* data */
+  --accent-orchid: #bf88cc; /* external */
   --focus-ring: #5b8def;
 
   /* ---- technical canvas texture (very low opacity, theme-tuned) ---- */
@@ -111,6 +130,9 @@
   --accent-violet: #6a4fb0;
   --accent-neutral: #5b6168;
   --accent-output: #1f7a4c;
+  --accent-rose: #a83a72;
+  --accent-orange: #a85718;
+  --accent-orchid: #873f92;
   --focus-ring: #3568d4;
 
   --grid-line: rgba(0, 0, 0, 0.035);

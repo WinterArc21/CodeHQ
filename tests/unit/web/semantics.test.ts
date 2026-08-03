@@ -13,16 +13,29 @@ import type { Workflow, WorkflowStep } from "@schema/workflow";
 
 describe("categoryToken", () => {
   const cases: Array<[WorkflowStep["category"], string]> = [
-    ["entry", "--accent-blue"],
+    ["entry", "--accent-output"],
     ["logic", "--accent-neutral"],
-    ["decision", "--accent-amber"],
-    ["data", "--accent-green"],
-    ["external", "--accent-violet"],
+    ["decision", "--accent-rose"],
+    ["data", "--accent-orange"],
+    ["external", "--accent-orchid"],
     ["output", "--accent-output"],
   ];
 
   it.each(cases)("maps category %s to %s", (category, varName) => {
     expect(categoryToken(category).varName).toBe(varName);
+  });
+
+  it("gives entry and output the same colour, and gives it to nothing else", () => {
+    const shared = categoryToken("entry").varName;
+    expect(categoryToken("output").varName).toBe(shared);
+
+    const others = (["logic", "decision", "data", "external"] as const).map((c) => categoryToken(c).varName);
+    expect(others).not.toContain(shared);
+  });
+
+  it("keeps every other category on a colour of its own", () => {
+    const middle = (["logic", "decision", "data", "external"] as const).map((c) => categoryToken(c).varName);
+    expect(new Set(middle).size).toBe(middle.length);
   });
 
   it("falls back to a neutral marker when category is unspecified", () => {

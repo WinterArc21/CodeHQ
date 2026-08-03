@@ -57,14 +57,33 @@
   border-color: color-mix(in srgb, var(--accent-amber) 70%, var(--canvas-port-ring));
 }
 
+/* The category marker is the card itself (contract §10 still holds — colour encodes category and
+   nothing else). Instead of a 6px spine, the accent enters at 15% on the leading edge and
+   dissolves into the neutral body by 78% across: at canvas zoom the category reads from the card's
+   whole silhouette rather than from a sliver, while the purpose line and the file rows still sit on
+   effectively neutral background, which is what keeps long text legible.
+
+   15% is a ceiling, not a taste call — at 22% the purpose line (`--text-secondary`) falls to
+   ~4.3:1 against the leading edge on the paper theme. Verified against all six category accents in
+   both themes; the weakest pairing that survives is 5.05:1.
+
+   `background-color` stays as the base the gradient's final stop matches, so the card degrades to
+   today's flat neutral if `background-image` is ever dropped. */
 .card {
   box-sizing: border-box;
+  position: relative;
   width: 100%;
   height: 100%;
   display: flex;
   align-items: stretch;
   background-color: var(--canvas-node-body);
-  border: 1px solid var(--canvas-node-border);
+  background-image: linear-gradient(
+    100deg,
+    color-mix(in srgb, var(--node-accent) 15%, var(--canvas-node-body)) 0%,
+    color-mix(in srgb, var(--node-accent) 7%, var(--canvas-node-body)) 42%,
+    var(--canvas-node-body) 78%
+  );
+  border: 1px solid color-mix(in srgb, var(--node-accent) 26%, var(--canvas-node-border));
   border-radius: 10px;
   box-shadow: var(--canvas-node-shadow);
   cursor: pointer;
@@ -86,9 +105,10 @@
   opacity: 0.35;
 }
 
+/* Hover deepens the card's own accent rather than reaching for the neutral hover token — a card
+   that changes hue on hover reads as a different category for the length of the transition. */
 .card:hover {
-  border-color: var(--canvas-node-border-hover);
-  background-color: var(--canvas-node-body-hover);
+  border-color: color-mix(in srgb, var(--node-accent) 45%, var(--canvas-node-border));
   box-shadow: var(--canvas-node-shadow-lifted);
 }
 
@@ -96,44 +116,58 @@
   outline: 2px solid var(--focus-ring);
 }
 
+/* Selection can no longer tint the background — the gradient owns it, and a `background-color`
+   under a `background-image` paints nothing. So selection is now purely the ring plus the border,
+   which is also the honest division of labour: background = category, ring = "you are here". */
 .selected {
   border-color: color-mix(in srgb, var(--accent-blue) 55%, var(--border-strong));
-  background-color: color-mix(in srgb, var(--accent-blue) 5%, var(--canvas-node-body));
   box-shadow:
     0 0 0 3px color-mix(in srgb, var(--accent-blue) 20%, transparent),
     var(--canvas-node-shadow-lifted);
 }
 
-/* The category+confidence marker: a coloured spine along the card's leading edge. Solid for
-   verified/human-confirmed, a repeating stripe for inferred — a shape difference, not just a
-   colour difference, so it survives colour-blindness and greyscale printing alike. */
-.marker {
-  flex-shrink: 0;
-  width: 6px;
-  background-color: currentColor;
+/* Confidence, still as a *shape* and not a second colour (contract §10: "never colour alone").
+   The old spine carried both category and confidence; the gradient took category, so what is left
+   here is only the confidence signal — and it now marks the exceptional case rather than every
+   card. A dashed leading edge means "the agent inferred this"; a clean edge means verified or
+   human-confirmed. Presence-vs-absence of a dash pattern is still a difference that survives
+   greyscale and colour-blindness, and it puts the ink on the ~10% of steps someone actually needs
+   to go check instead of on all of them.
+
+   Absolutely positioned, so unlike the old flex-child spine it consumes no layout width: every
+   card is the same 380px box `layout.ts` computed either way, inferred or not. */
+.inferredEdge {
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  width: 3px;
   border-top-left-radius: 9px;
   border-bottom-left-radius: 9px;
+  background-image: repeating-linear-gradient(
+    to bottom,
+    var(--node-accent) 0,
+    var(--node-accent) 5px,
+    transparent 5px,
+    transparent 9px
+  );
+  pointer-events: none;
 }
 
-.markerDashed {
-  background-color: transparent;
-  background-image: repeating-linear-gradient(to bottom, currentColor 0, currentColor 5px, transparent 5px, transparent 9px);
-}
-
-.selected .marker {
-  width: 6px;
-}
-
+/* Rounded on all four corners now, not just the right pair: with the spine gone this box spans the
+   full card, so clipping only its right corners would square off the leading edge. */
 .body {
   flex: 1;
   min-width: 0;
   display: flex;
   flex-direction: column;
   overflow: hidden;
-  border-top-right-radius: 9px;
-  border-bottom-right-radius: 9px;
+  border-radius: 9px;
 }
 
+/* Transparent, not `--canvas-node-header`: the gradient is strongest across the top-left where the
+   title sits, and an opaque header band would mask exactly the part of it that does the work. The
+   divider takes a touch of accent so it doesn't read as a foreign grey line across a tinted card. */
 .header {
   height: 40px;
   flex-shrink: 0;
@@ -141,8 +175,8 @@
   align-items: center;
   gap: var(--space-2);
   padding: 0 12px;
-  background: var(--canvas-node-header);
-  border-bottom: 1px solid var(--canvas-node-divider);
+  background: transparent;
+  border-bottom: 1px solid color-mix(in srgb, var(--node-accent) 18%, var(--canvas-node-divider));
   line-height: 1;
 }
 
@@ -231,16 +265,22 @@
   gap: var(--space-2);
   margin-top: 12px;
   padding: 0 12px;
-  background: var(--canvas-node-footer);
-  border-top: 1px solid var(--canvas-node-divider);
+  /* A translucent inset wash rather than the opaque footer token, so the tail of the gradient still
+     shows through and the footer reads as part of the same card rather than a plate stuck on it. */
+  background: color-mix(in srgb, var(--bg-inset) 30%, transparent);
+  border-top: 1px solid color-mix(in srgb, var(--node-accent) 18%, var(--canvas-node-divider));
 }
 
+/* The accent nudged 15% toward the text colour. Tinting the card moves the background toward this
+   label's own hue, which drops pure `--node-accent` to ~4.1-4.3:1 on the paper theme; this puts
+   every category back over 4.5:1 with no hue shift you can see. */
 .categoryLabel {
   font-family: var(--font-ui);
   font-size: var(--fs-micro);
   font-weight: 600;
   letter-spacing: 0.08em;
   text-transform: uppercase;
+  color: color-mix(in srgb, var(--node-accent) 85%, var(--text-primary));
 }
 
 /* Now the row's only occupant (the source/edge-case/test counts that used to sit opposite it
@@ -280,6 +320,10 @@
   color: var(--text-secondary);
 }
 
+/* `--text-secondary`, not `--text-tertiary`: at 9px this was already the weakest text on the card
+   (~3.7:1 on the old flat footer, under AA before any tint existed), and the wash behind it now
+   would have taken it to ~3.0. It still reads as subordinate to the value beside it — 9px against
+   11px, and the value is mono. */
 .ioLabel {
   flex-shrink: 0;
   font-family: var(--font-ui);
@@ -287,7 +331,7 @@
   font-weight: 700;
   letter-spacing: 0.06em;
   text-transform: uppercase;
-  color: var(--text-tertiary);
+  color: var(--text-secondary);
 }
 
 .detail {

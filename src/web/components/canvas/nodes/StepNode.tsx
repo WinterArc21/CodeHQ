@@ -18,9 +18,12 @@ import styles from "./StepNode.module.css";
  * Deliberately *not* on the card: the confidence badge and the source/edge-case/test counts. A
  * badge reading "Verified" on almost every step spends a row to say nothing, and a count is a
  * number nobody acts on — the counts now live on the drawer's own section headings, where the
- * full lists they summarise already are. Confidence survives as a shape on the left marker
- * (solid vs striped) and in the card's accessible name, so nothing is lost for a screen reader
- * or for the "which of these did the agent guess at?" question; it just stops shouting.
+ * full lists they summarise already are. Confidence survives as a shape — a dashed leading edge
+ * on inferred steps only — and in the card's accessible name, so nothing is lost for a screen
+ * reader or for the "which of these did the agent guess at?" question; it just stops shouting.
+ *
+ * Category is carried by the card's own accent gradient rather than by a spine: see `.card` in the
+ * stylesheet for why the leading edge tops out at 15%.
  */
 export function StepNode({ data }: NodeProps<StepFlowNode>) {
   const {
@@ -54,7 +57,7 @@ export function StepNode({ data }: NodeProps<StepFlowNode>) {
   const cardClassName = [styles.card, selected ? styles.selected : "", dimmed ? styles.dimmed : ""]
     .filter(Boolean)
     .join(" ");
-  const markerClassName = confidence.marker === "dashed" ? `${styles.marker} ${styles.markerDashed}` : styles.marker;
+  const showInferredEdge = confidence.marker === "dashed";
   const purposeClassName =
     purposeLineCount(step.purpose) === 2 ? `${styles.purpose} ${styles.purposeTwoLine}` : styles.purpose;
   const accessibleName = `${index + 1}. ${step.name}. ${category.label} category. ${confidence.label} confidence.${
@@ -94,10 +97,12 @@ export function StepNode({ data }: NodeProps<StepFlowNode>) {
         </>
       ) : null}
 
-      {/* The category+confidence marker (contract §10): colour always encodes category, never
-          confidence, so confidence is layered on as a *shape* difference (solid vs dashed
-          stripes) instead of a second colour — "never colour alone" holds for this signal too. */}
-      <span className={markerClassName} style={{ color: `var(${category.varName})` }} aria-hidden="true" />
+      {/* Category is now carried by the card's own accent gradient (contract §10: colour always
+          encodes category, never confidence), which leaves this element carrying confidence alone —
+          so it only renders for the case it needs to call out. A dashed leading edge means the
+          agent inferred this step; a clean edge means verified or human-confirmed. Still a shape
+          difference rather than a second colour, so "never colour alone" holds. */}
+      {showInferredEdge ? <span className={styles.inferredEdge} aria-hidden="true" /> : null}
 
       <div className={styles.body}>
         <div className={styles.header}>
@@ -131,9 +136,10 @@ export function StepNode({ data }: NodeProps<StepFlowNode>) {
         <StepNodeDetail step={step} depth={effectiveDepth} />
 
         <div className={styles.footer}>
-          <span className={styles.categoryLabel} style={{ color: `var(${category.varName})` }}>
-            {category.label}
-          </span>
+          {/* No inline colour: the label derives its own from `--node-accent` in CSS, nudged toward
+              the text colour for contrast against the tinted footer. An inline style here would
+              win the cascade and put it back under AA. */}
+          <span className={styles.categoryLabel}>{category.label}</span>
           {showIo ? (
             <span className={styles.factsIo}>
               {inSummary.length > 0 ? (
