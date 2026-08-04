@@ -4,6 +4,7 @@ import userEvent from "@testing-library/user-event";
 import { describe, expect, it, vi } from "vitest";
 import { ReactFlowProvider, type NodeProps } from "@xyflow/react";
 import type { WorkflowStep } from "@schema/workflow";
+import { chooseCardinalHandles } from "@web/components/canvas/buildFlowElements";
 import { CanvasLegend } from "@web/components/canvas/CanvasLegend";
 import { OutcomeNode } from "@web/components/canvas/nodes/OutcomeNode";
 import { StepNode } from "@web/components/canvas/nodes/StepNode";
@@ -73,6 +74,13 @@ function makeProps(data: StepNodeData): NodeProps<StepFlowNode> {
 }
 
 describe("StepNode", () => {
+  it("declares hidden anchors on every side for dynamic edge attachment", () => {
+    const { container } = renderStepNode(makeProps(makeData()));
+    for (const handleId of ["in", "in-right", "in-top", "in-bottom", "out", "out-left", "out-top", "out-bottom"]) {
+      expect(container.querySelector(`[data-handleid="${handleId}"]`), handleId).toBeInTheDocument();
+    }
+  });
+
   it("renders the name, one-line purpose, category, and index when collapsed", () => {
     renderStepNode(makeProps(makeData()));
     expect(screen.getByText("Scrape Website")).toBeInTheDocument();
@@ -191,6 +199,27 @@ describe("StepNode", () => {
   it("does not surface the warning affordance when nothing is missing", () => {
     renderStepNode(makeProps(makeData()));
     expect(screen.queryByText("Missing sources")).not.toBeInTheDocument();
+  });
+});
+
+describe("chooseCardinalHandles", () => {
+  const source = { x: 100, y: 100, width: 100, height: 80 };
+
+  it.each([
+    ["right", { x: 300, y: 100, width: 100, height: 80 }, { sourceHandle: "out", targetHandle: "in" }],
+    ["left", { x: -100, y: 100, width: 100, height: 80 }, { sourceHandle: "out-left", targetHandle: "in-right" }],
+    ["below", { x: 100, y: 300, width: 100, height: 80 }, { sourceHandle: "out-bottom", targetHandle: "in-top" }],
+    ["above", { x: 100, y: -100, width: 100, height: 80 }, { sourceHandle: "out-top", targetHandle: "in-bottom" }],
+  ])("uses facing sides when the target is %s", (_direction, target, expected) => {
+    expect(chooseCardinalHandles(source, target)).toEqual(expected);
+  });
+
+  it("keeps horizontal anchors on an exact diagonal or overlapping centres", () => {
+    expect(chooseCardinalHandles(source, { ...source, x: 200, y: 200 })).toEqual({
+      sourceHandle: "out",
+      targetHandle: "in",
+    });
+    expect(chooseCardinalHandles(source, source)).toEqual({ sourceHandle: "out", targetHandle: "in" });
   });
 });
 

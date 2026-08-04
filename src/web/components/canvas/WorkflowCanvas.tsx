@@ -5,7 +5,7 @@ import type { Workflow } from "@schema/workflow";
 import type { SourceStatus } from "../../api/types";
 import { usePrefersReducedMotion } from "../../lib/usePrefersReducedMotion";
 import { useCodeHQStore } from "../../store/useCodeHQStore";
-import { buildFlowEdges, buildFlowNodes, buildZoneLabelNodes } from "./buildFlowElements";
+import { buildFlowEdges, buildFlowNodes, buildZoneLabelNodes, chooseCardinalHandles } from "./buildFlowElements";
 import { CanvasLegend } from "./CanvasLegend";
 import { CanvasHeader } from "./CanvasHeader";
 import { CanvasOverflowIndicator } from "./CanvasOverflowIndicator";
@@ -162,10 +162,33 @@ function WorkflowCanvasInner({ workflow, sourceChecks, onDeleteWorkflow }: Workf
       return generatedNodes.map((node) => reset || node.type === "zoneLabel" ? node : { ...node, position: positions.get(node.id) ?? node.position });
     });
   }, [generatedNodes, setNodes, workflow.id]);
-  const edges = useMemo(
+  const baseEdges = useMemo(
     () => buildFlowEdges(layout, backEdgeIds, tracePath?.edgeIds ?? null),
     [layout, backEdgeIds, tracePath],
   );
+  const edges = useMemo(() => {
+    const stepBounds = new Map<string, { x: number; y: number; width: number; height: number }>();
+    for (const node of nodes) {
+      if (node.type === "step" && node.width !== undefined && node.height !== undefined) {
+        stepBounds.set(node.id, { x: node.position.x, y: node.position.y, width: node.width, height: node.height });
+      }
+    }
+
+    return baseEdges.map((edge) => {
+      if (edge.data?.retry === true || edge.data?.returnEdge === true) {
+        return edge;
+      }
+      const source = stepBounds.get(edge.source);
+      const target = stepBounds.get(edge.target);
+      if (source === undefined || target === undefined) {
+        return edge;
+      }
+      const handles = chooseCardinalHandles(source, target);
+      return edge.sourceHandle === handles.sourceHandle && edge.targetHandle === handles.targetHandle
+        ? edge
+        : { ...edge, ...handles };
+    });
+  }, [baseEdges, nodes]);
 
   const handleNodeClick: NodeMouseHandler<CanvasFlowNode> = (_event, node) => {
     if (node.type === "zoneLabel") {

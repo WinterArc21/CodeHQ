@@ -1,5 +1,5 @@
 import type { CSSProperties } from "react";
-import { BaseEdge, EdgeLabelRenderer, getBezierPath, getSmoothStepPath, Position, type EdgeProps } from "@xyflow/react";
+import { BaseEdge, EdgeLabelRenderer, getBezierPath, getSmoothStepPath, type EdgeProps } from "@xyflow/react";
 import { connectionStyle, RETRY_EDGE_VISUAL } from "../../../design/semantics";
 import { connectionLabelText } from "../edgeLabel";
 import type { WorkflowFlowEdge } from "../types";
@@ -60,7 +60,7 @@ export function WorkflowEdge({ id, data, source, target, sourceX, sourceY, sourc
     return null;
   }
 
-  const { connection, retry = false, returnEdge = false, dimmed, traced } = data;
+  const { connection, retry = false, returnEdge = false, branch = false, dimmed, traced } = data;
   const isRetryLoop = retry;
   const visual = isRetryLoop ? RETRY_EDGE_VISUAL : connectionStyle(connection.type);
   const markerVariant = isRetryLoop ? "retry" : connection.type;
@@ -79,8 +79,7 @@ export function WorkflowEdge({ id, data, source, target, sourceX, sourceY, sourc
     labelX = (sourceX + targetX) / 2;
     labelY = liftY;
   } else {
-    const isBranch = sourcePosition === Position.Top || sourcePosition === Position.Bottom;
-    const geometry = isBranch
+    const geometry = branch
       ? getSmoothStepPath({
           sourceX,
           sourceY,

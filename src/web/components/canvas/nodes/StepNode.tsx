@@ -1,6 +1,6 @@
 import type { CSSProperties } from "react";
 import { CaretDown, CaretUp, Check } from "@phosphor-icons/react";
-import { Handle, Position, type NodeProps } from "@xyflow/react";
+import { Handle, Position, useNodeConnections, type NodeProps } from "@xyflow/react";
 import { categoryToken, confidenceStyle } from "../../../design/semantics";
 import { Badge, IconButton } from "../../primitives";
 import { formatDataReferenceNames, purposeLineCount, showsIoOnCard, stepIoSummary } from "../nodeContent";
@@ -25,7 +25,7 @@ import styles from "./StepNode.module.css";
  * Category is carried by the card's own accent gradient rather than by a spine: see `.card` in the
  * stylesheet for why the leading edge tops out at 15%.
  */
-export function StepNode({ data }: NodeProps<StepFlowNode>) {
+export function StepNode({ id, data }: NodeProps<StepFlowNode>) {
   const {
     step,
     index,
@@ -53,6 +53,10 @@ export function StepNode({ data }: NodeProps<StepFlowNode>) {
   const inSummary = formatDataReferenceNames(io.inputs);
   const outSummary = formatDataReferenceNames(io.outputs);
   const showIo = showsIoOnCard(effectiveDepth) && (inSummary.length > 0 || outSummary.length > 0);
+  const sourceConnections = useNodeConnections({ id, handleType: "source" });
+  const activeSourceHandles = new Set(sourceConnections.map((connection) => connection.sourceHandle));
+  const sourceHandleClassName = (handleId: string) =>
+    activeSourceHandles.has(handleId) ? styles.handle : styles.handleHidden;
 
   const cardClassName = [styles.card, selected ? styles.selected : "", dimmed ? styles.dimmed : ""]
     .filter(Boolean)
@@ -80,12 +84,17 @@ export function StepNode({ data }: NodeProps<StepFlowNode>) {
       onFocus={onFocusStep}
       onBlur={onBlurStep}
     >
-      {/* Visible ports are real geometric anchors, but only on the source side: a target's arrival
-          is already marked by the incoming edge's arrowhead, so a target-side dot would just
-          double up on that same point. Users can move cards but cannot create connections, so
-          these communicate attachment without becoming precision targets. */}
+      {/* Only source ports carrying an edge are visible. A target's arrival is already marked by
+          the arrowhead, so target-side dots would double up on that same point. Dynamic source
+          ports become visible on whichever side the live edge geometry selects. */}
       <Handle id="in" type="target" position={Position.Left} className={styles.handleHidden} aria-hidden="true" />
-      <Handle id="out" type="source" position={Position.Right} className={styles.handle} aria-hidden="true" />
+      <Handle id="out" type="source" position={Position.Right} className={sourceHandleClassName("out")} aria-hidden="true" />
+      <Handle id="in-right" type="target" position={Position.Right} className={styles.handleHidden} aria-hidden="true" />
+      <Handle id="in-top" type="target" position={Position.Top} className={styles.handleHidden} aria-hidden="true" />
+      <Handle id="in-bottom" type="target" position={Position.Bottom} className={styles.handleHidden} aria-hidden="true" />
+      <Handle id="out-left" type="source" position={Position.Left} className={sourceHandleClassName("out-left")} aria-hidden="true" />
+      <Handle id="out-top" type="source" position={Position.Top} className={sourceHandleClassName("out-top")} aria-hidden="true" />
+      <Handle id="out-bottom" type="source" position={Position.Bottom} className={sourceHandleClassName("out-bottom")} aria-hidden="true" />
       {hasFailureOutcome ? <Handle id="failure" type="source" position={Position.Top} className={`${styles.handle} ${styles.failureHandle}`} aria-hidden="true" /> : null}
       {hasSuccessOutcome ? <Handle id="success" type="source" position={Position.Bottom} className={`${styles.handle} ${styles.successHandle}`} aria-hidden="true" /> : null}
       {hasReturnIn ? <Handle id="return-in" type="target" position={Position.Top} className={styles.handleHidden} aria-hidden="true" /> : null}

@@ -69,6 +69,9 @@ export interface WorkflowEdgeData extends Record<string, unknown> {
   /** A non-self back edge. It uses live top-side handles and a raised return arc so it never cuts
    * through the horizontal mainline. */
   returnEdge?: boolean;
+  /** A connection into a terminal outcome. These retain their semantic top/bottom branch route
+   * while ordinary work-step connections can switch to any facing pair of card sides. */
+  branch?: boolean;
   /** Path tracing: true whenever a trace is active and this edge is not an outgoing edge from the
    * anchor. */
   dimmed: boolean;
