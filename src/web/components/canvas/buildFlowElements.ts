@@ -148,13 +148,25 @@ export function buildFlowNodes(params: BuildFlowNodesParams): Array<StepFlowNode
     if (layoutNode.isOutcome) {
       const tone = outcomeTone(incomingTypesByStep.get(step.id) ?? []);
       const band = layoutNode.outcomeBand ?? "success";
+      const semanticTargetPosition = band === "failure" ? Position.Bottom : Position.Top;
       return {
         id: layoutNode.id,
         type: "outcome",
         position: { x: layoutNode.x, y: layoutNode.y },
         width: layoutNode.width,
         height: layoutNode.height,
-        handles: cardinalTargetHandles(layoutNode.width, layoutNode.height),
+        handles: [
+          ...cardinalTargetHandles(layoutNode.width, layoutNode.height),
+          {
+            id: "outcome-in",
+            type: "target",
+            position: semanticTargetPosition,
+            x: layoutNode.width / 2 - HANDLE_SIZE / 2,
+            y: semanticTargetPosition === Position.Top ? -HANDLE_SIZE / 2 : layoutNode.height - HANDLE_SIZE / 2,
+            width: HANDLE_SIZE,
+            height: HANDLE_SIZE,
+          },
+        ],
         targetPosition: Position.Left,
         data: {
           step,
@@ -233,7 +245,7 @@ export function buildFlowEdges(
     const isReturnEdge = backEdgeIds.has(edge.id) && edge.source !== edge.target;
     const targetNode = nodeById.get(edge.target);
     const sourceNode = nodeById.get(edge.source);
-    const cardinalHandles = !isRetryLoop && !isReturnEdge && sourceNode !== undefined && targetNode !== undefined
+    const cardinalHandles = !isRetryLoop && !isReturnEdge && targetNode?.isOutcome !== true && sourceNode !== undefined && targetNode !== undefined
       ? chooseCardinalHandles(sourceNode, targetNode)
       : undefined;
     // `computeTracePath` supplies only the anchor's outgoing edge ids. All other edges remain in
@@ -255,7 +267,7 @@ export function buildFlowEdges(
       ? "retry-in"
       : isReturnEdge
         ? "return-in"
-        : cardinalHandles?.targetHandle ?? "in";
+        : cardinalHandles?.targetHandle ?? (targetNode?.isOutcome === true ? "outcome-in" : "in");
 
     return {
       id: edge.id,

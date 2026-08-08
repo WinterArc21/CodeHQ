@@ -256,6 +256,10 @@ test("switches ordinary connections to the closest facing card sides while dragg
 });
 
 test("switches outcome connections to facing sides while dragging success and failure outcomes", async ({ page }) => {
+  // This demo's semantic outcome bands extend beyond the default 1280px test viewport. Keep the
+  // source and target within the real pointer event region so this exercises a drag, not an
+  // off-screen mouse coordinate.
+  await page.setViewportSize({ width: 1920, height: 1080 });
   await page.goto(server.url);
   await waitForBoot(page);
   await selectWorkflowByName(page, "Canvas Grammar Demo");

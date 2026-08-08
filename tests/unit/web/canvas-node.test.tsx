@@ -225,7 +225,7 @@ describe("chooseCardinalHandles", () => {
 });
 
 describe("canvas outcome and legend semantics", () => {
-  it("initializes outcome edges on cardinal handles without losing branch semantics", () => {
+  it("keeps initial outcome edges on their semantic branch handles", () => {
     const workflow = {
       schemaVersion: "0.1" as const,
       id: "outcome-edge",
@@ -238,8 +238,8 @@ describe("canvas outcome and legend semantics", () => {
     const [edge] = buildFlowEdges(layout, new Set<string>(), null);
 
     expect(edge).toMatchObject({
-      sourceHandle: "out-bottom",
-      targetHandle: "in-top",
+      sourceHandle: "success",
+      targetHandle: "outcome-in",
       data: { branch: true },
     });
   });
@@ -266,7 +266,7 @@ describe("canvas outcome and legend semantics", () => {
         <OutcomeNode {...props} />
       </ReactFlowProvider>,
     );
-    for (const handleId of ["in", "in-right", "in-top", "in-bottom"]) {
+    for (const handleId of ["in", "in-right", "in-top", "in-bottom", "outcome-in"]) {
       expect(container.querySelector("[data-handleid=\"" + handleId + "\"]"), band + "/" + handleId).toBeInTheDocument();
     }
   });

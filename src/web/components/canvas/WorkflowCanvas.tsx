@@ -168,9 +168,14 @@ function WorkflowCanvasInner({ workflow, sourceChecks, onDeleteWorkflow }: Workf
   );
   const edges = useMemo(() => {
     const nodeBounds = new Map<string, { x: number; y: number; width: number; height: number }>();
+    const initialPositions = new Map(
+      layout.nodes.map((node) => [node.id, { x: node.x, y: node.y }]),
+    );
     for (const node of nodes) {
-      if (node.type !== "zoneLabel" && node.width !== undefined && node.height !== undefined) {
-        nodeBounds.set(node.id, { x: node.position.x, y: node.position.y, width: node.width, height: node.height });
+      const width = node.measured?.width ?? node.width;
+      const height = node.measured?.height ?? node.height;
+      if (node.type !== "zoneLabel" && width !== undefined && height !== undefined) {
+        nodeBounds.set(node.id, { x: node.position.x, y: node.position.y, width, height });
       }
     }
 
@@ -183,12 +188,20 @@ function WorkflowCanvasInner({ workflow, sourceChecks, onDeleteWorkflow }: Workf
       if (source === undefined || target === undefined) {
         return edge;
       }
+      const sourceInitial = initialPositions.get(edge.source);
+      const targetInitial = initialPositions.get(edge.target);
+      const outcomeAtRest = edge.data?.branch === true && sourceInitial !== undefined && targetInitial !== undefined
+        && source.x === sourceInitial.x && source.y === sourceInitial.y
+        && target.x === targetInitial.x && target.y === targetInitial.y;
+      if (outcomeAtRest) {
+        return edge;
+      }
       const handles = chooseCardinalHandles(source, target);
       return edge.sourceHandle === handles.sourceHandle && edge.targetHandle === handles.targetHandle
         ? edge
         : { ...edge, ...handles };
     });
-  }, [baseEdges, nodes]);
+  }, [baseEdges, layout, nodes]);
 
   const handleNodeClick: NodeMouseHandler<CanvasFlowNode> = (_event, node) => {
     if (node.type === "zoneLabel") {

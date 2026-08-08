@@ -73,7 +73,7 @@ describe("WorkflowNavigator", () => {
     expect(screen.getByRole("button", { name: /Beta/ })).toHaveAttribute("aria-current", "true");
 
     collapseButton.focus();
-    await user.keyboard("{Space}");
+    await user.keyboard("{Enter}");
 
     const expandButton = screen.getByRole("button", { name: "Expand workflows rail" });
     expect(expandButton).toHaveAttribute("aria-expanded", "false");
