@@ -1,5 +1,5 @@
-/* The only handle here is a target — the incoming edge's arrowhead already marks this point, so
-   the dot stays in the DOM for edge geometry but renders invisible. */
+/* Target handles stay in the DOM for edge geometry but render invisible — the incoming edge's
+   arrowhead already marks the attachment point, so a dot here would double it. */
 .handle {
   box-sizing: border-box;
   width: 10px;

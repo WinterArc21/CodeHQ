@@ -27,9 +27,9 @@ export interface ConnectionVisual {
   dash: "none" | "dashed" | "dotted";
   showLabel: boolean;
   /** `"primary"` (the happy path) renders as the visually dominant line; `"branch"` (failure,
-   * conditional, async) renders thinner and slightly translated so it reads as subordinate to
+   * conditional, async, or terminal outcome) renders thinner and slightly translated so it reads as subordinate to
    * the primary path it diverges from, never competing with it (contract §10.3). Driven purely
-   * by connection `type`, same as every other field here. */
+   * by connection `type` or terminal outcome band. */
   weight: "primary" | "branch";
 }
 
@@ -38,12 +38,33 @@ export interface ToneVisual {
   label: string;
 }
 
+/**
+ * Since the card carries its category as a full-surface tint rather than a 6px spine, these
+ * colours have to stay separable as large fills, not just as slivers — which is what drove the
+ * two rules this table follows.
+ *
+ * 1. Entry and output deliberately share `--accent-output`, and nothing else may use it. The two
+ *    ends of a workflow are the pair you most often want to find at a glance, and they are never
+ *    ambiguous with each other in practice: entry has no inbound edges, output has no outbound
+ *    ones, and the spine layout puts them at opposite ends of the canvas. Spending two hues on a
+ *    distinction that position already makes let every *middle* category — the ones that really do
+ *    sit side by side — move further apart.
+ * 2. Card hues avoid the connection hues where they can. The one place this could not be fully
+ *    satisfied is `data`: orange (h24) sits in the 30deg corridor between failure red (h6) and the
+ *    amber of conditional/retry edges (h36), 12deg off the latter. Accepted rather than solved —
+ *    an edge is a 1.5px stroke and a card is a 380px fill, so the form difference carries the
+ *    distinction that hue alone cannot here. If it ever reads as ambiguous on a real graph, the
+ *    fix is to move the conditional edge toward yellow, not to move this card.
+ *
+ * `--accent-blue` is no longer a category colour at all: it is the focus ring and the selection
+ * ring, and a card tinted the same blue as the ring that marks "you are here" fought with it.
+ */
 const CATEGORY_VISUALS: Record<NonNullable<WorkflowStep["category"]>, CategoryVisual> = {
-  entry: { varName: "--accent-blue", label: "Entry" },
+  entry: { varName: "--accent-output", label: "Entry" },
   logic: { varName: "--accent-neutral", label: "Logic" },
-  decision: { varName: "--accent-amber", label: "Decision" },
-  data: { varName: "--accent-green", label: "Data" },
-  external: { varName: "--accent-violet", label: "External" },
+  decision: { varName: "--accent-rose", label: "Decision" },
+  data: { varName: "--accent-orange", label: "Data" },
+  external: { varName: "--accent-orchid", label: "External" },
   output: { varName: "--accent-output", label: "Output" },
 };
 
@@ -98,6 +119,21 @@ export function connectionStyle(type?: "success" | "failure" | "conditional" | "
     return CONNECTION_VISUALS.success;
   }
   return CONNECTION_VISUALS[type];
+}
+
+export type OutcomeEdgeBand = "success" | "failure";
+
+/** A successful terminal is a distinct branch from an ordinary success/default connection. */
+const SUCCESS_OUTCOME_EDGE_VISUAL: ConnectionVisual = {
+  varName: "--accent-output",
+  dash: "dashed",
+  showLabel: true,
+  weight: "branch",
+};
+
+/** Line colour/dash + label treatment for a connection entering a terminal outcome band. */
+export function outcomeEdgeStyle(band: OutcomeEdgeBand): ConnectionVisual {
+  return band === "failure" ? CONNECTION_VISUALS.failure : SUCCESS_OUTCOME_EDGE_VISUAL;
 }
 
 /**

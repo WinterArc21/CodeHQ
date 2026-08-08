@@ -4,7 +4,9 @@ import userEvent from "@testing-library/user-event";
 import { describe, expect, it, vi } from "vitest";
 import { ReactFlowProvider, type NodeProps } from "@xyflow/react";
 import type { WorkflowStep } from "@schema/workflow";
+import { buildFlowEdges, chooseCardinalHandles } from "@web/components/canvas/buildFlowElements";
 import { CanvasLegend } from "@web/components/canvas/CanvasLegend";
+import { computeLayout } from "@web/components/canvas/layout";
 import { OutcomeNode } from "@web/components/canvas/nodes/OutcomeNode";
 import { StepNode } from "@web/components/canvas/nodes/StepNode";
 import type { OutcomeFlowNode, OutcomeNodeData, StepFlowNode, StepNodeData } from "@web/components/canvas/types";
@@ -73,6 +75,13 @@ function makeProps(data: StepNodeData): NodeProps<StepFlowNode> {
 }
 
 describe("StepNode", () => {
+  it("declares hidden anchors on every side for dynamic edge attachment", () => {
+    const { container } = renderStepNode(makeProps(makeData()));
+    for (const handleId of ["in", "in-right", "in-top", "in-bottom", "out", "out-left", "out-top", "out-bottom"]) {
+      expect(container.querySelector(`[data-handleid="${handleId}"]`), handleId).toBeInTheDocument();
+    }
+  });
+
   it("renders the name, one-line purpose, category, and index when collapsed", () => {
     renderStepNode(makeProps(makeData()));
     expect(screen.getByText("Scrape Website")).toBeInTheDocument();
@@ -194,7 +203,74 @@ describe("StepNode", () => {
   });
 });
 
+describe("chooseCardinalHandles", () => {
+  const source = { x: 100, y: 100, width: 100, height: 80 };
+
+  it.each([
+    ["right", { x: 300, y: 100, width: 100, height: 80 }, { sourceHandle: "out", targetHandle: "in" }],
+    ["left", { x: -100, y: 100, width: 100, height: 80 }, { sourceHandle: "out-left", targetHandle: "in-right" }],
+    ["below", { x: 100, y: 300, width: 100, height: 80 }, { sourceHandle: "out-bottom", targetHandle: "in-top" }],
+    ["above", { x: 100, y: -100, width: 100, height: 80 }, { sourceHandle: "out-top", targetHandle: "in-bottom" }],
+  ])("uses facing sides when the target is %s", (_direction, target, expected) => {
+    expect(chooseCardinalHandles(source, target)).toEqual(expected);
+  });
+
+  it("keeps horizontal anchors on an exact diagonal or overlapping centres", () => {
+    expect(chooseCardinalHandles(source, { ...source, x: 200, y: 200 })).toEqual({
+      sourceHandle: "out",
+      targetHandle: "in",
+    });
+    expect(chooseCardinalHandles(source, source)).toEqual({ sourceHandle: "out", targetHandle: "in" });
+  });
+});
+
 describe("canvas outcome and legend semantics", () => {
+  it("keeps initial outcome edges on their semantic branch handles", () => {
+    const workflow = {
+      schemaVersion: "0.1" as const,
+      id: "outcome-edge",
+      name: "Outcome edge",
+      purpose: "Tests outcome edge anchors.",
+      steps: [makeStep({ id: "source" }), makeStep({ id: "done", category: "output" })],
+      connections: [{ from: "source", to: "done", type: "success" as const }],
+    };
+    const layout = computeLayout(workflow, { depth: "workflow", expandedStepIds: {} });
+    const [edge] = buildFlowEdges(layout, new Set<string>(), null);
+
+    expect(edge).toMatchObject({
+      sourceHandle: "success",
+      targetHandle: "outcome-in",
+      data: { branch: true },
+    });
+  });
+
+  it.each([
+    ["success", "success"],
+    ["failure", "failure"],
+  ] as const)("declares cardinal target anchors for a %s outcome", (_label, band) => {
+    const data: OutcomeNodeData = {
+      step: makeStep({ id: "done-" + band, name: "Done " + band }),
+      tone: band,
+      band,
+      dimmed: false,
+      tabIndex: -1,
+      onKeyDown: () => {},
+      onHoverStart: () => {},
+      onHoverEnd: () => {},
+      onFocusStep: () => {},
+      onBlurStep: () => {},
+    };
+    const props = { ...makeProps(makeData()), id: data.step.id, type: "outcome", data } as NodeProps<OutcomeFlowNode>;
+    const { container } = render(
+      <ReactFlowProvider>
+        <OutcomeNode {...props} />
+      </ReactFlowProvider>,
+    );
+    for (const handleId of ["in", "in-right", "in-top", "in-bottom", "outcome-in"]) {
+      expect(container.querySelector("[data-handleid=\"" + handleId + "\"]"), band + "/" + handleId).toBeInTheDocument();
+    }
+  });
+
   it("labels a neutral outcome honestly and does not render a success check", () => {
     const data: OutcomeNodeData = {
       step: makeStep({ id: "done", name: "Done", purpose: "Processing ended." }),
@@ -240,5 +316,26 @@ describe("canvas outcome and legend semantics", () => {
     expect(legend).not.toHaveTextContent("Conditional");
     expect(legend).not.toHaveTextContent("Normal");
     expect(legend).not.toHaveTextContent("Async");
+  });
+
+  it("separates terminal success edges from ordinary success edges in the legend", () => {
+    render(
+      <CanvasLegend
+        workflow={{
+          schemaVersion: "0.1",
+          id: "success-outcome",
+          name: "Success outcome",
+          purpose: "Tests terminal success grammar.",
+          steps: [makeStep({ id: "source" }), makeStep({ id: "work" }), makeStep({ id: "done", category: "output" })],
+          connections: [
+            { from: "source", to: "work", type: "success" },
+            { from: "work", to: "done", type: "success" },
+          ],
+        }}
+      />,
+    );
+    const legend = screen.getByRole("group", { name: /connection legend/i });
+    expect(legend).toHaveTextContent("Normal");
+    expect(legend).toHaveTextContent("Success outcome");
   });
 });

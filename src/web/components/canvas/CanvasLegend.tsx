@@ -1,5 +1,6 @@
 import type { Workflow } from "@schema/workflow";
-import { connectionStyle, RETRY_EDGE_VISUAL, type ConnectionVisual } from "../../design/semantics";
+import { connectionStyle, outcomeEdgeStyle, outcomeTone, RETRY_EDGE_VISUAL, type ConnectionVisual } from "../../design/semantics";
+import { computeIncomingTypes, computeOutcomeStepIds } from "./graph";
 import styles from "./CanvasLegend.module.css";
 
 interface CanvasLegendProps {
@@ -28,14 +29,33 @@ function swatchStyle(visual: ConnectionVisual) {
 export function CanvasLegend({ workflow, dimmed = false }: CanvasLegendProps) {
   // A self-loop renders with the retry grammar instead of its declared connection grammar, so
   // exclude it from the ordinary rows and add the dedicated Retry row below.
+  const outcomeIds = computeOutcomeStepIds(workflow);
+  const incomingTypesByStep = computeIncomingTypes(workflow);
+  const outcomeBandById = new Map(
+    Array.from(outcomeIds, (stepId) => [
+      stepId,
+      outcomeTone(incomingTypesByStep.get(stepId) ?? []) === "failure" ? "failure" : "success",
+    ] as const),
+  );
+  const isTerminalOutcomeEdge = (connection: Workflow["connections"][number]) => outcomeBandById.has(connection.to);
   const presentTypes = new Set(
-    workflow.connections.filter((connection) => connection.from !== connection.to).map((connection) => connection.type ?? "success"),
+    workflow.connections
+      .filter((connection) => connection.from !== connection.to && !isTerminalOutcomeEdge(connection))
+      .map((connection) => connection.type ?? "success"),
   );
   const rows: Array<{ key: string; label: string; visual: ConnectionVisual }> = CONNECTION_TYPES.filter((type) => presentTypes.has(type)).map((type) => ({
     key: type,
     label: LABELS[type],
     visual: connectionStyle(type),
   }));
+  const hasFailureOutcome = Array.from(outcomeBandById.values()).some((band) => band === "failure");
+  const hasSuccessOutcome = Array.from(outcomeBandById.values()).some((band) => band === "success");
+  if (hasFailureOutcome && !rows.some((row) => row.key === "failure")) {
+    rows.push({ key: "failure", label: LABELS.failure, visual: connectionStyle("failure") });
+  }
+  if (hasSuccessOutcome) {
+    rows.push({ key: "success-outcome", label: "Success outcome", visual: outcomeEdgeStyle("success") });
+  }
   if (workflow.connections.some((connection) => connection.from === connection.to)) {
     rows.push({ key: "retry", label: "Retry", visual: RETRY_EDGE_VISUAL });
   }

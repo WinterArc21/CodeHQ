@@ -9,6 +9,11 @@
   stroke: var(--accent-neutral);
 }
 
+.markerSuccessOutcome {
+  fill: none;
+  stroke: var(--accent-output);
+}
+
 .markerAsync {
   fill: none;
   stroke: var(--accent-blue);
@@ -26,6 +31,7 @@
 }
 
 .markerSuccess,
+.markerSuccessOutcome,
 .markerAsync,
 .markerFailure,
 .markerConditional,

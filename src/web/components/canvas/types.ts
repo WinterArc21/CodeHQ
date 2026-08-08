@@ -47,19 +47,8 @@ export interface OutcomeNodeData extends Record<string, unknown> {
 
 export type OutcomeFlowNode = Node<OutcomeNodeData, "outcome">;
 
-export interface ZoneLabelNodeData extends Record<string, unknown> {
-  text: string;
-  /** Decorative labels dim with the rest of the canvas while a trace is active. */
-  dimmed: boolean;
-}
-
-/** A decorative "MAIN LINE" / "OUTCOMES" region header — not part of the workflow graph itself,
- * see `nodes/ZoneLabel.tsx`. */
-export type ZoneLabelFlowNode = Node<ZoneLabelNodeData, "zoneLabel">;
-
-/** Every node type the canvas can render — a work-step card, a terminal outcome pill, or a
- * decorative zone label. */
-export type CanvasFlowNode = StepFlowNode | OutcomeFlowNode | ZoneLabelFlowNode;
+/** Every node type the canvas can render: a work-step card or a terminal outcome pill. */
+export type CanvasFlowNode = StepFlowNode | OutcomeFlowNode;
 
 export interface WorkflowEdgeData extends Record<string, unknown> {
   connection: WorkflowConnection;
@@ -69,6 +58,13 @@ export interface WorkflowEdgeData extends Record<string, unknown> {
   /** A non-self back edge. It uses live top-side handles and a raised return arc so it never cuts
    * through the horizontal mainline. */
   returnEdge?: boolean;
+  /** A connection into a terminal outcome. Its semantic branch routing/label remains distinct
+   * while the live handle pair may switch to any facing cardinal sides. */
+  branch?: boolean;
+  /** The target's terminal outcome band. This is intentionally separate from `connection.type`:
+   * a successful terminal is dashed green while an ordinary success connection stays neutral
+   * solid. */
+  outcomeBand?: OutcomeBand;
   /** Path tracing: true whenever a trace is active and this edge is not an outgoing edge from the
    * anchor. */
   dimmed: boolean;

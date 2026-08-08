@@ -9,7 +9,7 @@ import { outcomeTone } from "../../design/semantics";
 import { computeIncomingTypes } from "./graph";
 import type { LayoutResult } from "./layout";
 import { effectiveDepthForStep, stepHasMissingSource } from "./nodeContent";
-import type { OutcomeFlowNode, StepFlowNode, WorkflowFlowEdge, ZoneLabelFlowNode } from "./types";
+import type { OutcomeFlowNode, StepFlowNode, WorkflowFlowEdge } from "./types";
 
 function isStepExpanded(expandedStepIds: Record<string, true>, stepId: string): boolean {
   return expandedStepIds[stepId] === true;
@@ -19,6 +19,17 @@ function isStepExpanded(expandedStepIds: Record<string, true>, stepId: string): 
 const HANDLE_SIZE = 10;
 const RETRY_IN_FRACTION = 0.28;
 const RETRY_OUT_FRACTION = 0.72;
+
+/** The four target-side ports shared by work cards and terminal outcome pills. The default
+ * "in" id is the left-facing port; the other ids name their physical side explicitly. */
+function cardinalTargetHandles(width: number, height: number): NodeHandle[] {
+  return [
+    { id: "in", type: "target", position: Position.Left, x: -HANDLE_SIZE / 2, y: height / 2 - HANDLE_SIZE / 2, width: HANDLE_SIZE, height: HANDLE_SIZE },
+    { id: "in-right", type: "target", position: Position.Right, x: width - HANDLE_SIZE / 2, y: height / 2 - HANDLE_SIZE / 2, width: HANDLE_SIZE, height: HANDLE_SIZE },
+    { id: "in-top", type: "target", position: Position.Top, x: width / 2 - HANDLE_SIZE / 2, y: -HANDLE_SIZE / 2, width: HANDLE_SIZE, height: HANDLE_SIZE },
+    { id: "in-bottom", type: "target", position: Position.Bottom, x: width / 2 - HANDLE_SIZE / 2, y: height - HANDLE_SIZE / 2, width: HANDLE_SIZE, height: HANDLE_SIZE },
+  ];
+}
 
 /**
  * The connection anchors, stated up front instead of left to be measured.
@@ -51,8 +62,11 @@ function stepHandles(
   returnOut: boolean,
 ): NodeHandle[] {
   return [
-    { id: "in", type: "target", position: Position.Left, x: -HANDLE_SIZE / 2, y: height / 2 - HANDLE_SIZE / 2, width: HANDLE_SIZE, height: HANDLE_SIZE },
+    ...cardinalTargetHandles(width, height),
     { id: "out", type: "source", position: Position.Right, x: width - HANDLE_SIZE / 2, y: height / 2 - HANDLE_SIZE / 2, width: HANDLE_SIZE, height: HANDLE_SIZE },
+    { id: "out-left", type: "source", position: Position.Left, x: -HANDLE_SIZE / 2, y: height / 2 - HANDLE_SIZE / 2, width: HANDLE_SIZE, height: HANDLE_SIZE },
+    { id: "out-top", type: "source", position: Position.Top, x: width / 2 - HANDLE_SIZE / 2, y: -HANDLE_SIZE / 2, width: HANDLE_SIZE, height: HANDLE_SIZE },
+    { id: "out-bottom", type: "source", position: Position.Bottom, x: width / 2 - HANDLE_SIZE / 2, y: height - HANDLE_SIZE / 2, width: HANDLE_SIZE, height: HANDLE_SIZE },
     ...(failure ? [{ id: "failure", type: "source" as const, position: Position.Top, x: width / 2 - HANDLE_SIZE / 2, y: -HANDLE_SIZE / 2, width: HANDLE_SIZE, height: HANDLE_SIZE }] : []),
     ...(success ? [{ id: "success", type: "source" as const, position: Position.Bottom, x: width / 2 - HANDLE_SIZE / 2, y: height - HANDLE_SIZE / 2, width: HANDLE_SIZE, height: HANDLE_SIZE }] : []),
     ...(returnIn ? [{ id: "return-in", type: "target" as const, position: Position.Top, x: width * 0.3 - HANDLE_SIZE / 2, y: -HANDLE_SIZE / 2, width: HANDLE_SIZE, height: HANDLE_SIZE }] : []),
@@ -62,6 +76,26 @@ function stepHandles(
       { id: "retry-out", type: "source" as const, position: Position.Right, x: width - HANDLE_SIZE / 2, y: height * RETRY_OUT_FRACTION - HANDLE_SIZE / 2, width: HANDLE_SIZE, height: HANDLE_SIZE },
     ] : []),
   ];
+}
+
+/** Chooses the pair of facing card sides along the dominant centre-to-centre axis. Horizontal
+ * wins exact diagonals so the initial left-to-right layout keeps its established anchors. */
+export function chooseCardinalHandles(
+  source: { x: number; y: number; width: number; height: number },
+  target: { x: number; y: number; width: number; height: number },
+): { sourceHandle: string; targetHandle: string } {
+  const dx = target.x + target.width / 2 - (source.x + source.width / 2);
+  const dy = target.y + target.height / 2 - (source.y + source.height / 2);
+
+  if (Math.abs(dx) >= Math.abs(dy)) {
+    return dx >= 0
+      ? { sourceHandle: "out", targetHandle: "in" }
+      : { sourceHandle: "out-left", targetHandle: "in-right" };
+  }
+
+  return dy >= 0
+    ? { sourceHandle: "out-bottom", targetHandle: "in-top" }
+    : { sourceHandle: "out-top", targetHandle: "in-bottom" };
 }
 
 /** Shared hover/focus wiring every node (step or outcome) needs for path tracing (contract §11:
@@ -114,23 +148,26 @@ export function buildFlowNodes(params: BuildFlowNodesParams): Array<StepFlowNode
     if (layoutNode.isOutcome) {
       const tone = outcomeTone(incomingTypesByStep.get(step.id) ?? []);
       const band = layoutNode.outcomeBand ?? "success";
-      const position = band === "failure" ? Position.Bottom : Position.Top;
+      const semanticTargetPosition = band === "failure" ? Position.Bottom : Position.Top;
       return {
         id: layoutNode.id,
         type: "outcome",
         position: { x: layoutNode.x, y: layoutNode.y },
         width: layoutNode.width,
         height: layoutNode.height,
-        handles: [{
-          id: "in",
-          type: "target",
-          position,
-          x: layoutNode.width / 2 - HANDLE_SIZE / 2,
-          y: position === Position.Top ? -HANDLE_SIZE / 2 : layoutNode.height - HANDLE_SIZE / 2,
-          width: HANDLE_SIZE,
-          height: HANDLE_SIZE,
-        }],
-        targetPosition: position,
+        handles: [
+          ...cardinalTargetHandles(layoutNode.width, layoutNode.height),
+          {
+            id: "outcome-in",
+            type: "target",
+            position: semanticTargetPosition,
+            x: layoutNode.width / 2 - HANDLE_SIZE / 2,
+            y: semanticTargetPosition === Position.Top ? -HANDLE_SIZE / 2 : layoutNode.height - HANDLE_SIZE / 2,
+            width: HANDLE_SIZE,
+            height: HANDLE_SIZE,
+          },
+        ],
+        targetPosition: Position.Left,
         data: {
           step,
           tone,
@@ -194,7 +231,6 @@ export function buildFlowNodes(params: BuildFlowNodesParams): Array<StepFlowNode
     };
   });
 }
-
 export function buildFlowEdges(
   layout: LayoutResult,
   backEdgeIds: ReadonlySet<string>,
@@ -207,87 +243,48 @@ export function buildFlowEdges(
     const isRetryLoop = backEdgeIds.has(edge.id) && edge.source === edge.target;
     const isReturnEdge = backEdgeIds.has(edge.id) && edge.source !== edge.target;
     const targetNode = nodeById.get(edge.target);
+    const sourceNode = nodeById.get(edge.source);
+    const cardinalHandles = !isRetryLoop && !isReturnEdge && targetNode?.isOutcome !== true && sourceNode !== undefined && targetNode !== undefined
+      ? chooseCardinalHandles(sourceNode, targetNode)
+      : undefined;
     // `computeTracePath` supplies only the anchor's outgoing edge ids. All other edges remain in
     // the canvas as context but dim while a trace is active.
     const dimmed = traceEdgeIds !== null && !traceEdgeIds.has(edge.id);
     const traced = traceEdgeIds !== null && !dimmed;
+    const outcomeBand = targetNode?.isOutcome === true
+      ? targetNode.outcomeBand ?? "success"
+      : undefined;
+
+    const sourceHandle = isRetryLoop
+      ? "retry-out"
+      : isReturnEdge
+        ? "return-out"
+        : cardinalHandles?.sourceHandle ?? (targetNode?.isOutcome
+          ? targetNode.outcomeBand === "failure" ? "failure" : "success"
+          : "out");
+    const targetHandle = isRetryLoop
+      ? "retry-in"
+      : isReturnEdge
+        ? "return-in"
+        : cardinalHandles?.targetHandle ?? (targetNode?.isOutcome === true ? "outcome-in" : "in");
 
     return {
       id: edge.id,
       type: "workflow",
       source: edge.source,
       target: edge.target,
-      sourceHandle: isRetryLoop
-        ? "retry-out"
-        : isReturnEdge
-          ? "return-out"
-        : targetNode?.isOutcome
-          ? targetNode.outcomeBand === "failure" ? "failure" : "success"
-          : "out",
-      targetHandle: isRetryLoop ? "retry-in" : isReturnEdge ? "return-in" : "in",
+      sourceHandle,
+      targetHandle,
       focusable: false,
       data: {
         connection: edge.connection,
         retry: isRetryLoop,
         returnEdge: isReturnEdge,
+        branch: targetNode?.isOutcome === true,
+        ...(outcomeBand !== undefined ? { outcomeBand } : {}),
         dimmed,
         traced,
       },
     };
   });
-}
-
-/** How far above the topmost node's own top edge a zone label sits — small enough to stay inside
- * `layout.ts`'s `LAYOUT_MARGIN_Y` (28px) top margin, so the fitted viewport's own padding already
- * covers it without needing to widen the graph's own fit bounds for a purely decorative label. */
-const ZONE_LABEL_GAP_ABOVE = 20;
-
-/**
- * The "MAIN LINE" / "OUTCOMES" quiet-zone headers the mockup uses to orient a first-time reader
- * (`prototypes/edge-grammar`) — both anchored to the same y (the whole graph's own topmost row),
- * one over the main-line column's leftmost x, one over the outcome column's leftmost x, so they
- * read as a single header spanning the two regions rather than two independently-placed labels.
- * Either half is omitted when that region has no nodes at all (e.g. a workflow with no terminal
- * outcomes yet). Not part of `layout.ts`'s own node set — these never affect graph geometry,
- * routing, overlap checks, or the minimap's node count, purely a rendering-layer annotation.
- */
-export function buildZoneLabelNodes(layout: LayoutResult, traceActive = false): ZoneLabelFlowNode[] {
-  if (layout.nodes.length === 0) {
-    return [];
-  }
-  const usedIds = new Set(layout.nodes.map((node) => node.id));
-  const mainLineNodes = layout.nodes.filter((node) => !node.isOutcome);
-  const outcomeNodes = layout.nodes.filter((node) => node.isOutcome);
-  const specs: Array<{ id: string; text: string; x: number; y: number }> = [];
-  if (mainLineNodes.length > 0) {
-    specs.push({
-      id: "__zone-label-main-line",
-      text: "Main flow",
-      x: Math.min(...mainLineNodes.map((node) => node.x)),
-      y: Math.min(...mainLineNodes.map((node) => node.y)) - ZONE_LABEL_GAP_ABOVE,
-    });
-  }
-  for (const band of ["failure", "success"] as const) {
-    const nodes = outcomeNodes.filter((node) => node.outcomeBand === band);
-    if (nodes.length > 0) {
-      specs.push({
-        id: `__zone-label-${band}`,
-        text: band === "failure" ? "Failure outcomes" : "Success / completion",
-        x: Math.min(...nodes.map((node) => node.x)),
-        y: Math.min(...nodes.map((node) => node.y)) - ZONE_LABEL_GAP_ABOVE,
-      });
-    }
-  }
-
-  return specs
-    .filter((spec) => !usedIds.has(spec.id)) // a real step id could theoretically collide
-    .map((spec) => ({
-      id: spec.id,
-      type: "zoneLabel",
-      position: { x: spec.x, y: spec.y },
-      draggable: false,
-      selectable: false,
-      focusable: false,
-      data: { text: spec.text, dimmed: traceActive },
-    }));
 }

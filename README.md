@@ -60,7 +60,7 @@ Then paste this into your coding agent:
 
 ## Commands
 
-### `hqflow init [--force] [--example]`
+### `hqflow init [--force]`
 
 Scaffolds `.codehq/` in the current repository: `project.json`, `SKILL.md`, an empty
 `workflows/`, and an initial `diagnostics.json`. Also appends `.codehq/.runtime/` to your
@@ -72,10 +72,6 @@ populated board before mapping your own.
 
 - `--force` — overwrite existing `.codehq` files. Without it, an existing file (for
   example a `SKILL.md` you have already edited) is left untouched and reported as unchanged.
-- `--example` — also copy the bundled example workflow into `workflows/`. It describes an
-  imaginary project, so `validate` will warn that the files it cites are not in your repository;
-  that is the example being an example, not a problem with your setup.
-
 ### `hqflow open [--port <n>] [--no-open] [--root <path>]`
 
 Starts the local server and opens the workflow canvas in your browser.

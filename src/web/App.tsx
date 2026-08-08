@@ -1,4 +1,4 @@
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { deleteWorkflow, recheck } from "./api/client";
 import { useCodeHQSnapshot } from "./api/events";
 import { AppShell, TopBar, type CodeHQStatus } from "./components/shell";
@@ -26,6 +26,7 @@ function computeConnectionStatus(
 
 export function App() {
   const { snapshot, status, error, refetch } = useCodeHQSnapshot();
+  const [workflowNavigatorCollapsed, setWorkflowNavigatorCollapsed] = useState(false);
 
   const selectedWorkflowId = useCodeHQStore((state) => state.selectedWorkflowId);
   const selectWorkflow = useCodeHQStore((state) => state.selectWorkflow);
@@ -76,6 +77,7 @@ export function App() {
   return (
     <>
       <AppShell
+        asideCollapsed={workflowNavigatorCollapsed}
         topBar={
           <TopBar
             repositoryName={snapshot.repository.name}
@@ -85,7 +87,13 @@ export function App() {
           />
         }
         aside={
-          <WorkflowNavigator workflows={snapshot.workflows} selectedWorkflowId={selectedWorkflowId} onSelect={selectWorkflow} />
+          <WorkflowNavigator
+            workflows={snapshot.workflows}
+            selectedWorkflowId={selectedWorkflowId}
+            onSelect={selectWorkflow}
+            collapsed={workflowNavigatorCollapsed}
+            onToggleCollapsed={() => setWorkflowNavigatorCollapsed((collapsed) => !collapsed)}
+          />
         }
       >
         <DiagnosticsBanner diagnostics={snapshot.diagnostics} onOpenDiagnostics={toggleDiagnostics} />

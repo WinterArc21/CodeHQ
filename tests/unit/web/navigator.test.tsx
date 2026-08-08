@@ -1,6 +1,7 @@
 import "@testing-library/jest-dom/vitest";
 import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
+import { useState } from "react";
 import { describe, expect, it, vi } from "vitest";
 import { WorkflowNavigator } from "@web/components/navigator/WorkflowNavigator";
 import type { WorkflowRecord } from "@web/api/types";
@@ -48,6 +49,7 @@ describe("WorkflowNavigator", () => {
     render(<WorkflowNavigator workflows={records} selectedWorkflowId={null} onSelect={onSelect} />);
 
     const user = userEvent.setup();
+    await user.tab(); // focuses the collapse control
     await user.tab(); // focuses the first workflow button (Alpha)
     await user.keyboard("{ArrowDown}"); // moves focus to the second (Beta)
     await user.keyboard("{Enter}");
@@ -60,5 +62,50 @@ describe("WorkflowNavigator", () => {
 
     expect(screen.getByRole("button", { name: /Beta/ })).toHaveAttribute("aria-current", "true");
     expect(screen.getByRole("button", { name: /Alpha/ })).not.toHaveAttribute("aria-current");
+  });
+
+  it("collapses and expands from the keyboard without changing the selected workflow", async () => {
+    render(<WorkflowNavigator workflows={records} selectedWorkflowId="beta" onSelect={() => {}} />);
+
+    const user = userEvent.setup();
+    const collapseButton = screen.getByRole("button", { name: "Collapse workflows rail" });
+    expect(collapseButton).toHaveAttribute("aria-expanded", "true");
+    expect(screen.getByRole("button", { name: /Beta/ })).toHaveAttribute("aria-current", "true");
+
+    collapseButton.focus();
+    await user.keyboard("{Enter}");
+
+    const expandButton = screen.getByRole("button", { name: "Expand workflows rail" });
+    expect(expandButton).toHaveAttribute("aria-expanded", "false");
+    expect(screen.queryByRole("button", { name: /Beta/ })).not.toBeInTheDocument();
+
+    await user.keyboard("{Enter}");
+
+    expect(screen.getByRole("button", { name: "Collapse workflows rail" })).toHaveAttribute("aria-expanded", "true");
+    expect(screen.getByRole("button", { name: /Beta/ })).toHaveAttribute("aria-current", "true");
+  });
+
+  it("supports the controlled state used by App", async () => {
+    function ControlledNavigator() {
+      const [collapsed, setCollapsed] = useState(false);
+      return (
+        <WorkflowNavigator
+          workflows={records}
+          selectedWorkflowId="alpha"
+          onSelect={() => {}}
+          collapsed={collapsed}
+          onToggleCollapsed={() => setCollapsed((current) => !current)}
+        />
+      );
+    }
+
+    render(<ControlledNavigator />);
+
+    const user = userEvent.setup();
+    await user.click(screen.getByRole("button", { name: "Collapse workflows rail" }));
+    expect(screen.getByRole("button", { name: "Expand workflows rail" })).toHaveAttribute("aria-expanded", "false");
+
+    await user.click(screen.getByRole("button", { name: "Expand workflows rail" }));
+    expect(screen.getByRole("button", { name: /Alpha/ })).toHaveAttribute("aria-current", "true");
   });
 });
