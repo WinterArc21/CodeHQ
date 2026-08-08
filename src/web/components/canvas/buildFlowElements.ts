@@ -9,7 +9,7 @@ import { outcomeTone } from "../../design/semantics";
 import { computeIncomingTypes } from "./graph";
 import type { LayoutResult } from "./layout";
 import { effectiveDepthForStep, stepHasMissingSource } from "./nodeContent";
-import type { OutcomeFlowNode, StepFlowNode, WorkflowFlowEdge, ZoneLabelFlowNode } from "./types";
+import type { OutcomeFlowNode, StepFlowNode, WorkflowFlowEdge } from "./types";
 
 function isStepExpanded(expandedStepIds: Record<string, true>, stepId: string): boolean {
   return expandedStepIds[stepId] === true;
@@ -231,7 +231,6 @@ export function buildFlowNodes(params: BuildFlowNodesParams): Array<StepFlowNode
     };
   });
 }
-
 export function buildFlowEdges(
   layout: LayoutResult,
   backEdgeIds: ReadonlySet<string>,
@@ -288,59 +287,4 @@ export function buildFlowEdges(
       },
     };
   });
-}
-
-/** How far above the topmost node's own top edge a zone label sits — small enough to stay inside
- * `layout.ts`'s `LAYOUT_MARGIN_Y` (28px) top margin, so the fitted viewport's own padding already
- * covers it without needing to widen the graph's own fit bounds for a purely decorative label. */
-const ZONE_LABEL_GAP_ABOVE = 20;
-
-/**
- * The "MAIN LINE" / "OUTCOMES" quiet-zone headers the mockup uses to orient a first-time reader
- * (`prototypes/edge-grammar`) — both anchored to the same y (the whole graph's own topmost row),
- * one over the main-line column's leftmost x, one over the outcome column's leftmost x, so they
- * read as a single header spanning the two regions rather than two independently-placed labels.
- * Either half is omitted when that region has no nodes at all (e.g. a workflow with no terminal
- * outcomes yet). Not part of `layout.ts`'s own node set — these never affect graph geometry,
- * routing, overlap checks, or the minimap's node count, purely a rendering-layer annotation.
- */
-export function buildZoneLabelNodes(layout: LayoutResult, traceActive = false): ZoneLabelFlowNode[] {
-  if (layout.nodes.length === 0) {
-    return [];
-  }
-  const usedIds = new Set(layout.nodes.map((node) => node.id));
-  const mainLineNodes = layout.nodes.filter((node) => !node.isOutcome);
-  const outcomeNodes = layout.nodes.filter((node) => node.isOutcome);
-  const specs: Array<{ id: string; text: string; x: number; y: number }> = [];
-  if (mainLineNodes.length > 0) {
-    specs.push({
-      id: "__zone-label-main-line",
-      text: "Main flow",
-      x: Math.min(...mainLineNodes.map((node) => node.x)),
-      y: Math.min(...mainLineNodes.map((node) => node.y)) - ZONE_LABEL_GAP_ABOVE,
-    });
-  }
-  for (const band of ["failure", "success"] as const) {
-    const nodes = outcomeNodes.filter((node) => node.outcomeBand === band);
-    if (nodes.length > 0) {
-      specs.push({
-        id: `__zone-label-${band}`,
-        text: band === "failure" ? "Failure outcomes" : "Success / completion",
-        x: Math.min(...nodes.map((node) => node.x)),
-        y: Math.min(...nodes.map((node) => node.y)) - ZONE_LABEL_GAP_ABOVE,
-      });
-    }
-  }
-
-  return specs
-    .filter((spec) => !usedIds.has(spec.id)) // a real step id could theoretically collide
-    .map((spec) => ({
-      id: spec.id,
-      type: "zoneLabel",
-      position: { x: spec.x, y: spec.y },
-      draggable: false,
-      selectable: false,
-      focusable: false,
-      data: { text: spec.text, dimmed: traceActive },
-    }));
 }

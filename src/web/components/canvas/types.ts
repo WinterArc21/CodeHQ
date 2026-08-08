@@ -47,19 +47,8 @@ export interface OutcomeNodeData extends Record<string, unknown> {
 
 export type OutcomeFlowNode = Node<OutcomeNodeData, "outcome">;
 
-export interface ZoneLabelNodeData extends Record<string, unknown> {
-  text: string;
-  /** Decorative labels dim with the rest of the canvas while a trace is active. */
-  dimmed: boolean;
-}
-
-/** A decorative "MAIN LINE" / "OUTCOMES" region header — not part of the workflow graph itself,
- * see `nodes/ZoneLabel.tsx`. */
-export type ZoneLabelFlowNode = Node<ZoneLabelNodeData, "zoneLabel">;
-
-/** Every node type the canvas can render — a work-step card, a terminal outcome pill, or a
- * decorative zone label. */
-export type CanvasFlowNode = StepFlowNode | OutcomeFlowNode | ZoneLabelFlowNode;
+/** Every node type the canvas can render: a work-step card or a terminal outcome pill. */
+export type CanvasFlowNode = StepFlowNode | OutcomeFlowNode;
 
 export interface WorkflowEdgeData extends Record<string, unknown> {
   connection: WorkflowConnection;

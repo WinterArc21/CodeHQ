@@ -5,7 +5,7 @@ import type { Workflow } from "@schema/workflow";
 import type { SourceStatus } from "../../api/types";
 import { usePrefersReducedMotion } from "../../lib/usePrefersReducedMotion";
 import { useCodeHQStore } from "../../store/useCodeHQStore";
-import { buildFlowEdges, buildFlowNodes, buildZoneLabelNodes, chooseCardinalHandles } from "./buildFlowElements";
+import { buildFlowEdges, buildFlowNodes, chooseCardinalHandles } from "./buildFlowElements";
 import { CanvasLegend } from "./CanvasLegend";
 import { CanvasHeader } from "./CanvasHeader";
 import { CanvasOverflowIndicator } from "./CanvasOverflowIndicator";
@@ -15,7 +15,6 @@ import { computeBackEdgeIds, computeTracePath } from "./graph";
 import { computeLayout } from "./layout";
 import { OutcomeNode } from "./nodes/OutcomeNode";
 import { StepNode } from "./nodes/StepNode";
-import { ZoneLabel } from "./nodes/ZoneLabel";
 import type { CanvasFlowNode, WorkflowFlowEdge } from "./types";
 import { useExportMode } from "../../export-viewer/ExportModeContext";
 import { fetchWorkflowExport } from "../../api/client";
@@ -34,7 +33,7 @@ import styles from "./WorkflowCanvas.module.css";
  * free while still growing in for a genuinely large workflow. */
 const MINIMAP_NODE_THRESHOLD = 10;
 
-const NODE_TYPES = { step: StepNode, outcome: OutcomeNode, zoneLabel: ZoneLabel };
+const NODE_TYPES = { step: StepNode, outcome: OutcomeNode };
 const EDGE_TYPES = { workflow: WorkflowEdge };
 
 export interface WorkflowCanvasProps {
@@ -132,7 +131,6 @@ function WorkflowCanvasInner({ workflow, sourceChecks, onDeleteWorkflow }: Workf
         onFocusStep,
         onBlurStep,
       }),
-      ...buildZoneLabelNodes(layout, tracePath !== null),
     ],
     [
       workflow,
@@ -158,8 +156,8 @@ function WorkflowCanvasInner({ workflow, sourceChecks, onDeleteWorkflow }: Workf
     const reset = previousWorkflowId.current !== workflow.id;
     previousWorkflowId.current = workflow.id;
     setNodes((current) => {
-      const positions = new Map(current.filter((node) => node.type !== "zoneLabel").map((node) => [node.id, node.position]));
-      return generatedNodes.map((node) => reset || node.type === "zoneLabel" ? node : { ...node, position: positions.get(node.id) ?? node.position });
+      const positions = new Map(current.map((node) => [node.id, node.position]));
+      return generatedNodes.map((node) => reset ? node : { ...node, position: positions.get(node.id) ?? node.position });
     });
   }, [generatedNodes, setNodes, workflow.id]);
   const baseEdges = useMemo(
@@ -174,7 +172,7 @@ function WorkflowCanvasInner({ workflow, sourceChecks, onDeleteWorkflow }: Workf
     for (const node of nodes) {
       const width = node.measured?.width ?? node.width;
       const height = node.measured?.height ?? node.height;
-      if (node.type !== "zoneLabel" && width !== undefined && height !== undefined) {
+      if (width !== undefined && height !== undefined) {
         nodeBounds.set(node.id, { x: node.position.x, y: node.position.y, width, height });
       }
     }
@@ -204,9 +202,6 @@ function WorkflowCanvasInner({ workflow, sourceChecks, onDeleteWorkflow }: Workf
   }, [baseEdges, layout, nodes]);
 
   const handleNodeClick: NodeMouseHandler<CanvasFlowNode> = (_event, node) => {
-    if (node.type === "zoneLabel") {
-      return;
-    }
     selectStep(node.id);
     setRovingId(node.id);
   };
