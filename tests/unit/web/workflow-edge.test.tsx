@@ -3,8 +3,10 @@ import { render } from "@testing-library/react";
 import { describe, expect, it } from "vitest";
 import { Position, ReactFlowProvider, type EdgeProps } from "@xyflow/react";
 import type { WorkflowConnection } from "@schema/workflow";
+import { buildFlowEdges } from "@web/components/canvas/buildFlowElements";
 import { WorkflowEdge } from "@web/components/canvas/edges/WorkflowEdge";
 import type { WorkflowEdgeData, WorkflowFlowEdge } from "@web/components/canvas/types";
+import type { LayoutResult } from "@web/components/canvas/layout";
 
 /**
  * `WorkflowEdge` is exercised directly (mirroring `canvas-node.test.tsx`'s approach for nodes):
@@ -40,6 +42,23 @@ function makeConnection(overrides: Partial<WorkflowConnection> = {}): WorkflowCo
 
 function makeData(overrides: Partial<WorkflowEdgeData> = {}): WorkflowEdgeData {
   return { connection: makeConnection(), dimmed: false, traced: false, ...overrides };
+}
+
+function makeLayout(): LayoutResult {
+  return {
+    nodes: [
+      { id: "a", x: 0, y: 0, width: 100, height: 80, index: 0, isOutcome: false },
+      { id: "ordinary", x: 200, y: 0, width: 100, height: 80, index: 1, isOutcome: false },
+      { id: "success", x: 200, y: 120, width: 100, height: 40, index: 2, isOutcome: true, outcomeBand: "success" },
+      { id: "failure", x: 200, y: -120, width: 100, height: 40, index: 3, isOutcome: true, outcomeBand: "failure" },
+    ],
+    edges: [
+      { id: "ordinary-edge", source: "a", target: "ordinary", connection: makeConnection({ to: "ordinary", type: "success" }) },
+      { id: "success-edge", source: "a", target: "success", connection: makeConnection({ to: "success", type: "success" }) },
+      { id: "failure-edge", source: "a", target: "failure", connection: makeConnection({ to: "failure", type: "success" }) },
+    ],
+    bounds: { width: 300, height: 240 },
+  };
 }
 
 /** The semantic stroke is the BaseEdge path (`react-flow__edge-path`); the halo is the plain
@@ -122,6 +141,32 @@ describe("WorkflowEdge visual grammar", () => {
       const { semantic } = edgePaths(renderEdge(makeData({ connection: makeConnection({ type: "success" }) })));
       expect(semantic.style.strokeDasharray).toBe("");
       expect(semantic.style.strokeLinecap).toBe("round");
+    });
+
+    it("renders a terminal success edge as dashed green while ordinary success stays solid", () => {
+      const edges = buildFlowEdges(makeLayout(), new Set(), null);
+      const ordinary = edges[0]!;
+      const success = edges[1]!;
+      const ordinaryPaths = edgePaths(renderEdge(ordinary.data!));
+      const successPaths = edgePaths(renderEdge(success.data!, "e1"));
+
+      expect(ordinary.data?.outcomeBand).toBeUndefined();
+      expect(success.data?.outcomeBand).toBe("success");
+      expect(ordinaryPaths.semantic.style.stroke).toBe("var(--accent-neutral)");
+      expect(ordinaryPaths.semantic.style.strokeDasharray).toBe("");
+      expect(successPaths.semantic.style.stroke).toBe("var(--accent-output)");
+      expect(successPaths.semantic.style.strokeDasharray).toBe("8 6");
+      expect(successPaths.semantic.getAttribute("marker-end")).toBe("url(#codehq-arrow-success-outcome)");
+    });
+
+    it("uses the terminal target band for a failure marker even when its connection type is success", () => {
+      const failure = buildFlowEdges(makeLayout(), new Set(), null)[2]!;
+      const { semantic } = edgePaths(renderEdge(failure.data!));
+
+      expect(failure.data?.outcomeBand).toBe("failure");
+      expect(semantic.style.stroke).toBe("var(--accent-red)");
+      expect(semantic.style.strokeDasharray).toBe("8 6");
+      expect(semantic.getAttribute("marker-end")).toBe("url(#codehq-arrow-failure)");
     });
   });
 

@@ -240,6 +240,9 @@ export function buildFlowEdges(
     // the canvas as context but dim while a trace is active.
     const dimmed = traceEdgeIds !== null && !traceEdgeIds.has(edge.id);
     const traced = traceEdgeIds !== null && !dimmed;
+    const outcomeBand = targetNode?.isOutcome === true
+      ? targetNode.outcomeBand ?? "success"
+      : undefined;
 
     const sourceHandle = isRetryLoop
       ? "retry-out"
@@ -267,6 +270,7 @@ export function buildFlowEdges(
         retry: isRetryLoop,
         returnEdge: isReturnEdge,
         branch: targetNode?.isOutcome === true,
+        ...(outcomeBand !== undefined ? { outcomeBand } : {}),
         dimmed,
         traced,
       },

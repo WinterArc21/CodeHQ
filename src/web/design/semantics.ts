@@ -27,9 +27,9 @@ export interface ConnectionVisual {
   dash: "none" | "dashed" | "dotted";
   showLabel: boolean;
   /** `"primary"` (the happy path) renders as the visually dominant line; `"branch"` (failure,
-   * conditional, async) renders thinner and slightly translated so it reads as subordinate to
+   * conditional, async, or terminal outcome) renders thinner and slightly translated so it reads as subordinate to
    * the primary path it diverges from, never competing with it (contract §10.3). Driven purely
-   * by connection `type`, same as every other field here. */
+   * by connection `type` or terminal outcome band. */
   weight: "primary" | "branch";
 }
 
@@ -119,6 +119,21 @@ export function connectionStyle(type?: "success" | "failure" | "conditional" | "
     return CONNECTION_VISUALS.success;
   }
   return CONNECTION_VISUALS[type];
+}
+
+export type OutcomeEdgeBand = "success" | "failure";
+
+/** A successful terminal is a distinct branch from an ordinary success/default connection. */
+const SUCCESS_OUTCOME_EDGE_VISUAL: ConnectionVisual = {
+  varName: "--accent-output",
+  dash: "dashed",
+  showLabel: true,
+  weight: "branch",
+};
+
+/** Line colour/dash + label treatment for a connection entering a terminal outcome band. */
+export function outcomeEdgeStyle(band: OutcomeEdgeBand): ConnectionVisual {
+  return band === "failure" ? CONNECTION_VISUALS.failure : SUCCESS_OUTCOME_EDGE_VISUAL;
 }
 
 /**

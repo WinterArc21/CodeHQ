@@ -1,17 +1,18 @@
 import styles from "./EdgeMarkers.module.css";
 
-const MARKER_VARIANTS = ["success", "failure", "conditional", "async", "retry"] as const;
+const MARKER_VARIANTS = ["success", "success-outcome", "failure", "conditional", "async", "retry"] as const;
 type MarkerVariant = (typeof MARKER_VARIANTS)[number];
 
 const MARKER_CLASS_NAMES: Record<MarkerVariant, string | undefined> = {
   success: styles.markerSuccess,
+  "success-outcome": styles.markerSuccessOutcome,
   failure: styles.markerFailure,
   conditional: styles.markerConditional,
   async: styles.markerAsync,
   retry: styles.markerRetry,
 };
 
-/** The SVG marker id for a connection `type` (`undefined` maps to the `"success"` marker). */
+/** The SVG marker id for a connection visual (`undefined` maps to the `"success"` marker). */
 export function edgeMarkerId(type: MarkerVariant | undefined): string {
   return `codehq-arrow-${type ?? "success"}`;
 }

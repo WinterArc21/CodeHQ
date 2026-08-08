@@ -3,6 +3,7 @@ import {
   categoryToken,
   confidenceStyle,
   connectionStyle,
+  outcomeEdgeStyle,
   outcomeTone,
   RETRY_EDGE_VISUAL,
   sourceStatusTone,
@@ -110,6 +111,23 @@ describe("RETRY_EDGE_VISUAL", () => {
     expect(RETRY_EDGE_VISUAL.varName).toBe("--accent-amber");
     expect(RETRY_EDGE_VISUAL.dash).toBe("dashed");
     expect(RETRY_EDGE_VISUAL.varName).not.toBe(connectionStyle("failure").varName);
+  });
+});
+
+describe("outcomeEdgeStyle", () => {
+  it("renders a successful terminal as a green dashed branch, distinct from ordinary success", () => {
+    const outcome = outcomeEdgeStyle("success");
+    const ordinary = connectionStyle("success");
+
+    expect(outcome.varName).toBe("--accent-output");
+    expect(outcome.dash).toBe("dashed");
+    expect(outcome.weight).toBe("branch");
+    expect(outcome.varName).not.toBe(ordinary.varName);
+    expect(outcome.dash).not.toBe(ordinary.dash);
+  });
+
+  it("keeps terminal failure red and dashed", () => {
+    expect(outcomeEdgeStyle("failure")).toEqual(connectionStyle("failure"));
   });
 });
 

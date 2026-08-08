@@ -1,6 +1,6 @@
 import type { CSSProperties } from "react";
 import { BaseEdge, EdgeLabelRenderer, getBezierPath, getSmoothStepPath, type EdgeProps } from "@xyflow/react";
-import { connectionStyle, RETRY_EDGE_VISUAL } from "../../../design/semantics";
+import { connectionStyle, outcomeEdgeStyle, RETRY_EDGE_VISUAL } from "../../../design/semantics";
 import { connectionLabelText } from "../edgeLabel";
 import type { WorkflowFlowEdge } from "../types";
 import { edgeMarkerId } from "./EdgeMarkers";
@@ -20,6 +20,7 @@ function edgeStrokeWidth(variant: string): number {
       return 2.75;
     case "async":
       return 2;
+    case "success-outcome":
     case "failure":
     case "conditional":
     case "retry":
@@ -49,21 +50,32 @@ const TRACED_STROKE_BOOST = 1;
 const DIMMED_OPACITY_FACTOR = 0.25;
 
 /**
- * A directional connector styled from `connectionStyle`: neutral solid for success/default,
- * muted red dashed for failure, amber dashed for conditional, and neutral dotted for async.
- * Geometry is derived from React Flow's live handle coordinates, so every path remains attached
- * while a card is dragged. The primary path renders bolder than a branch so a reader can follow
- * "what happens next" without consciously parsing colour.
+ * A directional connector styled from the connection type or terminal outcome band: neutral solid
+ * for success/default, green dashed for a successful terminal, muted red dashed for failure, amber
+ * dashed for conditional, and neutral dotted for async. Geometry is derived from React Flow's live
+ * handle coordinates, so every path remains attached while a card is dragged. The primary path
+ * renders bolder than a branch so a reader can follow "what happens next" without consciously
+ * parsing colour.
  */
 export function WorkflowEdge({ id, data, source, target, sourceX, sourceY, sourcePosition, targetX, targetY, targetPosition }: EdgeProps<WorkflowFlowEdge>) {
   if (data === undefined) {
     return null;
   }
 
-  const { connection, retry = false, returnEdge = false, branch = false, dimmed, traced } = data;
+  const { connection, retry = false, returnEdge = false, branch = false, outcomeBand, dimmed, traced } = data;
   const isRetryLoop = retry;
-  const visual = isRetryLoop ? RETRY_EDGE_VISUAL : connectionStyle(connection.type);
-  const markerVariant = isRetryLoop ? "retry" : connection.type;
+  const visual = isRetryLoop
+    ? RETRY_EDGE_VISUAL
+    : outcomeBand !== undefined
+      ? outcomeEdgeStyle(outcomeBand)
+      : connectionStyle(connection.type);
+  const markerVariant = isRetryLoop
+    ? "retry"
+    : outcomeBand === "success"
+      ? "success-outcome"
+      : outcomeBand === "failure"
+        ? "failure"
+        : connection.type;
 
   let path: string;
   let labelX: number;

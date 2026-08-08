@@ -72,6 +72,10 @@ export interface WorkflowEdgeData extends Record<string, unknown> {
   /** A connection into a terminal outcome. Its semantic branch routing/label remains distinct
    * while the live handle pair may switch to any facing cardinal sides. */
   branch?: boolean;
+  /** The target's terminal outcome band. This is intentionally separate from `connection.type`:
+   * a successful terminal is dashed green while an ordinary success connection stays neutral
+   * solid. */
+  outcomeBand?: OutcomeBand;
   /** Path tracing: true whenever a trace is active and this edge is not an outgoing edge from the
    * anchor. */
   dimmed: boolean;

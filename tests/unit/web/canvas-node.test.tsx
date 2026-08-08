@@ -317,4 +317,25 @@ describe("canvas outcome and legend semantics", () => {
     expect(legend).not.toHaveTextContent("Normal");
     expect(legend).not.toHaveTextContent("Async");
   });
+
+  it("separates terminal success edges from ordinary success edges in the legend", () => {
+    render(
+      <CanvasLegend
+        workflow={{
+          schemaVersion: "0.1",
+          id: "success-outcome",
+          name: "Success outcome",
+          purpose: "Tests terminal success grammar.",
+          steps: [makeStep({ id: "source" }), makeStep({ id: "work" }), makeStep({ id: "done", category: "output" })],
+          connections: [
+            { from: "source", to: "work", type: "success" },
+            { from: "work", to: "done", type: "success" },
+          ],
+        }}
+      />,
+    );
+    const legend = screen.getByRole("group", { name: /connection legend/i });
+    expect(legend).toHaveTextContent("Normal");
+    expect(legend).toHaveTextContent("Success outcome");
+  });
 });
