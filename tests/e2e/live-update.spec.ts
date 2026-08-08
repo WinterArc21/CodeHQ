@@ -115,7 +115,7 @@ test("new graph elements animate in without detaching existing connectors", asyn
 
   const incomingEdgeId = "save-result->outcome-generation-created#9";
   const connectorDistance = await page.evaluate((edgeId) => {
-    const targetHandle = document.querySelector<HTMLElement>('[data-nodeid="outcome-generation-created"][data-handleid="in"]');
+    const targetHandle = document.querySelector<HTMLElement>('[data-nodeid="outcome-generation-created"][data-handleid="in-top"]');
     const path = document.querySelector<SVGPathElement>(
       `.react-flow__edge[data-id="${edgeId}"] path.react-flow__edge-path`,
     );
@@ -127,7 +127,8 @@ test("new graph elements animate in without detaching existing connectors", asyn
     const screenEndpoint = new DOMPoint(endpoint.x, endpoint.y).matrixTransform(path.getScreenCTM() ?? new DOMMatrix());
     return Math.hypot(screenEndpoint.x - (rect.left + rect.width / 2), screenEndpoint.y - (rect.top + rect.height / 2));
   }, incomingEdgeId);
-  // The horizontal canvas attaches incoming connections to the target handle, rather than the
-  // card centre. A larger gap means node and edge geometry diverged during the live update.
+  // The horizontal canvas attaches incoming connections to the target's live facing handle,
+  // rather than the card centre. A larger gap means node and edge geometry diverged during the
+  // live update.
   expect(connectorDistance).toBeLessThan(5);
 });

@@ -24,7 +24,7 @@ const TONE_LABELS = {
  * into.
  */
 export function OutcomeNode({ data }: NodeProps<OutcomeFlowNode>) {
-  const { step, tone, band, dimmed, tabIndex, onKeyDown, onHoverStart, onHoverEnd, onFocusStep, onBlurStep } = data;
+  const { step, tone, dimmed, tabIndex, onKeyDown, onHoverStart, onHoverEnd, onFocusStep, onBlurStep } = data;
   const cardClassName = [styles.card, TONE_CLASS_NAMES[tone], dimmed ? styles.dimmed : ""].filter(Boolean).join(" ");
   const accessibleName = `${TONE_LABELS[tone]}: ${step.name}.${step.purpose.length > 0 ? ` ${step.purpose}` : ""}`;
 
@@ -41,7 +41,12 @@ export function OutcomeNode({ data }: NodeProps<OutcomeFlowNode>) {
       onFocus={onFocusStep}
       onBlur={onBlurStep}
     >
-      <Handle id="in" type="target" position={band === "failure" ? Position.Bottom : Position.Top} className={styles.handle} aria-hidden="true" />
+      {/* Outcome edges keep their success/failure semantics in the edge renderer, while their
+          physical attachment follows the same live cardinal choice as work-card edges. */}
+      <Handle id="in" type="target" position={Position.Left} className={styles.handle} aria-hidden="true" />
+      <Handle id="in-right" type="target" position={Position.Right} className={styles.handle} aria-hidden="true" />
+      <Handle id="in-top" type="target" position={Position.Top} className={styles.handle} aria-hidden="true" />
+      <Handle id="in-bottom" type="target" position={Position.Bottom} className={styles.handle} aria-hidden="true" />
 
       <span className={styles.glyph} data-outcome-glyph={tone} aria-hidden="true">
         {tone === "failure" ? (

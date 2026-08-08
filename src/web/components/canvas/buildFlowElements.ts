@@ -20,6 +20,17 @@ const HANDLE_SIZE = 10;
 const RETRY_IN_FRACTION = 0.28;
 const RETRY_OUT_FRACTION = 0.72;
 
+/** The four target-side ports shared by work cards and terminal outcome pills. The default
+ * "in" id is the left-facing port; the other ids name their physical side explicitly. */
+function cardinalTargetHandles(width: number, height: number): NodeHandle[] {
+  return [
+    { id: "in", type: "target", position: Position.Left, x: -HANDLE_SIZE / 2, y: height / 2 - HANDLE_SIZE / 2, width: HANDLE_SIZE, height: HANDLE_SIZE },
+    { id: "in-right", type: "target", position: Position.Right, x: width - HANDLE_SIZE / 2, y: height / 2 - HANDLE_SIZE / 2, width: HANDLE_SIZE, height: HANDLE_SIZE },
+    { id: "in-top", type: "target", position: Position.Top, x: width / 2 - HANDLE_SIZE / 2, y: -HANDLE_SIZE / 2, width: HANDLE_SIZE, height: HANDLE_SIZE },
+    { id: "in-bottom", type: "target", position: Position.Bottom, x: width / 2 - HANDLE_SIZE / 2, y: height - HANDLE_SIZE / 2, width: HANDLE_SIZE, height: HANDLE_SIZE },
+  ];
+}
+
 /**
  * The connection anchors, stated up front instead of left to be measured.
  *
@@ -51,11 +62,8 @@ function stepHandles(
   returnOut: boolean,
 ): NodeHandle[] {
   return [
-    { id: "in", type: "target", position: Position.Left, x: -HANDLE_SIZE / 2, y: height / 2 - HANDLE_SIZE / 2, width: HANDLE_SIZE, height: HANDLE_SIZE },
+    ...cardinalTargetHandles(width, height),
     { id: "out", type: "source", position: Position.Right, x: width - HANDLE_SIZE / 2, y: height / 2 - HANDLE_SIZE / 2, width: HANDLE_SIZE, height: HANDLE_SIZE },
-    { id: "in-right", type: "target", position: Position.Right, x: width - HANDLE_SIZE / 2, y: height / 2 - HANDLE_SIZE / 2, width: HANDLE_SIZE, height: HANDLE_SIZE },
-    { id: "in-top", type: "target", position: Position.Top, x: width / 2 - HANDLE_SIZE / 2, y: -HANDLE_SIZE / 2, width: HANDLE_SIZE, height: HANDLE_SIZE },
-    { id: "in-bottom", type: "target", position: Position.Bottom, x: width / 2 - HANDLE_SIZE / 2, y: height - HANDLE_SIZE / 2, width: HANDLE_SIZE, height: HANDLE_SIZE },
     { id: "out-left", type: "source", position: Position.Left, x: -HANDLE_SIZE / 2, y: height / 2 - HANDLE_SIZE / 2, width: HANDLE_SIZE, height: HANDLE_SIZE },
     { id: "out-top", type: "source", position: Position.Top, x: width / 2 - HANDLE_SIZE / 2, y: -HANDLE_SIZE / 2, width: HANDLE_SIZE, height: HANDLE_SIZE },
     { id: "out-bottom", type: "source", position: Position.Bottom, x: width / 2 - HANDLE_SIZE / 2, y: height - HANDLE_SIZE / 2, width: HANDLE_SIZE, height: HANDLE_SIZE },
@@ -140,23 +148,14 @@ export function buildFlowNodes(params: BuildFlowNodesParams): Array<StepFlowNode
     if (layoutNode.isOutcome) {
       const tone = outcomeTone(incomingTypesByStep.get(step.id) ?? []);
       const band = layoutNode.outcomeBand ?? "success";
-      const position = band === "failure" ? Position.Bottom : Position.Top;
       return {
         id: layoutNode.id,
         type: "outcome",
         position: { x: layoutNode.x, y: layoutNode.y },
         width: layoutNode.width,
         height: layoutNode.height,
-        handles: [{
-          id: "in",
-          type: "target",
-          position,
-          x: layoutNode.width / 2 - HANDLE_SIZE / 2,
-          y: position === Position.Top ? -HANDLE_SIZE / 2 : layoutNode.height - HANDLE_SIZE / 2,
-          width: HANDLE_SIZE,
-          height: HANDLE_SIZE,
-        }],
-        targetPosition: position,
+        handles: cardinalTargetHandles(layoutNode.width, layoutNode.height),
+        targetPosition: Position.Left,
         data: {
           step,
           tone,
@@ -233,24 +232,35 @@ export function buildFlowEdges(
     const isRetryLoop = backEdgeIds.has(edge.id) && edge.source === edge.target;
     const isReturnEdge = backEdgeIds.has(edge.id) && edge.source !== edge.target;
     const targetNode = nodeById.get(edge.target);
+    const sourceNode = nodeById.get(edge.source);
+    const cardinalHandles = !isRetryLoop && !isReturnEdge && sourceNode !== undefined && targetNode !== undefined
+      ? chooseCardinalHandles(sourceNode, targetNode)
+      : undefined;
     // `computeTracePath` supplies only the anchor's outgoing edge ids. All other edges remain in
     // the canvas as context but dim while a trace is active.
     const dimmed = traceEdgeIds !== null && !traceEdgeIds.has(edge.id);
     const traced = traceEdgeIds !== null && !dimmed;
+
+    const sourceHandle = isRetryLoop
+      ? "retry-out"
+      : isReturnEdge
+        ? "return-out"
+        : cardinalHandles?.sourceHandle ?? (targetNode?.isOutcome
+          ? targetNode.outcomeBand === "failure" ? "failure" : "success"
+          : "out");
+    const targetHandle = isRetryLoop
+      ? "retry-in"
+      : isReturnEdge
+        ? "return-in"
+        : cardinalHandles?.targetHandle ?? "in";
 
     return {
       id: edge.id,
       type: "workflow",
       source: edge.source,
       target: edge.target,
-      sourceHandle: isRetryLoop
-        ? "retry-out"
-        : isReturnEdge
-          ? "return-out"
-        : targetNode?.isOutcome
-          ? targetNode.outcomeBand === "failure" ? "failure" : "success"
-          : "out",
-      targetHandle: isRetryLoop ? "retry-in" : isReturnEdge ? "return-in" : "in",
+      sourceHandle,
+      targetHandle,
       focusable: false,
       data: {
         connection: edge.connection,

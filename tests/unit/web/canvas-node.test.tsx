@@ -4,8 +4,9 @@ import userEvent from "@testing-library/user-event";
 import { describe, expect, it, vi } from "vitest";
 import { ReactFlowProvider, type NodeProps } from "@xyflow/react";
 import type { WorkflowStep } from "@schema/workflow";
-import { chooseCardinalHandles } from "@web/components/canvas/buildFlowElements";
+import { buildFlowEdges, chooseCardinalHandles } from "@web/components/canvas/buildFlowElements";
 import { CanvasLegend } from "@web/components/canvas/CanvasLegend";
+import { computeLayout } from "@web/components/canvas/layout";
 import { OutcomeNode } from "@web/components/canvas/nodes/OutcomeNode";
 import { StepNode } from "@web/components/canvas/nodes/StepNode";
 import type { OutcomeFlowNode, OutcomeNodeData, StepFlowNode, StepNodeData } from "@web/components/canvas/types";
@@ -224,6 +225,52 @@ describe("chooseCardinalHandles", () => {
 });
 
 describe("canvas outcome and legend semantics", () => {
+  it("initializes outcome edges on cardinal handles without losing branch semantics", () => {
+    const workflow = {
+      schemaVersion: "0.1" as const,
+      id: "outcome-edge",
+      name: "Outcome edge",
+      purpose: "Tests outcome edge anchors.",
+      steps: [makeStep({ id: "source" }), makeStep({ id: "done", category: "output" })],
+      connections: [{ from: "source", to: "done", type: "success" as const }],
+    };
+    const layout = computeLayout(workflow, { depth: "workflow", expandedStepIds: {} });
+    const [edge] = buildFlowEdges(layout, new Set<string>(), null);
+
+    expect(edge).toMatchObject({
+      sourceHandle: "out-bottom",
+      targetHandle: "in-top",
+      data: { branch: true },
+    });
+  });
+
+  it.each([
+    ["success", "success"],
+    ["failure", "failure"],
+  ] as const)("declares cardinal target anchors for a %s outcome", (_label, band) => {
+    const data: OutcomeNodeData = {
+      step: makeStep({ id: "done-" + band, name: "Done " + band }),
+      tone: band,
+      band,
+      dimmed: false,
+      tabIndex: -1,
+      onKeyDown: () => {},
+      onHoverStart: () => {},
+      onHoverEnd: () => {},
+      onFocusStep: () => {},
+      onBlurStep: () => {},
+    };
+    const props = { ...makeProps(makeData()), id: data.step.id, type: "outcome", data } as NodeProps<OutcomeFlowNode>;
+    const { container } = render(
+      <ReactFlowProvider>
+        <OutcomeNode {...props} />
+      </ReactFlowProvider>,
+    );
+    for (const handleId of ["in", "in-right", "in-top", "in-bottom"]) {
+      expect(container.querySelector("[data-handleid=\"" + handleId + "\"]"), band + "/" + handleId).toBeInTheDocument();
+    }
+  });
+
   it("labels a neutral outcome honestly and does not render a success check", () => {
     const data: OutcomeNodeData = {
       step: makeStep({ id: "done", name: "Done", purpose: "Processing ended." }),

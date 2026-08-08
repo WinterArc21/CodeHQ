@@ -167,10 +167,10 @@ function WorkflowCanvasInner({ workflow, sourceChecks, onDeleteWorkflow }: Workf
     [layout, backEdgeIds, tracePath],
   );
   const edges = useMemo(() => {
-    const stepBounds = new Map<string, { x: number; y: number; width: number; height: number }>();
+    const nodeBounds = new Map<string, { x: number; y: number; width: number; height: number }>();
     for (const node of nodes) {
-      if (node.type === "step" && node.width !== undefined && node.height !== undefined) {
-        stepBounds.set(node.id, { x: node.position.x, y: node.position.y, width: node.width, height: node.height });
+      if (node.type !== "zoneLabel" && node.width !== undefined && node.height !== undefined) {
+        nodeBounds.set(node.id, { x: node.position.x, y: node.position.y, width: node.width, height: node.height });
       }
     }
 
@@ -178,8 +178,8 @@ function WorkflowCanvasInner({ workflow, sourceChecks, onDeleteWorkflow }: Workf
       if (edge.data?.retry === true || edge.data?.returnEdge === true) {
         return edge;
       }
-      const source = stepBounds.get(edge.source);
-      const target = stepBounds.get(edge.target);
+      const source = nodeBounds.get(edge.source);
+      const target = nodeBounds.get(edge.target);
       if (source === undefined || target === undefined) {
         return edge;
       }
