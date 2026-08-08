@@ -696,8 +696,15 @@ function initUI() {
   document.querySelectorAll("[data-copy]").forEach((btn) => {
     const label = btn.querySelector("span");
     btn.addEventListener("click", async () => {
+      const commands = Array.from(
+        btn.closest(".cmd")?.querySelectorAll(".cmd-line code") ?? [],
+        (code) => code.textContent?.trim() ?? "",
+      ).filter(Boolean).join("\n");
+
+      if (!commands) return;
+
       try {
-        await navigator.clipboard.writeText(btn.dataset.copy ?? "");
+        await navigator.clipboard.writeText(commands);
         btn.classList.add("is-copied");
         if (label) label.textContent = "copied";
         window.setTimeout(() => {
